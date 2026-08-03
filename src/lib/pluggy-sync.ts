@@ -78,7 +78,7 @@ export async function syncPluggyItem(pluggyItemDbId: string) {
       // amend a transaction (e.g. pending -> posted) after we first see it,
       // so an upsert per row is both necessary and the more correct choice.
       await prisma.transaction.upsert({
-        where: { pluggyTransactionId: t.id },
+        where: { userId_pluggyTransactionId: { userId: pluggyItem.userId, pluggyTransactionId: t.id } },
         update: data,
         create: { ...data, pluggyTransactionId: t.id },
       });

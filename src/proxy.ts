@@ -8,6 +8,7 @@ const PROTECTED_PREFIXES = [
   "/accounts",
   "/categories",
   "/budgets",
+  "/events",
   "/settings",
 ];
 const AUTH_ROUTES = ["/login", "/register"];

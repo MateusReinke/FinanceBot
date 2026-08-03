@@ -5,6 +5,7 @@ import {
   Landmark,
   PiggyBank,
   Tags,
+  Users,
   Settings,
 } from "lucide-react";
 
@@ -20,5 +21,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/accounts", label: "Contas", icon: Landmark },
   { href: "/budgets", label: "Orçamentos", icon: PiggyBank },
   { href: "/categories", label: "Categorias", icon: Tags },
+  { href: "/events", label: "Eventos", icon: Users },
   { href: "/settings", label: "Configurações", icon: Settings },
 ];

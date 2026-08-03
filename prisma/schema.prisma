@@ -20,6 +20,11 @@ model User {
   transactions Transaction[]
   budgets      Budget[]
   pluggyItems  PluggyItem[]
+
+  createdEvents       Event[]             @relation("EventCreator")
+  eventParticipations EventParticipant[]
+  paidEventExpenses   EventExpense[]      @relation("EventExpensePayer")
+  eventExpenseSplits  EventExpenseSplit[]
 }
 
 // One bank connection made through the Open Finance aggregator (Pluggy).
@@ -94,8 +99,10 @@ model Transaction {
   type        String // income, expense, transfer
   notes       String?
 
-  // Set when this transaction was imported via Open Finance sync.
-  pluggyTransactionId String? @unique
+  // Set when this transaction was imported via Open Finance sync. Scoped to
+  // (userId, pluggyTransactionId) rather than a bare unique so an id can
+  // never let a sync upsert cross into another user's row.
+  pluggyTransactionId String?
   merchantName        String?
   pluggyCategory       String?
 
@@ -106,6 +113,7 @@ model Transaction {
   account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
+  @@unique([userId, pluggyTransactionId])
   @@index([userId, date])
   @@index([accountId])
   @@index([categoryId])
@@ -126,4 +134,89 @@ model Budget {
 
   @@unique([userId, categoryId, month, year])
   @@index([userId, month, year])
+}
+
+// Shared expense group ("rachar a conta"). This is the one deliberate
+// exception to per-user data isolation: everything under an Event is only
+// ever visible to its participants, enforced centrally in lib/events-dal.ts
+// (verifyEventAccess) rather than repeated ad hoc in each query/action.
+model Event {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  // Nullable so the event survives its creator's account being deleted —
+  // it belongs to the group, not to one member.
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy    User?              @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  participants EventParticipant[]
+  expenses     EventExpense[]
+  invites      EventInvite[]
+
+  @@index([createdById])
+}
+
+model EventParticipant {
+  id       String   @id @default(cuid())
+  eventId  String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+// Shareable join link. `code` is a high-entropy random token — knowing it
+// is what grants access to join, so it must never be guessable or listed.
+model EventInvite {
+  id          String    @id @default(cuid())
+  eventId     String
+  code        String    @unique
+  createdById String?
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  revoked     Boolean   @default(false)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+model EventExpense {
+  id          String   @id @default(cuid())
+  eventId     String
+  description String
+  amount      Float
+  paidById    String
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event  Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  // Restrict (not Cascade/SetNull): a group's shared ledger must never lose
+  // who paid what just because that member later deletes their account.
+  paidBy User                @relation("EventExpensePayer", fields: [paidById], references: [id], onDelete: Restrict)
+  splits EventExpenseSplit[]
+
+  @@index([eventId])
+  @@index([paidById])
+}
+
+model EventExpenseSplit {
+  id             String @id @default(cuid())
+  eventExpenseId String
+  userId         String
+  amount         Float // this participant's share of the expense
+
+  eventExpense EventExpense @relation(fields: [eventExpenseId], references: [id], onDelete: Cascade)
+  // Restrict for the same reason as EventExpense.paidBy above.
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([eventExpenseId, userId])
+  @@index([userId])
 }

@@ -32,6 +32,9 @@ export async function upsertAccount(_state: FormState, formData: FormData): Prom
   if (typeof id === "string" && id.length > 0) {
     const existing = await prisma.account.findFirst({ where: { id, userId } });
     if (!existing) return { message: "Conta não encontrada." };
+    if (existing.pluggyItemId) {
+      return { message: "Contas conectadas via Open Finance são somente leitura." };
+    }
     await prisma.account.update({ where: { id }, data });
   } else {
     await prisma.account.create({ data: { ...data, userId } });
@@ -62,7 +65,7 @@ export async function deleteAccount(formData: FormData) {
   if (typeof id !== "string") return;
 
   const existing = await prisma.account.findFirst({ where: { id, userId } });
-  if (!existing) return;
+  if (!existing || existing.pluggyItemId) return;
 
   await prisma.account.delete({ where: { id } });
   revalidateAccountPages();

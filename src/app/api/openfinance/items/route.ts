@@ -24,6 +24,14 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Check ownership of any existing row before writing anything — an
+    // upsert-then-check would still touch another user's item on the way
+    // to rejecting the request.
+    const existing = await prisma.pluggyItem.findUnique({ where: { pluggyItemId } });
+    if (existing && existing.userId !== session.userId) {
+      return NextResponse.json({ error: "Conexão pertence a outro usuário." }, { status: 403 });
+    }
+
     const remoteItem = await getPluggyItem(pluggyItemId);
 
     const pluggyItem = await prisma.pluggyItem.upsert({
@@ -43,10 +51,6 @@ export async function POST(request: Request) {
         connectorImageUrl: remoteItem.connector?.imageUrl ?? null,
       },
     });
-
-    if (pluggyItem.userId !== session.userId) {
-      return NextResponse.json({ error: "Conexão pertence a outro usuário." }, { status: 403 });
-    }
 
     await syncPluggyItem(pluggyItem.id);
 

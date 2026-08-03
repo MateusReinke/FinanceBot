@@ -39,7 +39,7 @@ export async function getDashboardData(userId: string, month: number, year: numb
     .map((g) => g.categoryId)
     .filter((id): id is string => Boolean(id));
   const categories = categoryIds.length
-    ? await prisma.category.findMany({ where: { id: { in: categoryIds } } })
+    ? await prisma.category.findMany({ where: { id: { in: categoryIds }, userId } })
     : [];
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
