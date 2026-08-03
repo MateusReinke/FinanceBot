@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-foreground: #ffffff;
+  --success: #10b981;
+  --success-bg: #ecfdf5;
+  --danger: #e11d48;
+  --danger-bg: #fff1f2;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --ring: #4f46e5;
+
+  /* Validated income/expense pair for charts — see dataviz palette check. */
+  --chart-income: #008300;
+  --chart-expense: #e34948;
+  --chart-grid: #e1e0d9;
+  --chart-axis: #898781;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b0f1a;
+    --foreground: #e2e8f0;
+    --card: #131826;
+    --card-foreground: #e2e8f0;
+    --muted: #1b2233;
+    --muted-foreground: #8b96ab;
+    --border: #232b3d;
+    --primary: #6366f1;
+    --primary-hover: #7c7ff2;
+    --primary-foreground: #ffffff;
+    --success: #34d399;
+    --success-bg: #0d2b21;
+    --danger: #fb7185;
+    --danger-bg: #2c1116;
+    --warning: #fbbf24;
+    --warning-bg: #2b2110;
+    --ring: #6366f1;
+
+    --chart-income: #008300;
+    --chart-expense: #e66767;
+    --chart-grid: #2c2c2a;
+    --chart-axis: #898781;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-sans-stack);
+}
+
+:root {
+  --font-sans-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans-stack);
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+}

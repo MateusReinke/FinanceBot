@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  accounts     Account[]
+  categories   Category[]
+  transactions Transaction[]
+  budgets      Budget[]
+  pluggyItems  PluggyItem[]
+}
+
+// One bank connection made through the Open Finance aggregator (Pluggy).
+model PluggyItem {
+  id                String    @id @default(cuid())
+  userId            String
+  pluggyItemId      String    @unique
+  connectorName     String
+  connectorImageUrl String?
+  status            String // UPDATED, UPDATING, LOGIN_ERROR, OUTDATED, WAITING_USER_INPUT, ERROR
+  executionStatus   String?
+  lastSyncedAt      DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accounts Account[]
+
+  @@index([userId])
+}
+
+model Account {
+  id       String  @id @default(cuid())
+  userId   String
+  name     String
+  type     String // checking, savings, credit_card, cash, investment
+  balance  Float   @default(0)
+  currency String  @default("BRL")
+  color    String  @default("#6366f1")
+  archived Boolean @default(false)
+
+  // Set when this account was created via Open Finance sync instead of manually.
+  pluggyItemId    String?
+  pluggyAccountId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pluggyItem   PluggyItem?   @relation(fields: [pluggyItemId], references: [id], onDelete: SetNull)
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  type      String // income, expense
+  color     String
+  icon      String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@unique([userId, name, type])
+  @@index([userId])
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  accountId   String
+  categoryId  String?
+  description String
+  amount      Float // always positive; sign is derived from `type`
+  date        DateTime
+  type        String // income, expense, transfer
+  notes       String?
+
+  // Set when this transaction was imported via Open Finance sync.
+  pluggyTransactionId String? @unique
+  merchantName        String?
+  pluggyCategory       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@index([accountId])
+  @@index([categoryId])
+}
+
+model Budget {
+  id         String   @id @default(cuid())
+  userId     String
+  categoryId String
+  amount     Float
+  month      Int // 1-12
+  year       Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId, month, year])
+  @@index([userId, month, year])
+}
