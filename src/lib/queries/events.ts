@@ -45,6 +45,9 @@ export async function getUserEvents(userId: string) {
   });
 }
 
+// Assumes the caller already ran verifyEventAccess(eventId) for the current
+// session — this function does not itself check participation, it only
+// fetches. Never call it without that guard immediately before.
 export async function getEventDetail(eventId: string) {
   const event = await prisma.event.findUniqueOrThrow({
     where: { id: eventId },
