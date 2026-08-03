@@ -24,7 +24,24 @@ para importar automaticamente contas e transações do seu banco.
 - Orçamentos mensais por categoria com barra de progresso
 - **Open Finance**: conecte um banco real (ou sandbox) via widget do Pluggy,
   importe contas e transações automaticamente, sincronize sob demanda ou via webhook
+- **Eventos**: divida contas em grupo (viagem, churrasco, etc.) — convide pessoas
+  por link, registre despesas com divisão igual ou customizada, veja o saldo de
+  cada participante e sugestões de quem deve pagar quem
 - Configurações de perfil, troca de senha e exclusão de conta
+
+## Segurança e isolamento de dados
+
+Toda a conta de um usuário — contas bancárias, transações, categorias e
+orçamentos — só é visível para o próprio usuário; toda leitura e escrita passa
+por uma verificação de posse (`userId` da sessão) antes de tocar o banco. A
+única exceção deliberada é o recurso de **Eventos**: quem participa de um
+evento compartilhado vê as despesas e saldos daquele evento, e só daquele
+evento — nunca as finanças pessoais de quem está nele. Esse controle de acesso
+fica centralizado em `src/lib/events-dal.ts` (`verifyEventAccess`), usado por
+toda rota e Server Action de evento, e responde com 404 tanto para "evento não
+existe" quanto para "você não participa dele", para nunca revelar quais ids de
+evento são válidos. O convite usa um token de 192 bits (`crypto.randomBytes`),
+não sequencial e não adivinhável.
 
 ## Como rodar localmente
 
@@ -82,7 +99,7 @@ npx prisma migrate dev # criar/aplicar migrations após mudar o schema
 src/
   app/
     (auth)/           # login e cadastro
-    (app)/             # área autenticada (painel, transações, contas, orçamentos, categorias, configurações)
+    (app)/             # área autenticada (painel, transações, contas, orçamentos, categorias, eventos, configurações)
     api/openfinance/    # rotas do fluxo Pluggy (connect-token, items, sync, webhook)
     actions/            # Server Actions (mutações)
   components/
@@ -91,6 +108,10 @@ src/
     charts/               # gráficos (Recharts)
     openfinance/           # widget de conexão bancária e gestão de conexões
   lib/                    # Prisma client, sessão/auth, validação (zod), cliente Pluggy
+    events-dal.ts           # verifyEventAccess — gate central de acesso a Eventos
+    events.ts                # cálculo de divisão/saldos/quitação (puro, sem I/O)
 prisma/
-  schema.prisma           # modelos (User, Account, Category, Transaction, Budget, PluggyItem)
+  schema.prisma           # modelos (User, Account, Category, Transaction, Budget,
+                           # PluggyItem, Event, EventParticipant, EventInvite,
+                           # EventExpense, EventExpenseSplit)
 ```
