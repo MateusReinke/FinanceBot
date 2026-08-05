@@ -7,6 +7,16 @@ export function isOpenAiConfigured() {
   return Boolean(process.env.OPENAI_API_KEY);
 }
 
+// OPENAI_MODEL is meant for OpenAI's own model IDs (e.g. "o4-mini"), but
+// router/aggregator services (OpenRouter, aimlapi, ...) namespace theirs
+// as "openai/o4-mini" — an easy value to paste in by mistake since this
+// app calls api.openai.com directly, which doesn't understand that
+// prefix and rejects it as an unrecognized model ID.
+function resolveModel() {
+  const raw = (process.env.OPENAI_MODEL || DEFAULT_MODEL).trim();
+  return raw.replace(/^openai\//, "");
+}
+
 export type ExtractedReceiptItem = { description: string; amount: number };
 
 // Plain JSON mode, not Structured Outputs (response_format: json_schema) —
@@ -43,7 +53,7 @@ export async function extractReceiptItems(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+      model: resolveModel(),
       messages: [
         {
           role: "user",
