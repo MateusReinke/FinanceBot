@@ -9,39 +9,23 @@ export function isOpenAiConfigured() {
 
 export type ExtractedReceiptItem = { description: string; amount: number };
 
-// Structured Outputs — constrains the model to emit exactly this shape, so
-// callers never have to defend against free-text/markdown-wrapped JSON.
-const RECEIPT_ITEMS_SCHEMA = {
-  name: "receipt_items",
-  strict: true,
-  schema: {
-    type: "object",
-    properties: {
-      items: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            description: { type: "string" },
-            amount: { type: "number" },
-          },
-          required: ["description", "amount"],
-          additionalProperties: false,
-        },
-      },
-    },
-    required: ["items"],
-    additionalProperties: false,
-  },
-} as const;
-
+// Plain JSON mode, not Structured Outputs (response_format: json_schema) —
+// json_schema's strict-conformance guarantee only applies to specific
+// model snapshots, and guessing which ones are still current is exactly
+// what broke twice already. json_object is the older, far more broadly
+// supported mode; it only guarantees syntactically valid JSON, not this
+// exact shape, so the parsing below stays fully defensive (never trusts
+// the shape blindly) to compensate.
 const EXTRACTION_PROMPT =
   "Esta imagem é uma nota fiscal ou recibo brasileiro. Liste cada item, produto " +
   "ou serviço cobrado, com sua descrição e valor em reais (apenas o número, sem " +
   '"R$" e sem separador de milhar). Não inclua subtotal, taxa de serviço, ' +
   "gorjeta ou o total geral como itens à parte — a menos que a nota não tenha " +
   "nenhum item detalhado, e nesse caso liste o total como um único item. Se a " +
-  "imagem não for uma nota/recibo legível, retorne uma lista vazia.";
+  "imagem não for uma nota/recibo legível, retorne uma lista vazia.\n\n" +
+  "Responda apenas com um JSON no formato exato a seguir, sem nenhum texto " +
+  "adicional antes ou depois:\n" +
+  '{"items": [{"description": "string", "amount": number}, ...]}';
 
 export async function extractReceiptItems(
   imageBase64: string,
@@ -69,7 +53,7 @@ export async function extractReceiptItems(
           ],
         },
       ],
-      response_format: { type: "json_schema", json_schema: RECEIPT_ITEMS_SCHEMA },
+      response_format: { type: "json_object" },
       // Chat Completions renamed this from max_tokens after this codebase's
       // training cutoff — max_tokens is now rejected outright (confirmed
       // against a real deployment, not guessed).
