@@ -130,10 +130,12 @@ preenche tudo na mão.
 Ao importar o projeto, escolha **Build Pack: Docker Compose** (não
 "Dockerfile") e aponte **Docker Compose Location** para
 `/docker-compose.prod.yml`. Esse arquivo sobe `app` + `postgres` juntos, e
-por referenciar as variáveis como `${POSTGRES_PASSWORD:?...}` no lugar de
+por referenciar as variáveis como `${POSTGRES_PASSWORD}` no lugar de
 valores fixos, o Coolify lê o arquivo e já monta os campos pra você
-preencher na aba "Environment Variables" — inclusive recusa o deploy com
-mensagem clara se faltar alguma obrigatória, em vez de subir e cair depois.
+preencher na aba "Environment Variables". Se esquecer alguma obrigatória, o
+container sobe e encerra na hora com uma mensagem clara nos logs (via
+`docker-entrypoint.sh`), em vez de ficar tentando servir requisições sem
+banco configurado.
 
 | Variável | Obrigatória | Valor |
 |---|---|---|
