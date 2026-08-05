@@ -1,0 +1,59 @@
+# dependencies
+node_modules
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+coverage
+
+# next.js
+.next
+out
+
+# production
+build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files — never bake secrets into an image layer; Coolify injects real
+# env vars at runtime instead
+.env*
+!.env.example
+
+# database
+prisma/dev.db
+prisma/dev.db-journal
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# git / editor / agent metadata
+.git
+.github
+.claude
+.vscode
+
+# docker itself
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# docs — irrelevant to the build, keeps the context upload small
+README.md

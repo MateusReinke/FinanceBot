@@ -1,0 +1,27 @@
+# Local development convenience only — Coolify does not use this file.
+# In Coolify, add a separate Postgres resource from its panel and point
+# DATABASE_URL at it (see "Deploy no Coolify" in the README).
+#
+# Usage: docker compose up -d
+# Then set DATABASE_URL in your .env to match the credentials below
+# (this is already the default in .env.example).
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: financebot
+      POSTGRES_PASSWORD: financebot_dev_pw
+      POSTGRES_DB: financebot
+    ports:
+      - "5432:5432"
+    volumes:
+      - financebot_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U financebot -d financebot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  financebot_postgres_data:

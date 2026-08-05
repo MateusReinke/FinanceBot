@@ -9,10 +9,12 @@ import { UserMenu } from "./user-menu";
 export function AppShell({
   name,
   email,
+  role,
   children,
 }: {
   name: string;
   email: string;
+  role: string;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -66,7 +68,7 @@ export function AppShell({
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex-1" />
-          <UserMenu name={name} email={email} />
+          <UserMenu name={name} email={email} role={role} />
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>
       </div>

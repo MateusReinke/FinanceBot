@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { LogOut, User } from "lucide-react";
+import Link from "next/link";
+import { LogOut, User, ShieldCheck } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 
-export function UserMenu({ name, email }: { name: string; email: string }) {
+export function UserMenu({ name, email, role }: { name: string; email: string; role: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -40,6 +41,16 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
             <p className="truncate text-sm font-medium text-foreground">{name}</p>
             <p className="truncate text-xs text-muted-foreground">{email}</p>
           </div>
+          {role === "admin" ? (
+            <Link
+              href="/admin"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Painel admin
+            </Link>
+          ) : null}
           <form action={logout}>
             <button
               type="submit"

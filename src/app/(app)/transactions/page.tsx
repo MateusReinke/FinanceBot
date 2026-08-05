@@ -37,7 +37,7 @@ export default async function TransactionsPage({
   if (filters.accountId) where.accountId = filters.accountId;
   if (filters.categoryId) where.categoryId = filters.categoryId;
   if (filters.type) where.type = filters.type;
-  if (filters.q) where.description = { contains: filters.q };
+  if (filters.q) where.description = { contains: filters.q, mode: "insensitive" };
   if (filters.from || filters.to) {
     where.date = {
       ...(filters.from ? { gte: new Date(filters.from) } : {}),

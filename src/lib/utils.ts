@@ -54,6 +54,20 @@ export function getCurrentMonthYear() {
   return { month: now.getUTCMonth() + 1, year: now.getUTCFullYear() };
 }
 
+// Adds calendar months the way a billing schedule expects: lands on the 1st
+// of the target month first, then clamps the day back to that month's real
+// last day. Plain `setUTCMonth` arithmetic would roll Jan 31 + 1 month into
+// Mar 3 instead of Feb 28 — this avoids that.
+export function addMonthsUTC(date: Date, months: number) {
+  const day = date.getUTCDate();
+  const firstOfTarget = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
+  const lastDayOfTarget = new Date(
+    Date.UTC(firstOfTarget.getUTCFullYear(), firstOfTarget.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+  firstOfTarget.setUTCDate(Math.min(day, lastDayOfTarget));
+  return firstOfTarget;
+}
+
 const monthShortFormatter = new Intl.DateTimeFormat("pt-BR", {
   month: "short",
   timeZone: "UTC",

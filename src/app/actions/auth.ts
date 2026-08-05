@@ -6,10 +6,8 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, deleteSession } from "@/lib/session";
 import { LoginSchema, SignupSchema } from "@/lib/validation/auth";
 import type { FormState } from "@/lib/form-state";
-import {
-  DEFAULT_EXPENSE_CATEGORIES,
-  DEFAULT_INCOME_CATEGORIES,
-} from "@/lib/default-categories";
+import { createUserWithDefaultCategories } from "@/lib/user-provisioning";
+import { isAdminEmail } from "@/lib/admin";
 
 export async function signup(_state: FormState, formData: FormData): Promise<FormState> {
   const validatedFields = SignupSchema.safeParse({
@@ -30,30 +28,11 @@ export async function signup(_state: FormState, formData: FormData): Promise<For
   }
 
   const passwordHash = await hashPassword(password);
-
-  const user = await prisma.$transaction(async (tx) => {
-    const created = await tx.user.create({
-      data: { name, email, passwordHash },
-    });
-
-    await tx.category.createMany({
-      data: [
-        ...DEFAULT_EXPENSE_CATEGORIES.map((c) => ({
-          ...c,
-          type: "expense",
-          isDefault: true,
-          userId: created.id,
-        })),
-        ...DEFAULT_INCOME_CATEGORIES.map((c) => ({
-          ...c,
-          type: "income",
-          isDefault: true,
-          userId: created.id,
-        })),
-      ],
-    });
-
-    return created;
+  const user = await createUserWithDefaultCategories({
+    name,
+    email,
+    passwordHash,
+    role: isAdminEmail(email) ? "admin" : "user",
   });
 
   await createSession(user.id);
@@ -75,6 +54,14 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     return { message: "E-mail ou senha incorretos." };
+  }
+
+  // Promote-only: if ADMIN_EMAIL now matches an existing account, grant
+  // admin on next login. Never demote here — that would fight the admin
+  // panel's own "promote a user" feature for anyone whose email isn't the
+  // ADMIN_EMAIL value.
+  if (isAdminEmail(email) && user.role !== "admin") {
+    await prisma.user.update({ where: { id: user.id }, data: { role: "admin" } });
   }
 
   await createSession(user.id);

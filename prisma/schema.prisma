@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -12,6 +12,11 @@ model User {
   name         String
   email        String   @unique
   passwordHash String
+  // Plain string ("user" | "admin"), consistent with every other enum-like
+  // field in this schema. The first admin is designated via the ADMIN_EMAIL
+  // env var (see src/lib/admin.ts) — never trusted from the JWT session,
+  // always re-read from the DB in src/lib/admin-dal.ts.
+  role         String   @default("user")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -20,6 +25,7 @@ model User {
   transactions Transaction[]
   budgets      Budget[]
   pluggyItems  PluggyItem[]
+  financings   Financing[]
 
   createdEvents       Event[]             @relation("EventCreator")
   eventParticipations EventParticipant[]
@@ -66,6 +72,7 @@ model Account {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   pluggyItem   PluggyItem?   @relation(fields: [pluggyItemId], references: [id], onDelete: SetNull)
   transactions Transaction[]
+  financings   Financing[]
 
   @@index([userId])
 }
@@ -83,6 +90,7 @@ model Category {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
   budgets      Budget[]
+  financings   Financing[]
 
   @@unique([userId, name, type])
   @@index([userId])
@@ -106,15 +114,56 @@ model Transaction {
   merchantName        String?
   pluggyCategory       String?
 
+  // Set when this transaction is one installment of a Financing. Every
+  // transaction not created that way keeps financingId null and
+  // balanceApplied true, so nothing about existing behavior changes.
+  financingId       String?
+  installmentNumber Int? // 1-based position within the financing; fixed at creation, never renumbered
+  // False only for a not-yet-due financing installment. True for every other
+  // transaction (the balance effect already applies immediately at creation,
+  // as it always has) and for a financing installment once its due date has
+  // been reconciled — see src/lib/financing.ts.
+  balanceApplied Boolean @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account   Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category  Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  financing Financing? @relation(fields: [financingId], references: [id], onDelete: Cascade)
 
   @@unique([userId, pluggyTransactionId])
+  @@unique([financingId, installmentNumber])
   @@index([userId, date])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([financingId])
+}
+
+// One "N monthly installments of R$V" plan (financiamento). The Financing
+// row itself is metadata; the actual N Transaction rows (linked via
+// financingId) are what drive balances, the dashboard, and budgets — no
+// extra code was needed there, since a normal expense-type Transaction
+// dated into a given month already counts toward that month everywhere.
+model Financing {
+  id                String   @id @default(cuid())
+  userId            String
+  accountId         String
+  categoryId        String?
+  description       String
+  installmentAmount Float // V — always positive, one installment's value
+  installmentCount  Int // N — total number of installments
+  firstDueDate      DateTime // calendar date (UTC midnight) of installment #1
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account      Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  installments Transaction[]
+
+  @@index([userId])
   @@index([accountId])
   @@index([categoryId])
 }

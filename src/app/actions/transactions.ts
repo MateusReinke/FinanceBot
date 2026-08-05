@@ -49,17 +49,25 @@ export async function upsertTransaction(_state: FormState, formData: FormData): 
     const existing = await prisma.transaction.findFirst({ where: { id, userId } });
     if (!existing) return { message: "Transação não encontrada." };
 
-    // Reverse the previous balance effect, then apply the new one. Works
-    // uniformly even when the amount, type, or account itself changed.
+    // Reverse the previous balance effect, then apply the new one — but only
+    // if this row had already applied one. A not-yet-due financing
+    // installment (balanceApplied: false) never touched the balance, and an
+    // edit here doesn't change that; it's picked up normally the next time
+    // reconcileDueInstallments() runs (see src/lib/dal.ts). This action never
+    // changes balanceApplied itself.
     await prisma.$transaction([
-      prisma.account.update({
-        where: { id: existing.accountId },
-        data: { balance: { increment: -signedAmount(existing.amount, existing.type) } },
-      }),
-      prisma.account.update({
-        where: { id: data.accountId },
-        data: { balance: { increment: signedAmount(data.amount, data.type) } },
-      }),
+      ...(existing.balanceApplied
+        ? [
+            prisma.account.update({
+              where: { id: existing.accountId },
+              data: { balance: { increment: -signedAmount(existing.amount, existing.type) } },
+            }),
+            prisma.account.update({
+              where: { id: data.accountId },
+              data: { balance: { increment: signedAmount(data.amount, data.type) } },
+            }),
+          ]
+        : []),
       prisma.transaction.update({ where: { id }, data }),
     ]);
   } else {
@@ -85,10 +93,14 @@ export async function deleteTransaction(formData: FormData) {
   if (!existing) return;
 
   await prisma.$transaction([
-    prisma.account.update({
-      where: { id: existing.accountId },
-      data: { balance: { increment: -signedAmount(existing.amount, existing.type) } },
-    }),
+    ...(existing.balanceApplied
+      ? [
+          prisma.account.update({
+            where: { id: existing.accountId },
+            data: { balance: { increment: -signedAmount(existing.amount, existing.type) } },
+          }),
+        ]
+      : []),
     prisma.transaction.delete({ where: { id } }),
   ]);
 
