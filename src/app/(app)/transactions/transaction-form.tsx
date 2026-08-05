@@ -7,20 +7,34 @@ import { Input, Label, FieldError, Select, Textarea } from "@/components/ui/inpu
 import { SubmitButton } from "@/components/ui/submit-button";
 import { toDateInputValue, cn } from "@/lib/utils";
 
+type InitialValues = {
+  description?: string;
+  amount?: number;
+  date?: string | Date;
+  type?: "income" | "expense";
+  accountId?: string | null;
+  categoryId?: string | null;
+};
+
 export function TransactionForm({
   transaction,
+  initial,
   accounts,
   categories,
   onSuccess,
 }: {
   transaction?: Transaction;
+  // Seeds defaults for a brand-new transaction (e.g. from the AI
+  // assistant's parsed command) — ignored when `transaction` is set,
+  // since editing an existing row always wins.
+  initial?: InitialValues;
   accounts: Account[];
   categories: Category[];
   onSuccess: () => void;
 }) {
   const [state, action] = useActionState(upsertTransaction, undefined);
   const [type, setType] = useState<"income" | "expense">(
-    (transaction?.type as "income" | "expense") ?? "expense"
+    (transaction?.type as "income" | "expense") ?? initial?.type ?? "expense"
   );
 
   useEffect(() => {
@@ -69,7 +83,7 @@ export function TransactionForm({
         <Input
           id="description"
           name="description"
-          defaultValue={transaction?.description}
+          defaultValue={transaction?.description ?? initial?.description}
           placeholder="Ex: Supermercado"
           required
           autoFocus
@@ -86,7 +100,7 @@ export function TransactionForm({
             type="number"
             step="0.01"
             min="0.01"
-            defaultValue={transaction?.amount}
+            defaultValue={transaction?.amount ?? initial?.amount}
             required
           />
           <FieldError messages={state?.errors?.amount} />
@@ -97,7 +111,7 @@ export function TransactionForm({
             id="date"
             name="date"
             type="date"
-            defaultValue={transaction ? toDateInputValue(transaction.date) : toDateInputValue(new Date())}
+            defaultValue={toDateInputValue(transaction?.date ?? initial?.date ?? new Date())}
             required
           />
           <FieldError messages={state?.errors?.date} />
@@ -106,7 +120,7 @@ export function TransactionForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="accountId">Conta</Label>
-        <Select id="accountId" name="accountId" defaultValue={transaction?.accountId ?? ""} required>
+        <Select id="accountId" name="accountId" defaultValue={transaction?.accountId ?? initial?.accountId ?? ""} required>
           <option value="" disabled>
             Selecione uma conta
           </option>
@@ -121,7 +135,7 @@ export function TransactionForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="categoryId">Categoria</Label>
-        <Select id="categoryId" name="categoryId" defaultValue={transaction?.categoryId ?? ""}>
+        <Select id="categoryId" name="categoryId" defaultValue={transaction?.categoryId ?? initial?.categoryId ?? ""}>
           <option value="">Sem categoria</option>
           {availableCategories.map((c) => (
             <option key={c.id} value={c.id}>

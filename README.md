@@ -16,12 +16,21 @@ para importar automaticamente contas e transações do seu banco.
 ## Funcionalidades
 
 - Cadastro/login com sessão segura (cookie httpOnly + JWT)
-- Contas manuais (corrente, poupança, cartão de crédito, dinheiro, investimentos)
+- Contas manuais (corrente, poupança, cartão de crédito, dinheiro, investimentos).
+  Cartões de crédito têm campos próprios de limite, dia de fechamento e dia de
+  vencimento, com barra de limite disponível calculada a partir do saldo atual
 - Categorias de receita/despesa personalizáveis (cor + ícone)
 - Transações com filtros (conta, categoria, tipo, período, busca) e paginação
 - Painel com saldo total, receitas x despesas, gráfico de tendência (6 meses),
   gastos por categoria e transações recentes
 - Orçamentos mensais por categoria com barra de progresso
+- **Assistente de IA** (ícone de estrelas no topo, ao lado do menu do usuário):
+  descreva um lançamento em texto livre — "gastei 45 reais no mercado com o
+  nubank" — e a IA identifica valor, tipo, conta e categoria a partir das suas
+  contas/categorias reais, te mostra tudo num formulário pra revisar e editar,
+  e só cria a transação quando você confirma. Precisa de `OPENAI_API_KEY`
+  configurada; sem ela, o ícone simplesmente não aparece e o lançamento manual
+  continua igual
 - **Open Finance**: conecte um banco real (ou sandbox) via widget do Pluggy,
   importe contas e transações automaticamente, sincronize sob demanda ou via webhook
 - **Eventos**: divida contas em grupo (viagem, churrasco, etc.) — convide pessoas
@@ -30,7 +39,8 @@ para importar automaticamente contas e transações do seu banco.
   configurada, dá pra anexar uma foto da nota fiscal e a IA lista os itens da
   nota automaticamente (um item = uma despesa), pra você revisar e ajustar
   antes de confirmar — sem chave configurada, o lançamento manual continua
-  funcionando normalmente, só o botão de leitura por IA fica oculto
+  funcionando normalmente, só o botão de leitura por IA fica oculto (mesma
+  chave do Assistente de IA acima)
 - **Financiamentos**: lance um financiamento/parcelamento informando data da
   primeira parcela, quantidade e valor — o app monta o cronograma automaticamente,
   aplica cada parcela no saldo da conta só no mês em que ela vence (nunca o valor
@@ -102,8 +112,8 @@ Veja `.env.example`. As principais são:
 | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | Credenciais do Pluggy. Sem elas, o app funciona normalmente só com contas manuais — a seção de Open Finance fica oculta |
 | `PLUGGY_USE_SANDBOX` | não | `true` (padrão) inclui os conectores de teste do Pluggy no widget |
 | `PLUGGY_WEBHOOK_URL` | não | URL pública para receber eventos do Pluggy (sincronização automática). Sem isso, a sincronização é manual/no momento da conexão |
-| `OPENAI_API_KEY` | não | Chave da OpenAI para leitura de nota fiscal por IA nos Eventos. Sem ela, o lançamento manual de despesa continua funcionando — só o botão "Ler nota fiscal" fica oculto |
-| `OPENAI_MODEL` | não | Sobrescreve o modelo de visão usado para ler a nota (padrão: `gpt-4o`) |
+| `OPENAI_API_KEY` | não | Chave da OpenAI — liga o Assistente de IA (topbar) e a leitura de nota fiscal (Eventos). Sem ela, os dois ficam ocultos e o lançamento manual continua funcionando normalmente |
+| `OPENAI_MODEL` | não | Sobrescreve o modelo usado pelas duas features de IA acima (padrão: `gpt-4o`) |
 
 ### Ativando a integração com Open Finance (Pluggy)
 
@@ -117,20 +127,27 @@ dá pra testar o fluxo completo de conexão com os bancos fictícios do Pluggy s
 precisar de credenciais bancárias reais. Para produção, troque para credenciais
 de produção do Pluggy e ajuste `PLUGGY_USE_SANDBOX=false`.
 
-### Ativando a leitura de nota fiscal por IA (Eventos)
+### Ativando as features de IA (Assistente + leitura de nota fiscal)
 
 1. Crie uma chave em https://platform.openai.com/api-keys
 2. Cole em `OPENAI_API_KEY` no `.env`
-3. Reinicie o servidor — o botão **Ler nota fiscal** aparece ao lado de "Nova
-   despesa" dentro de um Evento
+3. Reinicie o servidor — o ícone de estrelas (Assistente de IA) aparece no
+   topo ao lado do menu do usuário, e o botão **Ler nota fiscal** aparece ao
+   lado de "Nova despesa" dentro de um Evento
 
-Formatos aceitos: JPEG, PNG ou WEBP, até 8MB. A IA lista cada item da nota
-como uma despesa separada (todas com o mesmo "quem pagou" e divididas
-igualmente entre quem você marcar) — você revisa, edita ou remove itens antes
-de confirmar, nada é salvo sem essa confirmação. Fotos em HEIC (padrão de
-câmera do iPhone) não são aceitas diretamente; troque o formato da câmera
-para "Mais compatível" (JPEG) nas configurações do iPhone, ou exporte/tire
-print da foto antes de enviar.
+**Assistente de IA**: digite um comando em texto livre (ex: "gastei 45 reais
+no mercado com o nubank") e confirme, edite ou cancele os campos que a IA
+identificou antes de qualquer coisa ser salva. Ela escolhe a conta e a
+categoria comparando com os nomes que você já cadastrou — se não reconhecer
+nenhuma com certeza, deixa em branco pra você escolher na hora de confirmar.
+
+**Leitura de nota fiscal** (Eventos): formatos aceitos JPEG, PNG ou WEBP, até
+8MB. A IA lista cada item da nota como uma despesa separada (todas com o
+mesmo "quem pagou" e divididas igualmente entre quem você marcar) — você
+revisa, edita ou remove itens antes de confirmar, nada é salvo sem essa
+confirmação. Fotos em HEIC (padrão de câmera do iPhone) não são aceitas
+diretamente; troque o formato da câmera para "Mais compatível" (JPEG) nas
+configurações do iPhone, ou exporte/tire print da foto antes de enviar.
 
 ## Scripts
 
@@ -172,8 +189,8 @@ banco configurado.
 | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | credenciais de produção do Pluggy, se for usar Open Finance |
 | `PLUGGY_USE_SANDBOX` | não | já vem `false` por padrão nesse arquivo |
 | `PLUGGY_WEBHOOK_URL` | não | URL pública do serviço + `/api/openfinance/webhook` |
-| `OPENAI_API_KEY` | não | chave da OpenAI para leitura de nota fiscal por IA nos Eventos — sem ela, o botão fica oculto |
-| `OPENAI_MODEL` | não | sobrescreve o modelo de visão (padrão: `gpt-4o`) |
+| `OPENAI_API_KEY` | não | chave da OpenAI — liga o Assistente de IA (topbar) e a leitura de nota fiscal (Eventos); sem ela, os dois ficam ocultos |
+| `OPENAI_MODEL` | não | sobrescreve o modelo usado pelas duas features de IA (padrão: `gpt-4o`) |
 
 Não precisa criar um recurso Postgres separado nem copiar connection string
 nenhuma — o `docker-compose.prod.yml` já monta o `DATABASE_URL` internamente
@@ -203,8 +220,8 @@ Variables" começa vazia e cada uma abaixo precisa ser adicionada na mão:
    | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | credenciais de produção do Pluggy |
    | `PLUGGY_USE_SANDBOX` | não | `false` em produção |
    | `PLUGGY_WEBHOOK_URL` | não | URL pública do serviço + `/api/openfinance/webhook` |
-   | `OPENAI_API_KEY` | não | chave da OpenAI para leitura de nota fiscal por IA nos Eventos |
-   | `OPENAI_MODEL` | não | sobrescreve o modelo de visão (padrão: `gpt-4o`) |
+   | `OPENAI_API_KEY` | não | chave da OpenAI — liga o Assistente de IA (topbar) e a leitura de nota fiscal (Eventos) |
+   | `OPENAI_MODEL` | não | sobrescreve o modelo usado pelas duas features de IA (padrão: `gpt-4o`) |
 
 3. Confira o campo **"Ports Exposes"**: precisa ser `3000` (é o que o
    Dockerfile expõe e o que `server.js` escuta por padrão via `PORT`/
@@ -282,13 +299,13 @@ src/
     actions/                # Server Actions (mutações)
   components/
     ui/                 # primitivos (botão, modal, input, stat card...)
-    layout/              # sidebar, topbar, navegação
+    layout/              # sidebar, topbar, navegação, ai-assistant.tsx
     charts/               # gráficos (Recharts)
     openfinance/           # widget de conexão bancária e gestão de conexões
   lib/                    # Prisma client, sessão/auth, validação (zod), cliente Pluggy
     events-dal.ts           # verifyEventAccess — gate central de acesso a Eventos
     events.ts                # cálculo de divisão/saldos/quitação (puro, sem I/O)
-    openai.ts                 # leitura de nota fiscal por IA (Structured Outputs)
+    openai.ts                 # integrações de IA (assistente de lançamento + leitura de nota)
     admin-dal.ts             # verifyAdminSession — gate central de acesso a /admin
     admin.ts                  # isAdminEmail — decide quem vira admin
     financing.ts               # cronograma de parcelas + reconciliação de saldo

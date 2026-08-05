@@ -5,16 +5,19 @@ import Link from "next/link";
 import { Menu, X, Wallet2 } from "lucide-react";
 import { NavLinks } from "./nav-links";
 import { UserMenu } from "./user-menu";
+import { AiAssistant } from "./ai-assistant";
 
 export function AppShell({
   name,
   email,
   role,
+  aiEnabled,
   children,
 }: {
   name: string;
   email: string;
   role: string;
+  aiEnabled: boolean;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -68,6 +71,7 @@ export function AppShell({
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex-1" />
+          <AiAssistant enabled={aiEnabled} />
           <UserMenu name={name} email={email} role={role} />
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>

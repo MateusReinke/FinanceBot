@@ -12,6 +12,13 @@ function revalidateAccountPages() {
   revalidatePath("/dashboard");
 }
 
+// FormData.get() returns null for an absent field and "" for an emptied
+// text input — neither should reach z.coerce.number(), which would turn
+// them into 0 or NaN instead of "not provided."
+function emptyToUndefined(value: FormDataEntryValue | null) {
+  return value === null || value === "" ? undefined : value;
+}
+
 export async function upsertAccount(_state: FormState, formData: FormData): Promise<FormState> {
   const { userId } = await verifySession();
 
@@ -20,6 +27,9 @@ export async function upsertAccount(_state: FormState, formData: FormData): Prom
     type: formData.get("type"),
     balance: formData.get("balance"),
     color: formData.get("color"),
+    creditLimit: emptyToUndefined(formData.get("creditLimit")),
+    closingDay: emptyToUndefined(formData.get("closingDay")),
+    dueDay: emptyToUndefined(formData.get("dueDay")),
   });
 
   if (!validatedFields.success) {
@@ -27,7 +37,14 @@ export async function upsertAccount(_state: FormState, formData: FormData): Prom
   }
 
   const id = formData.get("id");
-  const data = validatedFields.data;
+  const { creditLimit, closingDay, dueDay, ...rest } = validatedFields.data;
+  // Never persist card-only fields for a non-card account, regardless of
+  // what the form happened to send — the UI hides them, but the server
+  // is what actually enforces it.
+  const data =
+    rest.type === "credit_card"
+      ? { ...rest, creditLimit: creditLimit ?? null, closingDay: closingDay ?? null, dueDay: dueDay ?? null }
+      : { ...rest, creditLimit: null, closingDay: null, dueDay: null };
 
   if (typeof id === "string" && id.length > 0) {
     const existing = await prisma.account.findFirst({ where: { id, userId } });

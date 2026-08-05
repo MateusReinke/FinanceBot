@@ -86,9 +86,45 @@ function AccountCard({ account }: { account: Account }) {
         {formatCurrency(account.balance)}
       </p>
 
+      {account.type === "credit_card" ? <CreditCardDetails account={account} /> : null}
+
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar conta">
         <AccountForm account={account} onSuccess={() => setEditOpen(false)} />
       </Modal>
+    </div>
+  );
+}
+
+function CreditCardDetails({ account }: { account: Account }) {
+  const { creditLimit, closingDay, dueDay, balance } = account;
+  if (!creditLimit && !closingDay && !dueDay) return null;
+
+  const used = Math.max(0, -balance);
+  const pct = creditLimit ? Math.min(100, Math.round((used / creditLimit) * 100)) : 0;
+  const available = creditLimit ? Math.max(0, creditLimit - used) : null;
+
+  return (
+    <div className="space-y-2 border-t border-border pt-3">
+      {creditLimit ? (
+        <div className="space-y-1">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn("h-full rounded-full", pct >= 90 ? "bg-danger" : pct >= 70 ? "bg-warning" : "bg-primary")}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {formatCurrency(available ?? 0)} disponível de {formatCurrency(creditLimit)}
+          </p>
+        </div>
+      ) : null}
+      {closingDay || dueDay ? (
+        <p className="text-xs text-muted-foreground">
+          {closingDay ? `Fecha dia ${closingDay}` : null}
+          {closingDay && dueDay ? " · " : null}
+          {dueDay ? `Vence dia ${dueDay}` : null}
+        </p>
+      ) : null}
     </div>
   );
 }

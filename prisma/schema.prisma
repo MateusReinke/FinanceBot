@@ -63,6 +63,14 @@ model Account {
   color    String  @default("#6366f1")
   archived Boolean @default(false)
 
+  // Only meaningful for type: "credit_card" — left null for every other
+  // type. Day-of-month (1-31); a value past the account's actual month
+  // length is intentionally allowed and just clamped for display (see
+  // addMonthsUTC-style handling), same as Financing's schedule dates.
+  creditLimit Float?
+  closingDay  Int?
+  dueDay      Int?
+
   // Set when this account was created via Open Finance sync instead of manually.
   pluggyItemId    String?
   pluggyAccountId String? @unique

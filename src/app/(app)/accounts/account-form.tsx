@@ -18,6 +18,7 @@ export function AccountForm({
 }) {
   const [state, action] = useActionState(upsertAccount, undefined);
   const [color, setColor] = useState(account?.color ?? ACCOUNT_COLORS[10]);
+  const [type, setType] = useState(account?.type ?? ACCOUNT_TYPES[0].value);
 
   useEffect(() => {
     if (state?.success) onSuccess();
@@ -43,7 +44,7 @@ export function AccountForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="type">Tipo</Label>
-        <Select id="type" name="type" defaultValue={account?.type ?? ACCOUNT_TYPES[0].value}>
+        <Select id="type" name="type" value={type} onChange={(e) => setType(e.target.value)}>
           {ACCOUNT_TYPES.map((t) => (
             <option key={t.value} value={t.value}>
               {t.label}
@@ -65,6 +66,52 @@ export function AccountForm({
         />
         <FieldError messages={state?.errors?.balance} />
       </div>
+
+      {type === "credit_card" ? (
+        <div className="space-y-4 rounded-lg border border-border p-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="creditLimit">Limite (R$)</Label>
+            <Input
+              id="creditLimit"
+              name="creditLimit"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Ex: 5000"
+              defaultValue={account?.creditLimit ?? ""}
+            />
+            <FieldError messages={state?.errors?.creditLimit} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="closingDay">Dia do fechamento</Label>
+              <Input
+                id="closingDay"
+                name="closingDay"
+                type="number"
+                min="1"
+                max="31"
+                placeholder="Ex: 10"
+                defaultValue={account?.closingDay ?? ""}
+              />
+              <FieldError messages={state?.errors?.closingDay} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dueDay">Dia do vencimento</Label>
+              <Input
+                id="dueDay"
+                name="dueDay"
+                type="number"
+                min="1"
+                max="31"
+                placeholder="Ex: 17"
+                defaultValue={account?.dueDay ?? ""}
+              />
+              <FieldError messages={state?.errors?.dueDay} />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-1.5">
         <Label>Cor</Label>
