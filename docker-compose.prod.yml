@@ -1,0 +1,50 @@
+# Deploy no Coolify via build pack "Docker Compose" (não "Dockerfile").
+# Aponte "Docker Compose Location" para /docker-compose.prod.yml ao importar
+# o projeto. Diferente do build pack "Dockerfile" puro, o Coolify lê as
+# variáveis ${...} referenciadas abaixo e monta os campos para você
+# preencher no painel — inclusive falha o deploy com uma mensagem clara se
+# esquecer POSTGRES_PASSWORD ou SESSION_SECRET, em vez de subir e cair
+# depois. Para desenvolvimento local use o docker-compose.yml da raiz (só
+# Postgres) — este arquivo aqui é só para deploy.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-financebot}:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-financebot}?schema=public"
+      SESSION_SECRET: "${SESSION_SECRET:?defina SESSION_SECRET, gerado com openssl rand -base64 32}"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-}"
+      PLUGGY_CLIENT_ID: "${PLUGGY_CLIENT_ID:-}"
+      PLUGGY_CLIENT_SECRET: "${PLUGGY_CLIENT_SECRET:-}"
+      PLUGGY_USE_SANDBOX: "${PLUGGY_USE_SANDBOX:-false}"
+      PLUGGY_WEBHOOK_URL: "${PLUGGY_WEBHOOK_URL:-}"
+      # Fixo — é o que o Dockerfile expõe. O lado esquerdo do mapeamento de
+      # porta abaixo (APP_PORT) é o que fica configurável pelo painel.
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Sem healthcheck: aqui — herda o HEALTHCHECK já definido no Dockerfile.
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-financebot}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB:-financebot}"
+    volumes:
+      - financebot_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-financebot} -d ${POSTGRES_DB:-financebot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  financebot_postgres_data:

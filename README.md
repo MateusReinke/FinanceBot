@@ -121,49 +121,77 @@ npx prisma migrate dev # criar/aplicar migrations após mudar o schema
 
 ## Deploy no Coolify
 
-O projeto já vem com `Dockerfile` (multi-stage, `output: "standalone"` do
-Next.js) pronto para o Coolify buildar diretamente a partir do repositório —
-não precisa de nenhum build manual.
+Duas formas de fazer o deploy. A diferença prática entre elas é só uma: se o
+Coolify preenche os campos de variável de ambiente sozinho, ou se você
+preenche tudo na mão.
 
-### 1. Banco de dados
+### Opção A (recomendada): Docker Compose
 
-Crie um recurso **Postgres** separado no próprio Coolify (Databases → PostgreSQL).
-O app não sobe banco nenhum sozinho — ele só se conecta a um Postgres que já existe.
-Depois de criado, copie a connection string interna que o Coolify gera.
-
-### 2. Serviço da aplicação
-
-Crie um novo recurso apontando para este repositório/branch, tipo **Dockerfile**.
-Configure as variáveis de ambiente no painel do Coolify (nunca em `.env` commitado):
+Ao importar o projeto, escolha **Build Pack: Docker Compose** (não
+"Dockerfile") e aponte **Docker Compose Location** para
+`/docker-compose.prod.yml`. Esse arquivo sobe `app` + `postgres` juntos, e
+por referenciar as variáveis como `${POSTGRES_PASSWORD:?...}` no lugar de
+valores fixos, o Coolify lê o arquivo e já monta os campos pra você
+preencher na aba "Environment Variables" — inclusive recusa o deploy com
+mensagem clara se faltar alguma obrigatória, em vez de subir e cair depois.
 
 | Variável | Obrigatória | Valor |
 |---|---|---|
-| `DATABASE_URL` | sim | A connection string do recurso Postgres do passo 1 |
+| `POSTGRES_PASSWORD` | sim | senha do Postgres (gerada uma vez, usada internamente) |
 | `SESSION_SECRET` | sim | `openssl rand -base64 32` |
-| `ADMIN_EMAIL` | não | E-mail que vira admin ao se cadastrar/logar (veja "Variáveis de ambiente" acima) |
-| `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | Credenciais de produção do Pluggy, se for usar Open Finance |
-| `PLUGGY_USE_SANDBOX` | não | `false` em produção |
-| `PLUGGY_WEBHOOK_URL` | não | URL pública do próprio serviço + `/api/openfinance/webhook` |
-| `PORT` | não | Só se quiser que o processo escute em outra porta interna além de `3000` (o padrão já funciona com o próximo passo) |
+| `POSTGRES_USER` / `POSTGRES_DB` | não | default `financebot` para os dois |
+| `APP_PORT` | não | porta pública de acesso — default `3000`, mude aqui pelo painel se quiser outra |
+| `ADMIN_EMAIL` | não | e-mail que vira admin ao se cadastrar/logar |
+| `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | credenciais de produção do Pluggy, se for usar Open Finance |
+| `PLUGGY_USE_SANDBOX` | não | já vem `false` por padrão nesse arquivo |
+| `PLUGGY_WEBHOOK_URL` | não | URL pública do serviço + `/api/openfinance/webhook` |
 
-### 3. Porta
+Não precisa criar um recurso Postgres separado nem copiar connection string
+nenhuma — o `docker-compose.prod.yml` já monta o `DATABASE_URL` internamente
+a partir de `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, apontando pro
+próprio serviço `postgres` da mesma stack. Os dados do banco persistem num
+volume Docker nomeado que o Coolify gerencia.
 
-O container escuta em `3000` por padrão (`ENV PORT=3000` no Dockerfile) e o
-`server.js` do Next.js lê `PORT`/`HOSTNAME` nativamente — sem precisar tocar
-código. No painel do Coolify, defina a **porta pública/proxy** para `3000`
-(ou defina `PORT` numa variável de ambiente diferente e aponte o Coolify para
-essa porta — funciona igual, o container acompanha o valor que for injetado).
+### Opção B: Dockerfile puro + Postgres separado
 
-### 4. Migrations do banco
+Se preferir gerenciar o banco como um recurso independente do Coolify (útil
+se outros serviços também vão usá-lo), escolha **Build Pack: Dockerfile**
+em vez de Docker Compose. Nesse modo o Coolify **não lê** `.env.example` nem
+nenhum arquivo do repositório pra sugerir variáveis — a aba "Environment
+Variables" começa vazia e cada uma abaixo precisa ser adicionada na mão:
 
-Não é um passo manual: `docker-entrypoint.sh` roda `prisma migrate deploy`
-automaticamente toda vez que o container inicia, antes de subir o servidor.
-É idempotente (só aplica o que ainda não foi aplicado) e seguro mesmo com
-múltiplas réplicas subindo ao mesmo tempo. Se a migration falhar, o
-container não sobe o servidor — ele encerra em vez de servir requisições
-contra um schema desatualizado, e os logs do deploy no Coolify mostram o erro.
+1. Crie um recurso **Postgres** separado (Databases → PostgreSQL) e copie a
+   connection string interna que o Coolify gera para esse recurso.
+2. Crie o recurso da aplicação apontando para este repositório/branch, tipo
+   Dockerfile, e preencha manualmente:
 
-### 5. Healthcheck
+   | Variável | Obrigatória | Valor |
+   |---|---|---|
+   | `DATABASE_URL` | sim | connection string do Postgres do passo 1 |
+   | `SESSION_SECRET` | sim | `openssl rand -base64 32` |
+   | `ADMIN_EMAIL` | não | e-mail que vira admin ao se cadastrar/logar |
+   | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | credenciais de produção do Pluggy |
+   | `PLUGGY_USE_SANDBOX` | não | `false` em produção |
+   | `PLUGGY_WEBHOOK_URL` | não | URL pública do serviço + `/api/openfinance/webhook` |
+
+3. Confira o campo **"Ports Exposes"**: precisa ser `3000` (é o que o
+   Dockerfile expõe e o que `server.js` escuta por padrão via `PORT`/
+   `HOSTNAME`) — a menos que você também adicione uma variável `PORT` com
+   outro valor, aí os dois precisam bater. A porta pública de acesso em si
+   fica em **"Port Mappings"** (`<porta que você quiser>:3000`).
+
+### Migrations do banco (as duas opções)
+
+Não é um passo manual em nenhuma das duas: `docker-entrypoint.sh` roda
+`prisma migrate deploy` automaticamente toda vez que o container inicia,
+antes de subir o servidor. É idempotente (só aplica o que ainda não foi
+aplicado) e seguro mesmo com múltiplas réplicas subindo ao mesmo tempo. Se a
+migration falhar, o container não sobe o servidor — ele encerra em vez de
+servir requisições contra um schema desatualizado (é normal ver "Exited" no
+Coolify se `DATABASE_URL`/`POSTGRES_PASSWORD` ainda não foram preenchidos),
+e os logs do deploy mostram o erro exato.
+
+### Healthcheck (as duas opções)
 
 `GET /api/health` faz um `SELECT 1` real no Postgres e responde `200`/`503`.
 O `Dockerfile` já declara um `HEALTHCHECK` nele; o Coolify usa isso para saber
@@ -178,6 +206,13 @@ docker run -p 3000:3000 \
   -e DATABASE_URL="postgresql://financebot:financebot_dev_pw@host.docker.internal:5432/financebot?schema=public" \
   -e SESSION_SECRET="$(openssl rand -base64 32)" \
   financebot
+```
+
+Ou, pra reproduzir a Opção A completa localmente:
+
+```bash
+POSTGRES_PASSWORD="$(openssl rand -hex 16)" SESSION_SECRET="$(openssl rand -base64 32)" \
+  docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ## Estrutura
