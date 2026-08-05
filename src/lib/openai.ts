@@ -70,7 +70,10 @@ export async function extractReceiptItems(
         },
       ],
       response_format: { type: "json_schema", json_schema: RECEIPT_ITEMS_SCHEMA },
-      max_tokens: 2000,
+      // Chat Completions renamed this from max_tokens after this codebase's
+      // training cutoff — max_tokens is now rejected outright (confirmed
+      // against a real deployment, not guessed).
+      max_completion_tokens: 2000,
     }),
     cache: "no-store",
   });
