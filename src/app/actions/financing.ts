@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
-import { FinancingSchema, UpdateFinancingDescriptionSchema } from "@/lib/validation/financing";
+import { FinancingSchema, UpdateFinancingDescriptionSchema, PayInstallmentSchema } from "@/lib/validation/financing";
 import { buildInstallmentSchedule } from "@/lib/financing";
 import type { FormState } from "@/lib/form-state";
 
@@ -110,6 +110,48 @@ export async function updateFinancingDescription(_state: FormState, formData: Fo
     where: { id },
     data: { description: validatedFields.data.description },
   });
+
+  revalidateFinancingPages();
+  return { success: true };
+}
+
+// Lets an installment that hasn't come due yet be settled early for a
+// custom amount (e.g. an amortized/discounted payoff) instead of waiting
+// for reconcileDueInstallments to apply it at the full scheduled amount.
+// The gap between financing.installmentAmount and what was actually paid
+// is the "economia" shown in the UI — no separate savings field needed.
+export async function payInstallmentNow(_state: FormState, formData: FormData): Promise<FormState> {
+  const { userId } = await verifySession();
+  const financingId = formData.get("financingId");
+  if (typeof financingId !== "string") return { message: "Financiamento inválido." };
+
+  const financing = await prisma.financing.findFirst({ where: { id: financingId, userId } });
+  if (!financing) return { message: "Financiamento não encontrado." };
+
+  const validatedFields = PayInstallmentSchema.safeParse({
+    transactionId: formData.get("transactionId"),
+    paidAmount: formData.get("paidAmount"),
+  });
+  if (!validatedFields.success) {
+    return { errors: validatedFields.error.flatten().fieldErrors };
+  }
+  const { transactionId, paidAmount } = validatedFields.data;
+
+  const installment = await prisma.transaction.findFirst({
+    where: { id: transactionId, financingId, balanceApplied: false },
+  });
+  if (!installment) return { message: "Parcela não encontrada ou já paga." };
+
+  await prisma.$transaction([
+    prisma.transaction.update({
+      where: { id: transactionId },
+      data: { amount: paidAmount, balanceApplied: true },
+    }),
+    prisma.account.update({
+      where: { id: installment.accountId },
+      data: { balance: { decrement: paidAmount } },
+    }),
+  ]);
 
   revalidateFinancingPages();
   return { success: true };

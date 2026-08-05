@@ -55,7 +55,15 @@ export function AccountForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="balance">{account ? "Saldo atual" : "Saldo inicial"}</Label>
+        <Label htmlFor="balance">
+          {type === "credit_card"
+            ? account
+              ? "Valor da fatura atual (o quanto você deve)"
+              : "Valor inicial da fatura"
+            : account
+              ? "Saldo atual"
+              : "Saldo inicial"}
+        </Label>
         <Input
           id="balance"
           name="balance"
@@ -64,6 +72,12 @@ export function AccountForm({
           defaultValue={account?.balance ?? 0}
           required
         />
+        {type === "credit_card" ? (
+          <p className="text-xs text-muted-foreground">
+            Use um valor negativo (ex: -1200) pra representar o quanto está devendo. Pode atualizar
+            aqui a qualquer momento pra bater com o valor real da fatura do banco.
+          </p>
+        ) : null}
         <FieldError messages={state?.errors?.balance} />
       </div>
 

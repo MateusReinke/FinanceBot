@@ -1,0 +1,158 @@
+"use client";
+
+import { useActionState, useEffect, useState } from "react";
+import type { Transaction } from "@prisma/client";
+import { CheckCircle2 } from "lucide-react";
+import { payInstallmentNow } from "@/app/actions/financing";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { Input, Label, FieldError } from "@/components/ui/input";
+import { formatCurrency, formatDate, cn } from "@/lib/utils";
+
+export function InstallmentTable({
+  financingId,
+  installments,
+  installmentCount,
+  scheduledAmount,
+}: {
+  financingId: string;
+  installments: Transaction[];
+  installmentCount: number;
+  scheduledAmount: number;
+}) {
+  const [payingId, setPayingId] = useState<string | null>(null);
+  const paying = installments.find((i) => i.id === payingId) ?? null;
+
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[520px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <th className="px-3 py-2">Parcela</th>
+              <th className="px-3 py-2">Vencimento</th>
+              <th className="px-3 py-2 text-right">Valor</th>
+              <th className="px-3 py-2 text-right">Status</th>
+              <th className="px-3 py-2 text-right">
+                <span className="sr-only">Ação</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {installments.map((inst) => {
+              const savings = inst.balanceApplied ? scheduledAmount - inst.amount : 0;
+              return (
+                <tr key={inst.id} className="border-b border-border last:border-0">
+                  <td className="px-3 py-2.5 text-foreground">
+                    {inst.installmentNumber}/{installmentCount}
+                  </td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{formatDate(inst.date)}</td>
+                  <td className="px-3 py-2.5 text-right text-foreground">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {formatCurrency(inst.amount)}
+                      {savings > 0.01 ? (
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-success-bg px-2 py-0.5 text-xs font-medium text-success">
+                          <CheckCircle2 className="h-3 w-3" /> economizou {formatCurrency(savings)}
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-xs font-medium",
+                        inst.balanceApplied ? "bg-success-bg text-success" : "bg-warning-bg text-warning"
+                      )}
+                    >
+                      {inst.balanceApplied ? "Paga" : "Pendente"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    {!inst.balanceApplied ? (
+                      <Button variant="outline" size="sm" onClick={() => setPayingId(inst.id)}>
+                        Pagar agora
+                      </Button>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Cada parcela também aparece na sua lista de Transações e pode ser editada ou excluída por
+        lá se precisar de um ajuste pontual.
+      </p>
+
+      <Modal open={paying !== null} onClose={() => setPayingId(null)} title="Pagar parcela agora">
+        {paying ? (
+          <PayInstallmentForm
+            financingId={financingId}
+            transaction={paying}
+            scheduledAmount={scheduledAmount}
+            onSuccess={() => setPayingId(null)}
+          />
+        ) : null}
+      </Modal>
+    </>
+  );
+}
+
+function PayInstallmentForm({
+  financingId,
+  transaction,
+  scheduledAmount,
+  onSuccess,
+}: {
+  financingId: string;
+  transaction: Transaction;
+  scheduledAmount: number;
+  onSuccess: () => void;
+}) {
+  const [state, action] = useActionState(payInstallmentNow, undefined);
+
+  useEffect(() => {
+    if (state?.success) onSuccess();
+  }, [state?.success, onSuccess]);
+
+  return (
+    <form action={action} className="space-y-4">
+      <input type="hidden" name="financingId" value={financingId} />
+      <input type="hidden" name="transactionId" value={transaction.id} />
+
+      <p className="text-sm text-muted-foreground">
+        Parcela {transaction.installmentNumber} · vencimento {formatDate(transaction.date)}
+        <br />
+        Valor previsto: {formatCurrency(scheduledAmount)}
+      </p>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="paidAmount">Valor pago (R$)</Label>
+        <Input
+          id="paidAmount"
+          name="paidAmount"
+          type="number"
+          step="0.01"
+          min="0.01"
+          defaultValue={transaction.amount}
+          required
+          autoFocus
+        />
+        <p className="text-xs text-muted-foreground">
+          Pagou menos que o previsto (ex: amortização)? Informe o valor real — a diferença fica
+          registrada como economia.
+        </p>
+        <FieldError messages={state?.errors?.paidAmount} />
+      </div>
+
+      {state?.message ? (
+        <p className="text-sm text-danger" role="alert">
+          {state.message}
+        </p>
+      ) : null}
+      <SubmitButton className="w-full">Confirmar pagamento</SubmitButton>
+    </form>
+  );
+}

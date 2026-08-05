@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { FinancingHeader } from "./financing-header";
+import { InstallmentTable } from "./installment-table";
 
 export const metadata: Metadata = { title: "Financiamento — FinanceBot" };
 
@@ -17,6 +18,10 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
 
   const pct =
     financing.totalAmount > 0 ? Math.min(100, (financing.paidTotal / financing.totalAmount) * 100) : 0;
+
+  const totalSavings = financing.installments
+    .filter((i) => i.balanceApplied)
+    .reduce((sum, i) => sum + Math.max(0, financing.installmentAmount - i.amount), 0);
 
   return (
     <div className="space-y-6">
@@ -31,7 +36,7 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
         {formatDate(financing.firstDueDate)}
       </p>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-3", totalSavings > 0.01 && "lg:grid-cols-4")}>
         <StatCard label="Total do financiamento" value={formatCurrency(financing.totalAmount)} />
         <StatCard
           label="Já pago"
@@ -43,6 +48,13 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
           value={formatCurrency(financing.remainingTotal)}
           valueClassName={financing.remainingTotal > 0 ? "text-danger" : "text-success"}
         />
+        {totalSavings > 0.01 ? (
+          <StatCard
+            label="Economia total"
+            value={formatCurrency(totalSavings)}
+            valueClassName="text-success"
+          />
+        ) : null}
       </div>
 
       <Card>
@@ -64,45 +76,12 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
           <CardTitle>Parcelas</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[420px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <th className="px-3 py-2">Parcela</th>
-                  <th className="px-3 py-2">Vencimento</th>
-                  <th className="px-3 py-2 text-right">Valor</th>
-                  <th className="px-3 py-2 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {financing.installments.map((inst) => (
-                  <tr key={inst.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-2.5 text-foreground">
-                      {inst.installmentNumber}/{financing.installmentCount}
-                    </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{formatDate(inst.date)}</td>
-                    <td className="px-3 py-2.5 text-right text-foreground">
-                      {formatCurrency(inst.amount)}
-                    </td>
-                    <td className="px-3 py-2.5 text-right">
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-xs font-medium",
-                          inst.balanceApplied ? "bg-success-bg text-success" : "bg-warning-bg text-warning"
-                        )}
-                      >
-                        {inst.balanceApplied ? "Paga" : "Pendente"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Cada parcela também aparece na sua lista de Transações e pode ser editada ou excluída
-            por lá se precisar de um ajuste pontual.
-          </p>
+          <InstallmentTable
+            financingId={financing.id}
+            installments={financing.installments}
+            installmentCount={financing.installmentCount}
+            scheduledAmount={financing.installmentAmount}
+          />
         </CardContent>
       </Card>
     </div>

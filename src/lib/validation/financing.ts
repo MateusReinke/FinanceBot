@@ -29,3 +29,10 @@ export const UpdateFinancingDescriptionSchema = z.object({
     .min(1, { error: "Informe uma descrição." })
     .max(120, { error: "Descrição muito longa." }),
 });
+
+export const PayInstallmentSchema = z.object({
+  transactionId: z.string().min(1, { error: "Parcela inválida." }),
+  paidAmount: z.coerce
+    .number({ error: "Informe um valor válido." })
+    .positive({ error: "O valor deve ser maior que zero." }),
+});

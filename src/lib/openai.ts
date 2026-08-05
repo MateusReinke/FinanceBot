@@ -17,6 +17,26 @@ function resolveModel() {
   return raw.replace(/^openai\//, "");
 }
 
+// The model is told to answer with a bare number, but json_object mode
+// (unlike Structured Outputs) doesn't enforce that — for a Portuguese
+// prompt it sometimes answers in local formatting anyway ("R$ 55,00",
+// "55,00", "1.234,56"), and a naive Number() on any of those is NaN,
+// which was silently turning into "não consegui entender esse comando"
+// with no clue why. Strips currency/whitespace, then tells apart
+// Brazilian comma-decimal from a thousands-separator comma by checking
+// what's in the last 1-2 digits.
+function parseAmount(value: unknown): number {
+  if (typeof value === "number") return Math.round(value * 100) / 100;
+  if (typeof value !== "string") return NaN;
+
+  const cleaned = value.replace(/[^\d.,-]/g, "");
+  const normalized = /,\d{1,2}$/.test(cleaned)
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned.replace(/,/g, "");
+
+  return Math.round(Number(normalized) * 100) / 100;
+}
+
 type MessageContent = string | Array<{ type: string; [key: string]: unknown }>;
 
 // Shared by every OpenAI-backed feature in this app (receipt scanning,
@@ -102,7 +122,7 @@ export async function extractReceiptItems(
     .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
     .map((item) => ({
       description: String(item.description ?? "").trim().slice(0, 120),
-      amount: Math.round(Number(item.amount) * 100) / 100,
+      amount: parseAmount(item.amount),
     }))
     .filter((item) => item.description.length > 0 && Number.isFinite(item.amount) && item.amount > 0);
 }
@@ -157,7 +177,7 @@ export async function parseTransactionCommand(
   const parsed = await callOpenAiJson(prompt, 500);
   const obj = (parsed as Record<string, unknown>) ?? {};
 
-  const amount = Math.round(Number(obj.amount) * 100) / 100;
+  const amount = parseAmount(obj.amount);
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error("Não consegui identificar um valor nesse comando.");
   }

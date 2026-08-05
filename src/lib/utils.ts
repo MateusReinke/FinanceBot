@@ -68,6 +68,16 @@ export function addMonthsUTC(date: Date, months: number) {
   return firstOfTarget;
 }
 
+// Installments always land on the same day-of-month as `start` (see
+// addMonthsUTC above), so an "end date" the user picks is really just
+// pointing at a target month — the day-of-month component is ignored on
+// purpose rather than trying to reconcile it against the schedule's own.
+export function monthsBetweenUTC(start: Date, end: Date) {
+  const months =
+    (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth()) + 1;
+  return Math.max(1, months);
+}
+
 const monthShortFormatter = new Intl.DateTimeFormat("pt-BR", {
   month: "short",
   timeZone: "UTC",
