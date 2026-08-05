@@ -6,7 +6,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { verifyEventAccess } from "@/lib/events-dal";
-import { EventSchema, AddExpenseSchema } from "@/lib/validation/events";
+import { isOpenAiConfigured, extractReceiptItems } from "@/lib/openai";
+import {
+  EventSchema,
+  AddExpenseSchema,
+  ConfirmReceiptExpensesSchema,
+  MAX_RECEIPT_BYTES,
+  ALLOWED_RECEIPT_MIME_TYPES,
+} from "@/lib/validation/events";
 import { splitEqually } from "@/lib/events";
 import type { FormState } from "@/lib/form-state";
 
@@ -154,6 +161,120 @@ export async function deleteExpense(formData: FormData) {
 
   await prisma.eventExpense.delete({ where: { id: expenseId } });
   revalidateEvent(eventId);
+}
+
+export type ExtractReceiptResult =
+  | { error: string }
+  | { receiptId: string; items: { description: string; amount: number }[] };
+
+// Not FormState/useActionState-shaped on purpose: the caller needs the
+// extracted items back to drive an editable review step, not just a
+// success/error flag. Persists the photo immediately (as EventReceipt) so
+// step two only ever needs to reference its id, never re-upload the file.
+export async function extractReceiptExpenses(
+  eventId: string,
+  formData: FormData
+): Promise<ExtractReceiptResult> {
+  const { userId } = await verifyEventAccess(eventId);
+
+  if (!isOpenAiConfigured()) {
+    return { error: "Leitura de nota fiscal por IA não está configurada neste servidor." };
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Selecione uma foto da nota fiscal." };
+  }
+  if (!ALLOWED_RECEIPT_MIME_TYPES.includes(file.type as (typeof ALLOWED_RECEIPT_MIME_TYPES)[number])) {
+    return { error: "Formato não suportado. Envie uma foto em JPEG, PNG ou WEBP." };
+  }
+  if (file.size > MAX_RECEIPT_BYTES) {
+    return { error: `Foto muito grande (máx. ${Math.floor(MAX_RECEIPT_BYTES / 1024 / 1024)}MB).` };
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  let items: { description: string; amount: number }[];
+  try {
+    items = await extractReceiptItems(buffer.toString("base64"), file.type);
+  } catch (error) {
+    console.error("Falha ao ler nota fiscal via OpenAI", error);
+    return { error: "Não foi possível ler a nota fiscal agora. Tente novamente ou lance manualmente." };
+  }
+
+  if (items.length === 0) {
+    return { error: "Não consegui identificar itens nessa foto. Tente uma foto mais nítida ou lance manualmente." };
+  }
+
+  const receipt = await prisma.eventReceipt.create({
+    data: { eventId, uploadedById: userId, imageData: buffer, mimeType: file.type },
+  });
+
+  return { receiptId: receipt.id, items };
+}
+
+export async function confirmReceiptExpenses(_state: FormState, formData: FormData): Promise<FormState> {
+  const eventId = formData.get("eventId");
+  if (typeof eventId !== "string") return { message: "Evento inválido." };
+  await verifyEventAccess(eventId);
+
+  let rawItems: unknown;
+  try {
+    rawItems = JSON.parse(String(formData.get("itemsJson") ?? "[]"));
+  } catch {
+    return { message: "Itens inválidos." };
+  }
+
+  const validated = ConfirmReceiptExpensesSchema.safeParse({
+    receiptId: formData.get("receiptId"),
+    items: rawItems,
+    paidById: formData.get("paidById"),
+    date: formData.get("date"),
+  });
+  if (!validated.success) {
+    return { errors: validated.error.flatten().fieldErrors };
+  }
+  const { receiptId, items, paidById, date } = validated.data;
+
+  const receipt = await prisma.eventReceipt.findFirst({ where: { id: receiptId, eventId } });
+  if (!receipt) return { message: "Nota fiscal não encontrada." };
+
+  const participants = await prisma.eventParticipant.findMany({ where: { eventId } });
+  const participantIds = new Set(participants.map((p) => p.userId));
+  if (!participantIds.has(paidById)) {
+    return { errors: { paidById: ["Quem pagou precisa ser um participante do evento."] } };
+  }
+
+  const included = formData.getAll("participantIds").filter((v): v is string => typeof v === "string");
+  const validIncluded = [...new Set(included.filter((id) => participantIds.has(id)))];
+  if (validIncluded.length === 0) {
+    return { message: "Selecione ao menos um participante para dividir as despesas." };
+  }
+
+  await prisma.$transaction(
+    items.map((item) => {
+      const splits = splitEqually(item.amount, validIncluded);
+      return prisma.eventExpense.create({
+        data: {
+          eventId,
+          receiptId,
+          description: item.description,
+          amount: item.amount,
+          paidById,
+          date,
+          splits: {
+            create: Object.entries(splits).map(([splitUserId, splitAmount]) => ({
+              userId: splitUserId,
+              amount: splitAmount,
+            })),
+          },
+        },
+      });
+    })
+  );
+
+  revalidateEvent(eventId);
+  return { success: true };
 }
 
 export async function generateInvite(formData: FormData) {

@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { ArrowLeftRight } from "lucide-react";
 import { verifyEventAccess } from "@/lib/events-dal";
 import { getEventDetail } from "@/lib/queries/events";
+import { isOpenAiConfigured } from "@/lib/openai";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EventHeader } from "./event-header";
 import { AddExpenseButton } from "./add-expense-button";
+import { ReceiptScanButton } from "./receipt-scan-button";
 import { ExpenseRow } from "./expense-row";
 import { BalancePanel } from "./balance-panel";
 import { ParticipantsPanel } from "./participants-panel";
@@ -33,11 +35,20 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader>
               <CardTitle>Despesas</CardTitle>
-              <AddExpenseButton
-                eventId={event.id}
-                participants={event.participants}
-                currentUserId={userId}
-              />
+              <div className="flex gap-2">
+                {isOpenAiConfigured() ? (
+                  <ReceiptScanButton
+                    eventId={event.id}
+                    participants={event.participants}
+                    currentUserId={userId}
+                  />
+                ) : null}
+                <AddExpenseButton
+                  eventId={event.id}
+                  participants={event.participants}
+                  currentUserId={userId}
+                />
+              </div>
             </CardHeader>
             <CardContent>
               {event.expenses.length === 0 ? (

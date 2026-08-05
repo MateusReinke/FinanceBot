@@ -31,6 +31,10 @@ services:
       PLUGGY_CLIENT_SECRET: "${PLUGGY_CLIENT_SECRET:-}"
       PLUGGY_USE_SANDBOX: "${PLUGGY_USE_SANDBOX:-false}"
       PLUGGY_WEBHOOK_URL: "${PLUGGY_WEBHOOK_URL:-}"
+      # Leitura de nota fiscal por IA (Eventos) — em branco esconde o botão
+      # "Ler nota fiscal" e não muda mais nada, o resto do app funciona igual.
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      OPENAI_MODEL: "${OPENAI_MODEL:-}"
       # Fixo — é o que o Dockerfile expõe. O lado esquerdo do mapeamento de
       # porta abaixo (APP_PORT) é o que fica configurável pelo painel.
       PORT: "3000"

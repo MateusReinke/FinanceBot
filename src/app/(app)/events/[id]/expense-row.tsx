@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Receipt, Trash2 } from "lucide-react";
 import { deleteExpense } from "@/app/actions/events";
 import { displayName } from "@/lib/display-name";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -11,6 +11,7 @@ type Expense = {
   description: string;
   amount: number;
   date: Date;
+  receiptId: string | null;
   paidBy: { id: string; name: string; email: string };
   splits: Split[];
 };
@@ -41,6 +42,18 @@ export function ExpenseRow({
       <span className="shrink-0 text-sm font-semibold text-foreground">
         {formatCurrency(expense.amount)}
       </span>
+      {expense.receiptId ? (
+        <a
+          href={`/api/events/${eventId}/receipts/${expense.receiptId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+          aria-label="Ver nota fiscal"
+          title="Ver nota fiscal"
+        >
+          <Receipt className="h-3.5 w-3.5" />
+        </a>
+      ) : null}
       <form
         action={deleteExpense}
         onSubmit={(e) => {

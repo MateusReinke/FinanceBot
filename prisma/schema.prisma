@@ -31,6 +31,7 @@ model User {
   eventParticipations EventParticipant[]
   paidEventExpenses   EventExpense[]      @relation("EventExpensePayer")
   eventExpenseSplits  EventExpenseSplit[]
+  uploadedReceipts    EventReceipt[]
 }
 
 // One bank connection made through the Open Finance aggregator (Pluggy).
@@ -203,6 +204,7 @@ model Event {
   participants EventParticipant[]
   expenses     EventExpense[]
   invites      EventInvite[]
+  receipts     EventReceipt[]
 
   @@index([createdById])
 }
@@ -243,17 +245,45 @@ model EventExpense {
   amount      Float
   paidById    String
   date        DateTime @default(now())
+  // Set when this expense came from AI-extracted receipt items — several
+  // expenses can point at the same receipt (one photo, many line items).
+  receiptId   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  event  Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
   // Restrict (not Cascade/SetNull): a group's shared ledger must never lose
   // who paid what just because that member later deletes their account.
-  paidBy User                @relation("EventExpensePayer", fields: [paidById], references: [id], onDelete: Restrict)
-  splits EventExpenseSplit[]
+  paidBy  User                @relation("EventExpensePayer", fields: [paidById], references: [id], onDelete: Restrict)
+  splits  EventExpenseSplit[]
+  // SetNull, not Cascade: the receipt is supporting evidence, not the
+  // source of truth — losing the photo must never delete real ledger history.
+  receipt EventReceipt?       @relation(fields: [receiptId], references: [id], onDelete: SetNull)
 
   @@index([eventId])
   @@index([paidById])
+  @@index([receiptId])
+}
+
+// A photographed nota fiscal / receipt, read by OpenAI's vision API to
+// list its line items (src/lib/openai.ts). Stored as bytes directly in
+// Postgres — no object-storage/volume setup needed in Coolify, and it
+// rides along with the regular DB backup.
+model EventReceipt {
+  id           String   @id @default(cuid())
+  eventId      String
+  uploadedById String
+  imageData    Bytes
+  mimeType     String
+  createdAt    DateTime @default(now())
+
+  event      Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  // Restrict for the same reason as EventExpense.paidBy above.
+  uploadedBy User           @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  expenses   EventExpense[]
+
+  @@index([eventId])
+  @@index([uploadedById])
 }
 
 model EventExpenseSplit {

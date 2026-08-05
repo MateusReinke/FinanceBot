@@ -1,0 +1,106 @@
+import "server-only";
+
+const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+const DEFAULT_MODEL = "gpt-4o";
+
+export function isOpenAiConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY);
+}
+
+export type ExtractedReceiptItem = { description: string; amount: number };
+
+// Structured Outputs — constrains the model to emit exactly this shape, so
+// callers never have to defend against free-text/markdown-wrapped JSON.
+const RECEIPT_ITEMS_SCHEMA = {
+  name: "receipt_items",
+  strict: true,
+  schema: {
+    type: "object",
+    properties: {
+      items: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            description: { type: "string" },
+            amount: { type: "number" },
+          },
+          required: ["description", "amount"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["items"],
+    additionalProperties: false,
+  },
+} as const;
+
+const EXTRACTION_PROMPT =
+  "Esta imagem é uma nota fiscal ou recibo brasileiro. Liste cada item, produto " +
+  "ou serviço cobrado, com sua descrição e valor em reais (apenas o número, sem " +
+  '"R$" e sem separador de milhar). Não inclua subtotal, taxa de serviço, ' +
+  "gorjeta ou o total geral como itens à parte — a menos que a nota não tenha " +
+  "nenhum item detalhado, e nesse caso liste o total como um único item. Se a " +
+  "imagem não for uma nota/recibo legível, retorne uma lista vazia.";
+
+export async function extractReceiptItems(
+  imageBase64: string,
+  mimeType: string
+): Promise<ExtractedReceiptItem[]> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY não configurada.");
+  }
+
+  const res = await fetch(OPENAI_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: EXTRACTION_PROMPT },
+            { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
+          ],
+        },
+      ],
+      response_format: { type: "json_schema", json_schema: RECEIPT_ITEMS_SCHEMA },
+      max_tokens: 2000,
+    }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`OpenAI falhou (${res.status}): ${body.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== "string") {
+    throw new Error("Resposta inesperada da OpenAI.");
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    throw new Error("Não foi possível interpretar a resposta da OpenAI.");
+  }
+
+  const items = (parsed as { items?: unknown })?.items;
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+    .map((item) => ({
+      description: String(item.description ?? "").trim().slice(0, 120),
+      amount: Math.round(Number(item.amount) * 100) / 100,
+    }))
+    .filter((item) => item.description.length > 0 && Number.isFinite(item.amount) && item.amount > 0);
+}

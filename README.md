@@ -26,7 +26,11 @@ para importar automaticamente contas e transações do seu banco.
   importe contas e transações automaticamente, sincronize sob demanda ou via webhook
 - **Eventos**: divida contas em grupo (viagem, churrasco, etc.) — convide pessoas
   por link, registre despesas com divisão igual ou customizada, veja o saldo de
-  cada participante e sugestões de quem deve pagar quem
+  cada participante e sugestões de quem deve pagar quem. Com `OPENAI_API_KEY`
+  configurada, dá pra anexar uma foto da nota fiscal e a IA lista os itens da
+  nota automaticamente (um item = uma despesa), pra você revisar e ajustar
+  antes de confirmar — sem chave configurada, o lançamento manual continua
+  funcionando normalmente, só o botão de leitura por IA fica oculto
 - **Financiamentos**: lance um financiamento/parcelamento informando data da
   primeira parcela, quantidade e valor — o app monta o cronograma automaticamente,
   aplica cada parcela no saldo da conta só no mês em que ela vence (nunca o valor
@@ -49,7 +53,10 @@ fica centralizado em `src/lib/events-dal.ts` (`verifyEventAccess`), usado por
 toda rota e Server Action de evento, e responde com 404 tanto para "evento não
 existe" quanto para "você não participa dele", para nunca revelar quais ids de
 evento são válidos. O convite usa um token de 192 bits (`crypto.randomBytes`),
-não sequencial e não adivinhável.
+não sequencial e não adivinhável. A foto da nota fiscal segue a mesma regra —
+fica guardada como bytes no Postgres (não em disco/storage externo) e só é
+servida via `/api/events/[id]/receipts/[receiptId]` depois de passar pelo
+mesmo `verifyEventAccess`, nunca por um caminho público direto.
 
 O painel administrativo (`/admin`) segue a mesma lógica de menor privilégio:
 dá para gerenciar *identidade* de outros usuários (nome, e-mail, senha, papel,
@@ -95,6 +102,8 @@ Veja `.env.example`. As principais são:
 | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | Credenciais do Pluggy. Sem elas, o app funciona normalmente só com contas manuais — a seção de Open Finance fica oculta |
 | `PLUGGY_USE_SANDBOX` | não | `true` (padrão) inclui os conectores de teste do Pluggy no widget |
 | `PLUGGY_WEBHOOK_URL` | não | URL pública para receber eventos do Pluggy (sincronização automática). Sem isso, a sincronização é manual/no momento da conexão |
+| `OPENAI_API_KEY` | não | Chave da OpenAI para leitura de nota fiscal por IA nos Eventos. Sem ela, o lançamento manual de despesa continua funcionando — só o botão "Ler nota fiscal" fica oculto |
+| `OPENAI_MODEL` | não | Sobrescreve o modelo de visão usado para ler a nota (padrão: `gpt-4o`) |
 
 ### Ativando a integração com Open Finance (Pluggy)
 
@@ -107,6 +116,21 @@ Por padrão a integração roda em modo sandbox (`PLUGGY_USE_SANDBOX=true`), ent
 dá pra testar o fluxo completo de conexão com os bancos fictícios do Pluggy sem
 precisar de credenciais bancárias reais. Para produção, troque para credenciais
 de produção do Pluggy e ajuste `PLUGGY_USE_SANDBOX=false`.
+
+### Ativando a leitura de nota fiscal por IA (Eventos)
+
+1. Crie uma chave em https://platform.openai.com/api-keys
+2. Cole em `OPENAI_API_KEY` no `.env`
+3. Reinicie o servidor — o botão **Ler nota fiscal** aparece ao lado de "Nova
+   despesa" dentro de um Evento
+
+Formatos aceitos: JPEG, PNG ou WEBP, até 8MB. A IA lista cada item da nota
+como uma despesa separada (todas com o mesmo "quem pagou" e divididas
+igualmente entre quem você marcar) — você revisa, edita ou remove itens antes
+de confirmar, nada é salvo sem essa confirmação. Fotos em HEIC (padrão de
+câmera do iPhone) não são aceitas diretamente; troque o formato da câmera
+para "Mais compatível" (JPEG) nas configurações do iPhone, ou exporte/tire
+print da foto antes de enviar.
 
 ## Scripts
 
@@ -148,6 +172,8 @@ banco configurado.
 | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | credenciais de produção do Pluggy, se for usar Open Finance |
 | `PLUGGY_USE_SANDBOX` | não | já vem `false` por padrão nesse arquivo |
 | `PLUGGY_WEBHOOK_URL` | não | URL pública do serviço + `/api/openfinance/webhook` |
+| `OPENAI_API_KEY` | não | chave da OpenAI para leitura de nota fiscal por IA nos Eventos — sem ela, o botão fica oculto |
+| `OPENAI_MODEL` | não | sobrescreve o modelo de visão (padrão: `gpt-4o`) |
 
 Não precisa criar um recurso Postgres separado nem copiar connection string
 nenhuma — o `docker-compose.prod.yml` já monta o `DATABASE_URL` internamente
@@ -177,6 +203,8 @@ Variables" começa vazia e cada uma abaixo precisa ser adicionada na mão:
    | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | credenciais de produção do Pluggy |
    | `PLUGGY_USE_SANDBOX` | não | `false` em produção |
    | `PLUGGY_WEBHOOK_URL` | não | URL pública do serviço + `/api/openfinance/webhook` |
+   | `OPENAI_API_KEY` | não | chave da OpenAI para leitura de nota fiscal por IA nos Eventos |
+   | `OPENAI_MODEL` | não | sobrescreve o modelo de visão (padrão: `gpt-4o`) |
 
 3. Confira o campo **"Ports Exposes"**: precisa ser `3000` (é o que o
    Dockerfile expõe e o que `server.js` escuta por padrão via `PORT`/
@@ -250,7 +278,8 @@ src/
                         # orçamentos, categorias, eventos, admin, configurações)
     api/openfinance/    # rotas do fluxo Pluggy (connect-token, items, sync, webhook)
     api/health/          # healthcheck (usado pelo Docker/Coolify)
-    actions/              # Server Actions (mutações)
+    api/events/            # imagem da nota fiscal, atrás de verifyEventAccess
+    actions/                # Server Actions (mutações)
   components/
     ui/                 # primitivos (botão, modal, input, stat card...)
     layout/              # sidebar, topbar, navegação
@@ -259,6 +288,7 @@ src/
   lib/                    # Prisma client, sessão/auth, validação (zod), cliente Pluggy
     events-dal.ts           # verifyEventAccess — gate central de acesso a Eventos
     events.ts                # cálculo de divisão/saldos/quitação (puro, sem I/O)
+    openai.ts                 # leitura de nota fiscal por IA (Structured Outputs)
     admin-dal.ts             # verifyAdminSession — gate central de acesso a /admin
     admin.ts                  # isAdminEmail — decide quem vira admin
     financing.ts               # cronograma de parcelas + reconciliação de saldo
@@ -266,5 +296,5 @@ src/
 prisma/
   schema.prisma           # modelos (User, Account, Category, Transaction, Budget,
                            # PluggyItem, Event, EventParticipant, EventInvite,
-                           # EventExpense, EventExpenseSplit, Financing)
+                           # EventExpense, EventExpenseSplit, EventReceipt, Financing)
 ```
