@@ -21,6 +21,12 @@ services:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-financebot}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-financebot}?schema=public"
       SESSION_SECRET: "${SESSION_SECRET}"
       ADMIN_EMAIL: "${ADMIN_EMAIL:-}"
+      # "false" só se estiver acessando via HTTP puro (sem domínio/TLS no
+      # Coolify ainda) — sem isso o cookie de sessão fica marcado Secure e o
+      # navegador se recusa a guardá-lo numa conexão insegura (login parece
+      # funcionar, mas todo clique volta pro /login). O certo pra produção é
+      # configurar HTTPS no Coolify e deixar essa variável em branco.
+      COOKIE_SECURE: "${COOKIE_SECURE:-}"
       PLUGGY_CLIENT_ID: "${PLUGGY_CLIENT_ID:-}"
       PLUGGY_CLIENT_SECRET: "${PLUGGY_CLIENT_SECRET:-}"
       PLUGGY_USE_SANDBOX: "${PLUGGY_USE_SANDBOX:-false}"

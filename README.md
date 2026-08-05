@@ -144,6 +144,7 @@ banco configurado.
 | `POSTGRES_USER` / `POSTGRES_DB` | não | default `financebot` para os dois |
 | `APP_PORT` | não | porta pública de acesso — default `3000`, mude aqui pelo painel se quiser outra |
 | `ADMIN_EMAIL` | não | e-mail que vira admin ao se cadastrar/logar |
+| `COOKIE_SECURE` | não | deixe em branco (exige HTTPS, o correto). `false` só se ainda não configurou domínio/TLS — veja aviso abaixo |
 | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | credenciais de produção do Pluggy, se for usar Open Finance |
 | `PLUGGY_USE_SANDBOX` | não | já vem `false` por padrão nesse arquivo |
 | `PLUGGY_WEBHOOK_URL` | não | URL pública do serviço + `/api/openfinance/webhook` |
@@ -172,6 +173,7 @@ Variables" começa vazia e cada uma abaixo precisa ser adicionada na mão:
    | `DATABASE_URL` | sim | connection string do Postgres do passo 1 |
    | `SESSION_SECRET` | sim | `openssl rand -base64 32` |
    | `ADMIN_EMAIL` | não | e-mail que vira admin ao se cadastrar/logar |
+   | `COOKIE_SECURE` | não | deixe em branco (exige HTTPS, o correto). `false` só se ainda não configurou domínio/TLS — veja aviso abaixo |
    | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | credenciais de produção do Pluggy |
    | `PLUGGY_USE_SANDBOX` | não | `false` em produção |
    | `PLUGGY_WEBHOOK_URL` | não | URL pública do serviço + `/api/openfinance/webhook` |
@@ -181,6 +183,27 @@ Variables" começa vazia e cada uma abaixo precisa ser adicionada na mão:
    `HOSTNAME`) — a menos que você também adicione uma variável `PORT` com
    outro valor, aí os dois precisam bater. A porta pública de acesso em si
    fica em **"Port Mappings"** (`<porta que você quiser>:3000`).
+
+### "Consigo logar, mas todo clique volta pro /login"
+
+O cookie de sessão exige conexão HTTPS por padrão (`secure: true`) — é o
+navegador que se recusa a guardar um cookie `Secure` numa conexão HTTP pura,
+não uma falha do app. Sintoma típico: login parece funcionar (a página que
+já estava carregada continua na tela), mas qualquer clique que precise de
+uma nova verificação no servidor te manda de volta pro `/login`.
+
+Isso acontece se você está acessando via IP:porta direto, sem domínio nem
+HTTPS configurado no Coolify ainda. Duas saídas:
+
+- **Certo, para produção**: configure um domínio no recurso da aplicação
+  (aba "Domains" → "Generate Domain" já dá HTTPS automático via Let's
+  Encrypt, ou aponte seu próprio domínio). Uma vez com HTTPS na frente, o
+  app detecta isso sozinho (via `X-Forwarded-Proto`) e volta a funcionar
+  sem precisar mexer em variável nenhuma.
+- **Atalho pra testar agora**: defina `COOKIE_SECURE=false` nas variáveis
+  de ambiente e redeploy. Desbloqueia o acesso via HTTP puro, mas as
+  credenciais de login trafegam sem criptografia — não deixe assim numa
+  instância com dados reais.
 
 ### Migrations do banco (as duas opções)
 

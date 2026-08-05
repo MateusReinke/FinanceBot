@@ -1,6 +1,6 @@
 import "server-only";
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 const secretKey = process.env.SESSION_SECRET;
 if (!secretKey) {
@@ -37,12 +37,29 @@ export async function decrypt(token: string | undefined): Promise<SessionPayload
   }
 }
 
+// Behind a reverse proxy (Coolify's Traefik/Caddy terminating TLS, or any
+// other), the container itself only ever sees plain HTTP — NODE_ENV alone
+// can't tell us whether the browser's actual connection was HTTPS. Trust
+// X-Forwarded-Proto when a proxy set it; COOKIE_SECURE is an explicit,
+// opt-in escape hatch for accessing the app over bare HTTP (no domain, no
+// proxy in front) during setup/testing, since a browser silently refuses
+// to store a Secure cookie on an insecure connection — which otherwise
+// looks exactly like "login succeeds but every click bounces back to
+// /login". Defaults to secure whenever neither signal is available.
+async function shouldUseSecureCookie(): Promise<boolean> {
+  if (process.env.COOKIE_SECURE === "false") return false;
+  if (process.env.COOKIE_SECURE === "true") return true;
+  const forwardedProto = (await headers()).get("x-forwarded-proto");
+  if (forwardedProto) return forwardedProto === "https";
+  return process.env.NODE_ENV === "production";
+}
+
 export async function createSession(userId: string) {
   const session = await encrypt({ userId });
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, session, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: await shouldUseSecureCookie(),
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_MAX_AGE_SECONDS,
