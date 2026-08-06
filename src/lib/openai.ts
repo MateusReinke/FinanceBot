@@ -193,3 +193,95 @@ export async function parseTransactionCommand(
     categoryName: typeof obj.categoryName === "string" ? obj.categoryName : null,
   };
 }
+
+export type ExtractedInvoiceItem = {
+  description: string;
+  amount: number;
+  date: string | null;
+  categoryName: string | null;
+  // Both set together or both null — a line like "AMAZON BR 2/6" means
+  // installment 2 of 6 (4 more charges land in future invoices).
+  installmentCurrent: number | null;
+  installmentTotal: number | null;
+};
+
+export type ExtractedInvoiceData = {
+  referenceMonth: number | null;
+  referenceYear: number | null;
+  totalAmount: number | null;
+  items: ExtractedInvoiceItem[];
+};
+
+// Text-only (no vision call) — Brazilian bank invoice PDFs are virtually
+// always digitally generated, so raw extracted text is cheaper and far
+// more reliable here than rendering pages to images. Capped input keeps
+// the prompt bounded for an invoice with a very long line-item history.
+export async function extractInvoiceData(
+  text: string,
+  categories: { name: string; type: string }[]
+): Promise<ExtractedInvoiceData> {
+  const today = new Date().toISOString().slice(0, 10);
+  const categoryList = categories.length
+    ? categories.map((c) => `- ${c.name}`).join("\n")
+    : "(nenhuma categoria cadastrada)";
+  const truncated = text.slice(0, 12000);
+
+  const prompt =
+    "O texto abaixo foi extraído de um PDF de fatura de cartão de crédito brasileiro. " +
+    "Identifique o mês/ano de referência da fatura, o valor total, e cada compra ou lançamento.\n\n" +
+    `Hoje é ${today}.\n\n` +
+    `Categorias de despesa disponíveis:\n${categoryList}\n\n` +
+    "Regras:\n" +
+    '- "description": descrição curta e natural do lançamento.\n' +
+    '- "amount": só o número, sem "R$" e sem separador de milhar.\n' +
+    '- "date": "YYYY-MM-DD" (use o mês/ano de referência da fatura quando a linha só tiver dia/mês), ' +
+    "ou null se não der pra saber.\n" +
+    '- "categoryName": deve bater EXATAMENTE com um nome da lista de categorias acima, ou null se não tiver certeza.\n' +
+    '- Se o lançamento for uma compra parcelada (ex: "2/6", "Parcela 03/10"), preencha "installmentCurrent" ' +
+    'e "installmentTotal" com os dois números da parcela. Caso contrário, deixe ambos null.\n' +
+    '- Ignore linhas de "pagamento recebido", "saldo anterior" ou de encargos/IOF — inclua só compras e despesas reais.\n' +
+    '- "referenceMonth"/"referenceYear": o mês/ano a que esta fatura se refere (geralmente perto da data de vencimento).\n' +
+    '- "totalAmount": o valor total desta fatura, se estiver indicado no texto.\n\n' +
+    "Responda apenas com um JSON no formato exato a seguir, sem nenhum texto adicional antes ou depois:\n" +
+    '{"referenceMonth": number ou null, "referenceYear": number ou null, "totalAmount": number ou null, ' +
+    '"items": [{"description": "string", "amount": number, "date": "string ou null", ' +
+    '"categoryName": "string ou null", "installmentCurrent": number ou null, "installmentTotal": number ou null}, ...]}\n\n' +
+    `Texto da fatura:\n"""\n${truncated}\n"""`;
+
+  const parsed = await callOpenAiJson(prompt, 4000);
+  const obj = (parsed as Record<string, unknown>) ?? {};
+
+  const rawItems = Array.isArray((obj as { items?: unknown }).items) ? (obj as { items: unknown[] }).items : [];
+  const items: ExtractedInvoiceItem[] = rawItems
+    .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+    .map((item) => {
+      const current = Number(item.installmentCurrent);
+      const total = Number(item.installmentTotal);
+      const validInstallment =
+        Number.isInteger(current) && Number.isInteger(total) && current >= 1 && total >= current;
+      const date =
+        typeof item.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item.date) ? item.date : null;
+
+      return {
+        description: String(item.description ?? "").trim().slice(0, 120),
+        amount: parseAmount(item.amount),
+        date,
+        categoryName: typeof item.categoryName === "string" ? item.categoryName : null,
+        installmentCurrent: validInstallment ? current : null,
+        installmentTotal: validInstallment ? total : null,
+      };
+    })
+    .filter((item) => item.description.length > 0 && Number.isFinite(item.amount) && item.amount > 0);
+
+  const referenceMonth = Number(obj.referenceMonth);
+  const referenceYear = Number(obj.referenceYear);
+  const totalAmount = parseAmount(obj.totalAmount);
+
+  return {
+    referenceMonth:
+      Number.isInteger(referenceMonth) && referenceMonth >= 1 && referenceMonth <= 12 ? referenceMonth : null,
+    referenceYear: Number.isInteger(referenceYear) && referenceYear >= 2000 ? referenceYear : null,
+    totalAmount: Number.isFinite(totalAmount) && totalAmount > 0 ? totalAmount : null,
+    items,
+  };
+}

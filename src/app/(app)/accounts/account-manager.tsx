@@ -6,11 +6,12 @@ import { Plus, Pencil, Trash2, Archive, ArchiveRestore, Landmark } from "lucide-
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { AccountForm } from "./account-form";
+import { InvoiceImportButton } from "./invoice-import-button";
 import { toggleArchiveAccount, deleteAccount } from "@/app/actions/accounts";
 import { getAccountTypeMeta } from "@/lib/account-types";
 import { formatCurrency, cn } from "@/lib/utils";
 
-function AccountCard({ account }: { account: Account }) {
+function AccountCard({ account, aiEnabled }: { account: Account; aiEnabled: boolean }) {
   const [editOpen, setEditOpen] = useState(false);
   const meta = getAccountTypeMeta(account.type);
   const Icon = meta.icon;
@@ -88,6 +89,10 @@ function AccountCard({ account }: { account: Account }) {
 
       {account.type === "credit_card" ? <CreditCardDetails account={account} /> : null}
 
+      {account.type === "credit_card" && !isSynced && aiEnabled ? (
+        <InvoiceImportButton accountId={account.id} />
+      ) : null}
+
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar conta">
         <AccountForm account={account} onSuccess={() => setEditOpen(false)} />
       </Modal>
@@ -129,7 +134,7 @@ function CreditCardDetails({ account }: { account: Account }) {
   );
 }
 
-export function AccountManager({ accounts }: { accounts: Account[] }) {
+export function AccountManager({ accounts, aiEnabled }: { accounts: Account[]; aiEnabled: boolean }) {
   const [createOpen, setCreateOpen] = useState(false);
   const active = accounts.filter((a) => !a.archived);
   const archived = accounts.filter((a) => a.archived);
@@ -145,7 +150,7 @@ export function AccountManager({ accounts }: { accounts: Account[] }) {
       {active.length > 0 ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {active.map((a) => (
-            <AccountCard key={a.id} account={a} />
+            <AccountCard key={a.id} account={a} aiEnabled={aiEnabled} />
           ))}
         </div>
       ) : (
@@ -167,7 +172,7 @@ export function AccountManager({ accounts }: { accounts: Account[] }) {
           </summary>
           <div className="mt-3 grid grid-cols-1 gap-3 opacity-70 sm:grid-cols-2 lg:grid-cols-3">
             {archived.map((a) => (
-              <AccountCard key={a.id} account={a} />
+              <AccountCard key={a.id} account={a} aiEnabled={aiEnabled} />
             ))}
           </div>
         </details>

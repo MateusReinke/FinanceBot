@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { verifySession, getCurrentUser } from "@/lib/dal";
 import { isPluggyConfigured, pluggyUseSandbox } from "@/lib/pluggy";
+import { isOpenAiConfigured } from "@/lib/openai";
 import { AccountManager } from "./account-manager";
 import { OpenFinanceSection } from "@/components/openfinance/open-finance-section";
 
@@ -38,7 +39,7 @@ export default async function AccountsPage() {
 
       <div className="space-y-3">
         {pluggyEnabled ? <h2 className="text-base font-semibold text-foreground">Contas manuais</h2> : null}
-        <AccountManager accounts={accounts} />
+        <AccountManager accounts={accounts} aiEnabled={isOpenAiConfigured()} />
       </div>
     </div>
   );
