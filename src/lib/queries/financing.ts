@@ -41,6 +41,7 @@ export async function getFinancingsList(userId: string) {
     installmentAmount: f.installmentAmount,
     installmentCount: f.installmentCount,
     firstDueDate: f.firstDueDate,
+    isRecurring: f.isRecurring,
     ...summarize(f.installments, f.installmentCount),
   }));
 }

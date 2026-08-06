@@ -83,10 +83,26 @@ async function callOpenAiJson(content: MessageContent, maxTokens: number): Promi
     throw new Error("Resposta inesperada da OpenAI.");
   }
 
+  // json_object mode guarantees syntactically valid JSON for a *complete*
+  // response, but a response cut off at max_completion_tokens (a long
+  // invoice with many line items, say) breaks that guarantee — the finish
+  // reason and a snippet of the actual content go into the thrown error so
+  // a real failure is diagnosable from the server log instead of a bare
+  // "couldn't parse" with no clue why.
+  const stripped = responseContent.trim().replace(/^```(?:json)?\n?/i, "").replace(/```$/, "").trim();
   try {
-    return JSON.parse(responseContent);
+    return JSON.parse(stripped);
   } catch {
-    throw new Error("Não foi possível interpretar a resposta da OpenAI.");
+    const finishReason = data?.choices?.[0]?.finish_reason;
+    console.error(
+      `Falha ao interpretar JSON da OpenAI (finish_reason=${finishReason}):`,
+      responseContent.slice(0, 500)
+    );
+    throw new Error(
+      finishReason === "length"
+        ? "A resposta da OpenAI foi cortada por ser muito longa. Tente novamente com menos itens."
+        : "Não foi possível interpretar a resposta da OpenAI."
+    );
   }
 }
 
@@ -224,7 +240,7 @@ export async function extractInvoiceData(
   const categoryList = categories.length
     ? categories.map((c) => `- ${c.name}`).join("\n")
     : "(nenhuma categoria cadastrada)";
-  const truncated = text.slice(0, 12000);
+  const truncated = text.slice(0, 24000);
 
   const prompt =
     "O texto abaixo foi extraído de um PDF de fatura de cartão de crédito brasileiro. " +
@@ -248,7 +264,10 @@ export async function extractInvoiceData(
     '"categoryName": "string ou null", "installmentCurrent": number ou null, "installmentTotal": number ou null}, ...]}\n\n' +
     `Texto da fatura:\n"""\n${truncated}\n"""`;
 
-  const parsed = await callOpenAiJson(prompt, 4000);
+  // A real invoice can have dozens of line items — this was previously
+  // 4000, which a busy card's monthly statement can blow through, cutting
+  // the JSON off mid-object (finish_reason "length") and failing to parse.
+  const parsed = await callOpenAiJson(prompt, 8000);
   const obj = (parsed as Record<string, unknown>) ?? {};
 
   const rawItems = Array.isArray((obj as { items?: unknown }).items) ? (obj as { items: unknown[] }).items : [];

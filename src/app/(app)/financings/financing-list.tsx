@@ -23,6 +23,7 @@ type FinancingCardData = {
   remainingTotal: number;
   totalAmount: number;
   status: "andamento" | "concluido" | "quitado";
+  isRecurring: boolean;
 };
 
 const STATUS_LABEL: Record<FinancingCardData["status"], string> = {
@@ -87,31 +88,42 @@ export function FinancingList({
                   <span
                     className={cn(
                       "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-                      STATUS_TONE[f.status]
+                      f.isRecurring ? "bg-primary/10 text-primary" : STATUS_TONE[f.status]
                     )}
                   >
-                    {STATUS_LABEL[f.status]}
+                    {f.isRecurring ? "Gasto fixo" : STATUS_LABEL[f.status]}
                   </span>
                 </div>
 
-                <div>
-                  <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      {f.paidCount}/{f.installmentCount} parcelas pagas
+                {f.isRecurring ? (
+                  <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
+                    <span className="text-muted-foreground">Todo mês</span>
+                    <span className="font-semibold text-foreground">
+                      {formatCurrency(f.installmentAmount)}
                     </span>
-                    <span>{pct.toFixed(0)}%</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div>
+                      <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          {f.paidCount}/{f.installmentCount} parcelas pagas
+                        </span>
+                        <span>{pct.toFixed(0)}%</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
 
-                <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
-                  <span className="text-muted-foreground">Total {formatCurrency(f.totalAmount)}</span>
-                  <span className="font-semibold text-foreground">
-                    Falta {formatCurrency(f.remainingTotal)}
-                  </span>
-                </div>
+                    <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
+                      <span className="text-muted-foreground">Total {formatCurrency(f.totalAmount)}</span>
+                      <span className="font-semibold text-foreground">
+                        Falta {formatCurrency(f.remainingTotal)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </Link>
             );
           })}

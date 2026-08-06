@@ -5,6 +5,7 @@ import type { Account, Category } from "@prisma/client";
 import { createFinancing } from "@/app/actions/financing";
 import { Input, Label, FieldError, Select } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { MAX_RECURRING_MONTHS } from "@/lib/validation/financing";
 import { formatCurrency, toDateInputValue, monthsBetweenUTC, cn } from "@/lib/utils";
 
 export function FinancingForm({
@@ -17,7 +18,7 @@ export function FinancingForm({
   onSuccess: () => void;
 }) {
   const [state, action] = useActionState(createFinancing, undefined);
-  const [countMode, setCountMode] = useState<"count" | "endDate">("count");
+  const [countMode, setCountMode] = useState<"count" | "endDate" | "recurring">("count");
   const [count, setCount] = useState("");
   const [amount, setAmount] = useState("");
   const [firstDueDate, setFirstDueDate] = useState(toDateInputValue(new Date()));
@@ -29,6 +30,7 @@ export function FinancingForm({
 
   const computedCount = useMemo(() => {
     if (countMode === "count") return Number(count) || 0;
+    if (countMode === "recurring") return MAX_RECURRING_MONTHS;
     if (!endDate) return 0;
     return monthsBetweenUTC(new Date(`${firstDueDate}T00:00:00Z`), new Date(`${endDate}T00:00:00Z`));
   }, [countMode, count, endDate, firstDueDate]);
@@ -118,12 +120,13 @@ export function FinancingForm({
 
       <div className="space-y-2">
         <input type="hidden" name="installmentCount" value={computedCount || ""} />
-        <div className="grid grid-cols-2 gap-2">
+        <input type="hidden" name="isRecurring" value={countMode === "recurring" ? "true" : "false"} />
+        <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
             onClick={() => setCountMode("count")}
             className={cn(
-              "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+              "rounded-lg border py-2 text-xs font-medium cursor-pointer transition-colors sm:text-sm",
               countMode === "count"
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground hover:bg-muted"
@@ -135,13 +138,25 @@ export function FinancingForm({
             type="button"
             onClick={() => setCountMode("endDate")}
             className={cn(
-              "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+              "rounded-lg border py-2 text-xs font-medium cursor-pointer transition-colors sm:text-sm",
               countMode === "endDate"
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground hover:bg-muted"
             )}
           >
             Data final (conta fixa)
+          </button>
+          <button
+            type="button"
+            onClick={() => setCountMode("recurring")}
+            className={cn(
+              "rounded-lg border py-2 text-xs font-medium cursor-pointer transition-colors sm:text-sm",
+              countMode === "recurring"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:bg-muted"
+            )}
+          >
+            Gasto fixo (sem data pra acabar)
           </button>
         </div>
 
@@ -159,7 +174,7 @@ export function FinancingForm({
             />
             <FieldError messages={state?.errors?.installmentCount} />
           </div>
-        ) : (
+        ) : countMode === "endDate" ? (
           <div className="space-y-1.5">
             <Label htmlFor="endDateInput">Última cobrança prevista</Label>
             <Input
@@ -177,12 +192,26 @@ export function FinancingForm({
             </p>
             <FieldError messages={state?.errors?.installmentCount} />
           </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Lança o mesmo valor todo mês, indefinidamente — pra aluguel, mensalidade ou qualquer
+            gasto fixo sem previsão de acabar. Dá pra cancelar quando quiser na página do gasto.
+          </p>
         )}
       </div>
 
       <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm">
-        <span className="text-muted-foreground">Total do financiamento: </span>
-        <span className="font-semibold text-foreground">{formatCurrency(total)}</span>
+        {countMode === "recurring" ? (
+          <>
+            <span className="text-muted-foreground">Valor por mês: </span>
+            <span className="font-semibold text-foreground">{formatCurrency(Number(amount) || 0)}</span>
+          </>
+        ) : (
+          <>
+            <span className="text-muted-foreground">Total do financiamento: </span>
+            <span className="font-semibold text-foreground">{formatCurrency(total)}</span>
+          </>
+        )}
       </div>
 
       {state?.message ? (

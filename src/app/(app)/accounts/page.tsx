@@ -4,6 +4,7 @@ import { verifySession, getCurrentUser } from "@/lib/dal";
 import { isPluggyConfigured, pluggyUseSandbox } from "@/lib/pluggy";
 import { isOpenAiConfigured } from "@/lib/openai";
 import { AccountManager } from "./account-manager";
+import { CardInvoiceSummary } from "./card-invoice-summary";
 import { OpenFinanceSection } from "@/components/openfinance/open-finance-section";
 
 export const metadata: Metadata = { title: "Contas — FinanceBot" };
@@ -36,6 +37,8 @@ export default async function AccountsPage() {
           includeSandbox={pluggyUseSandbox()}
         />
       ) : null}
+
+      <CardInvoiceSummary accounts={accounts} />
 
       <div className="space-y-3">
         {pluggyEnabled ? <h2 className="text-base font-semibold text-foreground">Contas manuais</h2> : null}

@@ -11,10 +11,12 @@ export function FinancingHeader({
   id,
   description,
   remainingCount,
+  isRecurring = false,
 }: {
   id: string;
   description: string;
   remainingCount: number;
+  isRecurring?: boolean;
 }) {
   const [editOpen, setEditOpen] = useState(false);
 
@@ -29,17 +31,15 @@ export function FinancingHeader({
           <form
             action={settleFinancingEarly}
             onSubmit={(e) => {
-              if (
-                !confirm(
-                  `Quitar antecipadamente? As ${remainingCount} parcelas futuras serão removidas; as já pagas continuam no histórico.`
-                )
-              )
-                e.preventDefault();
+              const message = isRecurring
+                ? "Cancelar este gasto fixo? Ele para de ser lançado a partir de agora; os meses já pagos continuam no histórico."
+                : `Quitar antecipadamente? As ${remainingCount} parcelas futuras serão removidas; as já pagas continuam no histórico.`;
+              if (!confirm(message)) e.preventDefault();
             }}
           >
             <input type="hidden" name="id" value={id} />
             <Button type="submit" variant="outline" size="sm">
-              <CheckCircle2 className="h-4 w-4" /> Quitar
+              <CheckCircle2 className="h-4 w-4" /> {isRecurring ? "Cancelar" : "Quitar"}
             </Button>
           </form>
         ) : null}

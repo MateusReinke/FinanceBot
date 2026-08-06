@@ -26,6 +26,7 @@ export async function createFinancing(_state: FormState, formData: FormData): Pr
     firstDueDate: formData.get("firstDueDate"),
     installmentCount: formData.get("installmentCount"),
     installmentAmount: formData.get("installmentAmount"),
+    isRecurring: formData.get("isRecurring"),
   });
   if (!validatedFields.success) {
     return { errors: validatedFields.error.flatten().fieldErrors };
@@ -62,12 +63,15 @@ export async function createFinancing(_state: FormState, formData: FormData): Pr
         installmentAmount: data.installmentAmount,
         installmentCount: data.installmentCount,
         firstDueDate: data.firstDueDate,
+        isRecurring: data.isRecurring,
         installments: {
           create: schedule.map((s) => ({
             userId,
             accountId: data.accountId,
             categoryId: data.categoryId,
-            description: `Parcela ${s.installmentNumber}/${data.installmentCount} — ${data.description}`,
+            description: data.isRecurring
+              ? data.description
+              : `Parcela ${s.installmentNumber}/${data.installmentCount} — ${data.description}`,
             amount: s.amount,
             date: s.date,
             type: "expense",

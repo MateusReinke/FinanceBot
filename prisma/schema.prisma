@@ -162,8 +162,15 @@ model Financing {
   categoryId        String?
   description       String
   installmentAmount Float // V — always positive, one installment's value
-  installmentCount  Int // N — total number of installments
+  installmentCount  Int // N — total number of installments (a recurring expense just uses a long practical cap, see isRecurring)
   firstDueDate      DateTime // calendar date (UTC midnight) of installment #1
+  // True for a fixed monthly expense with no real end date (rent, a
+  // subscription with no planned cancellation, ...). installmentCount is
+  // still a normal finite number under the hood — MAX_RECURRING_MONTHS,
+  // see financing-form.tsx — so it reuses 100% of the same schedule/
+  // reconciliation machinery; this flag only changes how it's displayed
+  // (no "X of Y" progress, no meaningful total).
+  isRecurring       Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

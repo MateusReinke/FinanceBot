@@ -8,18 +8,20 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Input, Label, FieldError } from "@/components/ui/input";
-import { formatCurrency, formatDate, cn } from "@/lib/utils";
+import { formatCurrency, formatDate, formatMonthYear, cn } from "@/lib/utils";
 
 export function InstallmentTable({
   financingId,
   installments,
   installmentCount,
   scheduledAmount,
+  isRecurring = false,
 }: {
   financingId: string;
   installments: Transaction[];
   installmentCount: number;
   scheduledAmount: number;
+  isRecurring?: boolean;
 }) {
   const [payingId, setPayingId] = useState<string | null>(null);
   const paying = installments.find((i) => i.id === payingId) ?? null;
@@ -30,7 +32,7 @@ export function InstallmentTable({
         <table className="w-full min-w-[520px] text-left text-sm">
           <thead>
             <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              <th className="px-3 py-2">Parcela</th>
+              {isRecurring ? null : <th className="px-3 py-2">Parcela</th>}
               <th className="px-3 py-2">Vencimento</th>
               <th className="px-3 py-2 text-right">Valor</th>
               <th className="px-3 py-2 text-right">Status</th>
@@ -44,10 +46,16 @@ export function InstallmentTable({
               const savings = inst.balanceApplied ? scheduledAmount - inst.amount : 0;
               return (
                 <tr key={inst.id} className="border-b border-border last:border-0">
-                  <td className="px-3 py-2.5 text-foreground">
-                    {inst.installmentNumber}/{installmentCount}
+                  {isRecurring ? null : (
+                    <td className="px-3 py-2.5 text-foreground">
+                      {inst.installmentNumber}/{installmentCount}
+                    </td>
+                  )}
+                  <td className="px-3 py-2.5 text-muted-foreground">
+                    {isRecurring
+                      ? formatMonthYear(new Date(inst.date).getUTCMonth() + 1, new Date(inst.date).getUTCFullYear())
+                      : formatDate(inst.date)}
                   </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{formatDate(inst.date)}</td>
                   <td className="px-3 py-2.5 text-right text-foreground">
                     <div className="flex items-center justify-end gap-1.5">
                       {formatCurrency(inst.amount)}
