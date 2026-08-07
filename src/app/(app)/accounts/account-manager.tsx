@@ -2,20 +2,30 @@
 
 import { useState } from "react";
 import type { Account } from "@prisma/client";
-import { Plus, Pencil, Trash2, Archive, ArchiveRestore, Landmark } from "lucide-react";
+import { Plus, Pencil, Trash2, Archive, ArchiveRestore, Landmark, CreditCard } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { AccountForm } from "./account-form";
 import { InvoiceImportButton } from "./invoice-import-button";
+import { PayInvoiceButton } from "./pay-invoice-button";
 import { toggleArchiveAccount, deleteAccount } from "@/app/actions/accounts";
 import { getAccountTypeMeta } from "@/lib/account-types";
 import { formatCurrency, cn } from "@/lib/utils";
 
-function AccountCard({ account, aiEnabled }: { account: Account; aiEnabled: boolean }) {
+function AccountCard({
+  account,
+  aiEnabled,
+  sourceAccounts,
+}: {
+  account: Account;
+  aiEnabled: boolean;
+  sourceAccounts: Account[];
+}) {
   const [editOpen, setEditOpen] = useState(false);
   const meta = getAccountTypeMeta(account.type);
   const Icon = meta.icon;
   const isSynced = Boolean(account.pluggyItemId);
+  const isCard = account.type === "credit_card";
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
@@ -87,10 +97,13 @@ function AccountCard({ account, aiEnabled }: { account: Account; aiEnabled: bool
         {formatCurrency(account.balance)}
       </p>
 
-      {account.type === "credit_card" ? <CreditCardDetails account={account} /> : null}
+      {isCard ? <CreditCardDetails account={account} /> : null}
 
-      {account.type === "credit_card" && !isSynced && aiEnabled ? (
-        <InvoiceImportButton accountId={account.id} />
+      {isCard && !isSynced ? (
+        <div className="space-y-1.5">
+          <PayInvoiceButton account={account} sourceAccounts={sourceAccounts} />
+          {aiEnabled ? <InvoiceImportButton accountId={account.id} /> : null}
+        </div>
       ) : null}
 
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar conta">
@@ -134,10 +147,34 @@ function CreditCardDetails({ account }: { account: Account }) {
   );
 }
 
+function AccountGrid({
+  accounts,
+  aiEnabled,
+  sourceAccounts,
+  muted,
+}: {
+  accounts: Account[];
+  aiEnabled: boolean;
+  sourceAccounts: Account[];
+  muted?: boolean;
+}) {
+  return (
+    <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3", muted && "opacity-70")}>
+      {accounts.map((a) => (
+        <AccountCard key={a.id} account={a} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} />
+      ))}
+    </div>
+  );
+}
+
 export function AccountManager({ accounts, aiEnabled }: { accounts: Account[]; aiEnabled: boolean }) {
   const [createOpen, setCreateOpen] = useState(false);
   const active = accounts.filter((a) => !a.archived);
   const archived = accounts.filter((a) => a.archived);
+
+  const activeCards = active.filter((a) => a.type === "credit_card");
+  const activeAccounts = active.filter((a) => a.type !== "credit_card");
+  const sourceAccounts = activeAccounts.filter((a) => !a.pluggyItemId);
 
   return (
     <div className="space-y-8">
@@ -147,13 +184,7 @@ export function AccountManager({ accounts, aiEnabled }: { accounts: Account[]; a
         </Button>
       </div>
 
-      {active.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {active.map((a) => (
-            <AccountCard key={a.id} account={a} aiEnabled={aiEnabled} />
-          ))}
-        </div>
-      ) : (
+      {active.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
           <Landmark className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
@@ -163,6 +194,28 @@ export function AccountManager({ accounts, aiEnabled }: { accounts: Account[]; a
             <Plus className="h-4 w-4" /> Nova conta
           </Button>
         </div>
+      ) : (
+        <>
+          {activeCards.length > 0 ? (
+            <div className="space-y-3">
+              <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <CreditCard className="h-4 w-4" /> Cartões de crédito
+              </h2>
+              <AccountGrid accounts={activeCards} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} />
+            </div>
+          ) : null}
+
+          {activeAccounts.length > 0 ? (
+            <div className="space-y-3">
+              {activeCards.length > 0 ? (
+                <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                  <Landmark className="h-4 w-4" /> Contas
+                </h2>
+              ) : null}
+              <AccountGrid accounts={activeAccounts} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} />
+            </div>
+          ) : null}
+        </>
       )}
 
       {archived.length > 0 ? (
@@ -170,10 +223,8 @@ export function AccountManager({ accounts, aiEnabled }: { accounts: Account[]; a
           <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
             Contas arquivadas ({archived.length})
           </summary>
-          <div className="mt-3 grid grid-cols-1 gap-3 opacity-70 sm:grid-cols-2 lg:grid-cols-3">
-            {archived.map((a) => (
-              <AccountCard key={a.id} account={a} aiEnabled={aiEnabled} />
-            ))}
+          <div className="mt-3">
+            <AccountGrid accounts={archived} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} muted />
           </div>
         </details>
       ) : null}

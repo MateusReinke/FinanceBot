@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Account, Category } from "@prisma/client";
-import { Plus, CalendarClock } from "lucide-react";
+import { Plus, CalendarClock, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { FinancingForm } from "./financing-form";
@@ -47,12 +47,15 @@ export function FinancingList({
   accounts: Account[];
   categories: Category[];
 }) {
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createMode, setCreateMode] = useState<"count" | "recurring" | null>(null);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
+      <div className="flex items-center justify-end gap-2">
+        <Button size="sm" variant="outline" onClick={() => setCreateMode("recurring")}>
+          <Repeat className="h-4 w-4" /> Novo gasto fixo
+        </Button>
+        <Button size="sm" onClick={() => setCreateMode("count")}>
           <Plus className="h-4 w-4" /> Novo financiamento
         </Button>
       </div>
@@ -61,12 +64,17 @@ export function FinancingList({
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
           <CalendarClock className="h-8 w-8 text-muted-foreground" />
           <p className="max-w-sm text-sm text-muted-foreground">
-            Cadastre um financiamento ou compra parcelada — a parcela de cada mês aparece
-            automaticamente nos seus gastos, no mês em que vence.
+            Cadastre um financiamento, compra parcelada ou gasto fixo mensal (aluguel, assinatura)
+            — a parcela de cada mês aparece automaticamente nos seus gastos, no mês em que vence.
           </p>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> Novo financiamento
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setCreateMode("recurring")}>
+              <Repeat className="h-4 w-4" /> Novo gasto fixo
+            </Button>
+            <Button size="sm" onClick={() => setCreateMode("count")}>
+              <Plus className="h-4 w-4" /> Novo financiamento
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -130,8 +138,19 @@ export function FinancingList({
         </div>
       )}
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Novo financiamento">
-        <FinancingForm accounts={accounts} categories={categories} onSuccess={() => setCreateOpen(false)} />
+      <Modal
+        open={createMode !== null}
+        onClose={() => setCreateMode(null)}
+        title={createMode === "recurring" ? "Novo gasto fixo" : "Novo financiamento"}
+      >
+        {createMode ? (
+          <FinancingForm
+            accounts={accounts}
+            categories={categories}
+            initialMode={createMode}
+            onSuccess={() => setCreateMode(null)}
+          />
+        ) : null}
       </Modal>
     </div>
   );

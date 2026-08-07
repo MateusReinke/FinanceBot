@@ -8,6 +8,16 @@ const dayOfMonth = z.coerce
   .max(31, { error: "O dia deve ser entre 1 e 31." })
   .optional();
 
+export const PayInvoiceSchema = z.object({
+  amount: z.coerce
+    .number({ error: "Informe um valor válido." })
+    .positive({ error: "O valor deve ser maior que zero." }),
+  sourceAccountId: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+});
+
 export const AccountSchema = z.object({
   name: z
     .string()

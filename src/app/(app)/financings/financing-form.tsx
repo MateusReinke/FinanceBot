@@ -12,13 +12,15 @@ export function FinancingForm({
   accounts,
   categories,
   onSuccess,
+  initialMode = "count",
 }: {
   accounts: Account[];
   categories: Category[];
   onSuccess: () => void;
+  initialMode?: "count" | "endDate" | "recurring";
 }) {
   const [state, action] = useActionState(createFinancing, undefined);
-  const [countMode, setCountMode] = useState<"count" | "endDate" | "recurring">("count");
+  const [countMode, setCountMode] = useState<"count" | "endDate" | "recurring">(initialMode);
   const [count, setCount] = useState("");
   const [amount, setAmount] = useState("");
   const [firstDueDate, setFirstDueDate] = useState(toDateInputValue(new Date()));
@@ -49,7 +51,7 @@ export function FinancingForm({
         <Input
           id="description"
           name="description"
-          placeholder="Ex: Financiamento do carro"
+          placeholder={countMode === "recurring" ? "Ex: Aluguel" : "Ex: Financiamento do carro"}
           required
           autoFocus
         />
@@ -219,7 +221,9 @@ export function FinancingForm({
           {state.message}
         </p>
       ) : null}
-      <SubmitButton className="w-full">Criar financiamento</SubmitButton>
+      <SubmitButton className="w-full">
+        {countMode === "recurring" ? "Criar gasto fixo" : "Criar financiamento"}
+      </SubmitButton>
     </form>
   );
 }
