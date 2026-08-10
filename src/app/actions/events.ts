@@ -104,33 +104,71 @@ export async function deleteEvent(formData: FormData) {
   redirect("/events");
 }
 
+// Reads the "quem pagou quanto" step: one row per payer with an amount.
+// Returns null when nothing was filled in at all, so the caller can fall
+// back to "whoever is adding it paid the whole thing" — the common case,
+// and not worth making anyone click through.
+function readPayments(formData: FormData, participantIds: Set<string>) {
+  const payments: Record<string, number> = {};
+  let any = false;
+  for (const id of participantIds) {
+    const raw = formData.get(`paidAmount_${id}`);
+    const value = typeof raw === "string" && raw.trim() ? Number(raw) : 0;
+    if (Number.isNaN(value) || value < 0) return { error: "Valores pagos inválidos." as const };
+    if (value > 0) {
+      payments[id] = Math.round(value * 100) / 100;
+      any = true;
+    }
+  }
+  return any ? { payments } : { payments: null };
+}
+
 export async function addExpense(_state: FormState, formData: FormData): Promise<FormState> {
   const eventId = formData.get("eventId");
   if (typeof eventId !== "string") return { message: "Evento inválido." };
-  await verifyEventAccess(eventId);
+  const { userId } = await verifyEventAccess(eventId);
 
   const validated = AddExpenseSchema.safeParse({
     description: formData.get("description"),
     amount: formData.get("amount"),
-    paidById: formData.get("paidById"),
     date: formData.get("date"),
+    isShared: formData.get("isShared"),
     splitMode: formData.get("splitMode"),
   });
   if (!validated.success) {
     return { errors: validated.error.flatten().fieldErrors };
   }
-  const { description, amount, paidById, date, splitMode } = validated.data;
+  const { description, amount, date, isShared, splitMode } = validated.data;
 
   const participants = await prisma.eventParticipant.findMany({ where: { eventId } });
   const participantIds = new Set(participants.map((p) => p.userId));
 
-  if (!participantIds.has(paidById)) {
-    return { errors: { paidById: ["Quem pagou precisa ser um participante do evento."] } };
+  // --- Step 1: who paid, and how much
+  const read = readPayments(formData, participantIds);
+  if ("error" in read) return { message: read.error };
+  // No payer step filled in means the person adding the expense paid it.
+  const payments = read.payments ?? { [userId]: amount };
+
+  const paidSum = Object.values(payments).reduce((sum, v) => sum + v, 0);
+  if (Math.abs(paidSum - amount) > 0.01) {
+    return {
+      message: `Quem pagou soma ${paidSum.toFixed(2)}, mas a despesa é de ${amount.toFixed(2)}.`,
+    };
   }
 
+  // --- Step 2: who it is for
   let splits: Record<string, number>;
 
-  if (splitMode === "equal") {
+  if (!isShared) {
+    // A personal expense is owed entirely by whoever paid it. Modelling it
+    // as a split (rather than as "no split at all") keeps every downstream
+    // reader — totals, receipts, the API — on one shape, and the balance
+    // nets to zero for that person either way.
+    if (Object.keys(payments).length > 1) {
+      return { message: "Uma despesa pessoal só pode ter um pagador." };
+    }
+    splits = { ...payments };
+  } else if (splitMode === "equal") {
     const included = formData.getAll("participantIds").filter((v): v is string => typeof v === "string");
     const validIncluded = [...new Set(included.filter((id) => participantIds.has(id)))];
     if (validIncluded.length === 0) {
@@ -162,30 +200,41 @@ export async function addExpense(_state: FormState, formData: FormData): Promise
       eventId,
       description,
       amount,
-      paidById,
       date,
+      isShared,
+      payments: {
+        create: Object.entries(payments).map(([payerId, paidAmount]) => ({
+          userId: payerId,
+          amount: paidAmount,
+        })),
+      },
       splits: {
-        create: Object.entries(splits).map(([userId, splitAmount]) => ({
-          userId,
+        create: Object.entries(splits).map(([splitUserId, splitAmount]) => ({
+          userId: splitUserId,
           amount: splitAmount,
         })),
       },
     },
-    include: { paidBy: { select: { name: true } } },
+    include: { payments: { include: { user: { select: { name: true } } } } },
   });
 
-  await publish("event.expense_created", eventId, {
-    expense: {
-      id: expense.id,
-      description: expense.description,
-      amount: expense.amount,
-      date: expense.date,
-      paidBy: expense.paidBy.name,
-      // Per-person share, so the group message can say who owes what
-      // without the automation having to do the arithmetic.
-      splits: Object.entries(splits).map(([userId, amountDue]) => ({ userId, amount: amountDue })),
-    },
-  });
+  // A personal expense is nobody else's business, so it is not announced to
+  // the group — same rule the event page applies when deciding who sees it.
+  if (isShared) {
+    await publish("event.expense_created", eventId, {
+      expense: {
+        id: expense.id,
+        description: expense.description,
+        amount: expense.amount,
+        date: expense.date,
+        paidBy: expense.payments.map((p) => ({ name: p.user.name, amount: p.amount })),
+        splits: Object.entries(splits).map(([splitUserId, amountDue]) => ({
+          userId: splitUserId,
+          amount: amountDue,
+        })),
+      },
+    });
+  }
 
   revalidateEvent(eventId);
   return { success: true };
@@ -301,8 +350,11 @@ export async function confirmReceiptExpenses(_state: FormState, formData: FormDa
           receiptId,
           description: item.description,
           amount: item.amount,
-          paidById,
           date,
+          // A receipt is one person paying at the till, so it becomes a
+          // single payment row per item — the multi-payer step only makes
+          // sense for a manually entered expense.
+          payments: { create: [{ userId: paidById, amount: item.amount }] },
           splits: {
             create: Object.entries(splits).map(([splitUserId, splitAmount]) => ({
               userId: splitUserId,

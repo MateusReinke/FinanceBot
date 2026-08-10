@@ -40,8 +40,14 @@ para importar automaticamente contas e transações do seu banco.
 - **Open Finance**: conecte um banco real (ou sandbox) via widget do Pluggy,
   importe contas e transações automaticamente, sincronize sob demanda ou via webhook
 - **Eventos**: divida contas em grupo (viagem, churrasco, etc.) — convide pessoas
-  por link, registre despesas com divisão igual ou customizada, veja o saldo de
-  cada participante e sugestões de quem deve pagar quem. Com `OPENAI_API_KEY`
+  por link, veja o saldo de cada participante e sugestões de quem deve pagar quem.
+  Cada despesa é lançada em três etapas: **o que foi** (descrição, valor, data),
+  **quem pagou** (uma pessoa ou várias, com quanto cada uma pôs) e **de quem é**
+  (compartilhada ou pessoal). Uma despesa compartilhada é dividida só entre quem
+  você marcar — dá para deixar alguém de fora — por partes iguais ou por valores
+  diferentes. Uma despesa **pessoal** fica visível só para quem pagou, não entra
+  na divisão e ninguém fica devendo por ela; ainda assim conta no total que a
+  pessoa gastou no evento. Com `OPENAI_API_KEY`
   configurada, dá pra anexar uma foto da nota fiscal e a IA lista os itens da
   nota automaticamente (um item = uma despesa), pra você revisar e ajustar
   antes de confirmar — sem chave configurada, o lançamento manual continua
@@ -178,7 +184,10 @@ publica eventos assinados em `N8N_WEBHOOK_URL`:
 |---|---|---|
 | `event.created` | evento criado com a opção marcada | criar o grupo com `data.members[].phone` e devolver o id |
 | `event.participant_joined` | alguém entra pelo convite | adicionar `data.joined.phone` ao grupo |
-| `event.expense_created` | despesa registrada | mandar a mensagem no grupo `data.event.whatsappGroupId` |
+| `event.expense_created` | despesa **compartilhada** registrada | mandar a mensagem no grupo `data.event.whatsappGroupId` |
+
+Despesas pessoais não são publicadas: só quem pagou as vê, então o grupo não é
+avisado delas.
 
 Corpo entregue:
 
@@ -191,7 +200,11 @@ Corpo entregue:
     "event": { "id": "...", "name": "Churrasco", "whatsappGroupId": "1203...@g.us", "whatsappGroupStatus": "created" },
     "members": [{ "userId": "...", "name": "Ana", "phone": "+5511999999999" }],
     "membersWithoutPhone": [{ "userId": "...", "name": "Carla" }],
-    "expense": { "description": "Carne", "amount": 200, "paidBy": "Ana", "splits": [{ "userId": "...", "amount": 100 }] }
+    "expense": {
+      "description": "Carne", "amount": 200,
+      "paidBy": [{ "name": "Ana", "amount": 150 }, { "name": "Bruno", "amount": 50 }],
+      "splits": [{ "userId": "...", "amount": 100 }]
+    }
   },
   "sentAt": "2026-08-10T14:00:00.000Z"
 }

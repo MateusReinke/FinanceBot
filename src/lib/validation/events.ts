@@ -23,8 +23,13 @@ export const AddExpenseSchema = z.object({
   amount: z.coerce
     .number({ error: "Informe um valor válido." })
     .positive({ error: "O valor deve ser maior que zero." }),
-  paidById: z.string().min(1, { error: "Selecione quem pagou." }),
   date: z.coerce.date({ error: "Informe uma data válida." }),
+  // Shared: split between the chosen participants and visible to the whole
+  // group. Personal: one person's own spending inside the event.
+  isShared: z
+    .string()
+    .nullish()
+    .transform((v) => v === null || v === undefined || v === "" || v === "true"),
   splitMode: z.enum(["equal", "custom"], { error: "Selecione como dividir." }),
 });
 

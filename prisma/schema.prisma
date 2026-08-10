@@ -37,7 +37,7 @@ model User {
 
   createdEvents       Event[]             @relation("EventCreator")
   eventParticipations EventParticipant[]
-  paidEventExpenses   EventExpense[]      @relation("EventExpensePayer")
+  eventExpensePayments EventExpensePayment[] @relation("EventExpensePayer")
   eventExpenseSplits  EventExpenseSplit[]
   uploadedReceipts    EventReceipt[]
 }
@@ -381,7 +381,11 @@ model EventExpense {
   eventId     String
   description String
   amount      Float
-  paidById    String
+  // True: the group's expense — split between participants, visible to all,
+  // and part of the balances. False: something one person spent on
+  // themselves during the event; visible only to whoever paid it, and
+  // deliberately outside the balances, since nobody owes anybody for it.
+  isShared    Boolean  @default(true)
   date        DateTime @default(now())
   // Set when this expense came from AI-extracted receipt items — several
   // expenses can point at the same receipt (one photo, many line items).
@@ -389,18 +393,36 @@ model EventExpense {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  event   Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  // Restrict (not Cascade/SetNull): a group's shared ledger must never lose
-  // who paid what just because that member later deletes their account.
-  paidBy  User                @relation("EventExpensePayer", fields: [paidById], references: [id], onDelete: Restrict)
-  splits  EventExpenseSplit[]
+  event    Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  // Who actually put money in. A list, not a single payer: one dinner is
+  // routinely settled by two people putting in different amounts, and
+  // forcing that into one payer meant inventing a second expense.
+  payments EventExpensePayment[]
+  splits   EventExpenseSplit[]
   // SetNull, not Cascade: the receipt is supporting evidence, not the
   // source of truth — losing the photo must never delete real ledger history.
   receipt EventReceipt?       @relation(fields: [receiptId], references: [id], onDelete: SetNull)
 
   @@index([eventId])
-  @@index([paidById])
   @@index([receiptId])
+}
+
+// One person's contribution to paying an expense. Amounts across an
+// expense's payments always sum to its total — enforced by the action, and
+// what makes the balances add up.
+model EventExpensePayment {
+  id             String @id @default(cuid())
+  eventExpenseId String
+  userId         String
+  amount         Float
+
+  eventExpense EventExpense @relation(fields: [eventExpenseId], references: [id], onDelete: Cascade)
+  // Restrict, like the splits below: a group's shared ledger must never lose
+  // who paid what because that member later deleted their account.
+  user         User         @relation("EventExpensePayer", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([eventExpenseId, userId])
+  @@index([userId])
 }
 
 // A photographed nota fiscal / receipt, read by OpenAI's vision API to

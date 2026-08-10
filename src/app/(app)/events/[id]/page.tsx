@@ -18,7 +18,7 @@ export const metadata: Metadata = { title: "Evento — FinanceBot" };
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { userId } = await verifyEventAccess(id);
-  const { event, balanceRows } = await getEventDetail(id);
+  const { event, balanceRows } = await getEventDetail(id, userId);
 
   const canDelete = !event.createdById || event.createdById === userId;
 
