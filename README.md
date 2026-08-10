@@ -46,6 +46,12 @@ para importar automaticamente contas e transações do seu banco.
   aplica cada parcela no saldo da conta só no mês em que ela vence (nunca o valor
   total de uma vez) e mostra total pago x restante na página de detalhe. Suporta
   quitação antecipada (cancela as parcelas futuras, mantém as já pagas como histórico)
+- **Gastos fixos (recorrentes)**: na mesma tela, cadastre aluguel, assinatura,
+  mensalidade ou diarista escolhendo com que frequência se repete — toda semana,
+  a cada 15 dias (quinzenal), todo mês, a cada 3 ou 6 meses, ou uma vez por ano —
+  e se ele tem quantidade de cobranças definida, data pra terminar, ou nenhuma das
+  duas ("sem data pra acabar"). Cada cobrança vira um lançamento normal na data em
+  que vence, então já conta no painel, nos orçamentos e no saldo da conta sozinha
 - **Painel administrativo**: quem faz login com o e-mail definido em `ADMIN_EMAIL`
   ganha acesso a `/admin` para criar, editar, resetar senha e excluir outros
   usuários — sem nenhum acesso aos dados financeiros deles

@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { toFrequency } from "@/lib/recurrence";
 
 function summarize(installments: { amount: number; balanceApplied: boolean }[], installmentCount: number) {
   const paidCount = installments.filter((i) => i.balanceApplied).length;
@@ -42,6 +43,7 @@ export async function getFinancingsList(userId: string) {
     installmentCount: f.installmentCount,
     firstDueDate: f.firstDueDate,
     isRecurring: f.isRecurring,
+    frequency: toFrequency(f.frequency),
     ...summarize(f.installments, f.installmentCount),
   }));
 }
@@ -59,6 +61,9 @@ export async function getFinancingDetail(userId: string, id: string) {
 
   return {
     ...financing,
+    // Narrowed from the schema's plain String to the Frequency union so
+    // every consumer can index the label maps without re-checking.
+    frequency: toFrequency(financing.frequency),
     ...summarize(financing.installments, financing.installmentCount),
   };
 }

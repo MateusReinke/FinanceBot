@@ -7,6 +7,7 @@ import { Plus, CalendarClock, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { FinancingForm } from "./financing-form";
+import { FREQUENCY_SHORT_LABEL, type Frequency } from "@/lib/recurrence";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 
 type FinancingCardData = {
@@ -24,6 +25,7 @@ type FinancingCardData = {
   totalAmount: number;
   status: "andamento" | "concluido" | "quitado";
   isRecurring: boolean;
+  frequency: Frequency;
 };
 
 const STATUS_LABEL: Record<FinancingCardData["status"], string> = {
@@ -64,8 +66,8 @@ export function FinancingList({
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
           <CalendarClock className="h-8 w-8 text-muted-foreground" />
           <p className="max-w-sm text-sm text-muted-foreground">
-            Cadastre um financiamento, compra parcelada ou gasto fixo mensal (aluguel, assinatura)
-            — a parcela de cada mês aparece automaticamente nos seus gastos, no mês em que vence.
+            Cadastre um financiamento, compra parcelada ou gasto fixo — mensal, quinzenal,
+            semanal ou anual. Cada cobrança aparece sozinha nos seus gastos na data em que vence.
           </p>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={() => setCreateMode("recurring")}>
@@ -105,7 +107,7 @@ export function FinancingList({
 
                 {f.isRecurring ? (
                   <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
-                    <span className="text-muted-foreground">Todo mês</span>
+                    <span className="text-muted-foreground">{FREQUENCY_SHORT_LABEL[f.frequency]}</span>
                     <span className="font-semibold text-foreground">
                       {formatCurrency(f.installmentAmount)}
                     </span>
@@ -115,7 +117,7 @@ export function FinancingList({
                     <div>
                       <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                         <span>
-                          {f.paidCount}/{f.installmentCount} parcelas pagas
+                          {f.paidCount}/{f.installmentCount} pagas · {FREQUENCY_SHORT_LABEL[f.frequency].toLowerCase()}
                         </span>
                         <span>{pct.toFixed(0)}%</span>
                       </div>

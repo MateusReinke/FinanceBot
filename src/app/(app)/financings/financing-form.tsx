@@ -5,8 +5,15 @@ import type { Account, Category } from "@prisma/client";
 import { createFinancing } from "@/app/actions/financing";
 import { Input, Label, FieldError, Select } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { MAX_RECURRING_MONTHS } from "@/lib/validation/financing";
-import { formatCurrency, toDateInputValue, monthsBetweenUTC, cn } from "@/lib/utils";
+import {
+  FREQUENCIES,
+  FREQUENCY_OPTION_LABEL,
+  FREQUENCY_SHORT_LABEL,
+  occurrencesBetweenUTC,
+  recurringOccurrenceCount,
+  type Frequency,
+} from "@/lib/recurrence";
+import { formatCurrency, toDateInputValue, cn } from "@/lib/utils";
 
 export function FinancingForm({
   accounts,
@@ -21,6 +28,7 @@ export function FinancingForm({
 }) {
   const [state, action] = useActionState(createFinancing, undefined);
   const [countMode, setCountMode] = useState<"count" | "endDate" | "recurring">(initialMode);
+  const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [count, setCount] = useState("");
   const [amount, setAmount] = useState("");
   const [firstDueDate, setFirstDueDate] = useState(toDateInputValue(new Date()));
@@ -32,10 +40,14 @@ export function FinancingForm({
 
   const computedCount = useMemo(() => {
     if (countMode === "count") return Number(count) || 0;
-    if (countMode === "recurring") return MAX_RECURRING_MONTHS;
+    if (countMode === "recurring") return recurringOccurrenceCount(frequency);
     if (!endDate) return 0;
-    return monthsBetweenUTC(new Date(`${firstDueDate}T00:00:00Z`), new Date(`${endDate}T00:00:00Z`));
-  }, [countMode, count, endDate, firstDueDate]);
+    return occurrencesBetweenUTC(
+      new Date(`${firstDueDate}T00:00:00Z`),
+      new Date(`${endDate}T00:00:00Z`),
+      frequency
+    );
+  }, [countMode, count, endDate, firstDueDate, frequency]);
 
   const total = useMemo(() => {
     const v = Number(amount) || 0;
@@ -106,7 +118,28 @@ export function FinancingForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="installmentAmount">Valor de cada parcela (R$)</Label>
+        <Label htmlFor="frequency">Repete</Label>
+        <Select
+          id="frequency"
+          name="frequency"
+          value={frequency}
+          onChange={(e) => setFrequency(e.target.value as Frequency)}
+        >
+          {FREQUENCIES.map((f) => (
+            <option key={f} value={f}>
+              {FREQUENCY_OPTION_LABEL[f]}
+            </option>
+          ))}
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Sempre a partir da data acima — quinzenal cai a cada 15 dias, mensal cai sempre no
+          mesmo dia do mês.
+        </p>
+        <FieldError messages={state?.errors?.frequency} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="installmentAmount">Valor de cada cobrança (R$)</Label>
         <Input
           id="installmentAmount"
           name="installmentAmount"
@@ -134,7 +167,7 @@ export function FinancingForm({
                 : "border-border text-muted-foreground hover:bg-muted"
             )}
           >
-            Quantidade de parcelas
+            Quantidade de cobranças
           </button>
           <button
             type="button"
@@ -146,7 +179,7 @@ export function FinancingForm({
                 : "border-border text-muted-foreground hover:bg-muted"
             )}
           >
-            Data final (conta fixa)
+            Até uma data
           </button>
           <button
             type="button"
@@ -158,13 +191,13 @@ export function FinancingForm({
                 : "border-border text-muted-foreground hover:bg-muted"
             )}
           >
-            Gasto fixo (sem data pra acabar)
+            Sem data pra acabar
           </button>
         </div>
 
         {countMode === "count" ? (
           <div className="space-y-1.5">
-            <Label htmlFor="installmentCountInput">Quantidade de parcelas</Label>
+            <Label htmlFor="installmentCountInput">Quantas cobranças no total</Label>
             <Input
               id="installmentCountInput"
               type="number"
@@ -189,15 +222,18 @@ export function FinancingForm({
             />
             <p className="text-xs text-muted-foreground">
               {computedCount > 0
-                ? `${computedCount} cobrança${computedCount > 1 ? "s" : ""}, no mesmo dia do mês da primeira`
-                : "Para uma conta fixa (assinatura, plano, aluguel) com data de validade conhecida"}
+                ? `${FREQUENCY_SHORT_LABEL[frequency].toLowerCase()} — ${computedCount} cobrança${
+                    computedCount > 1 ? "s" : ""
+                  } no total`
+                : "Para uma conta fixa (assinatura, plano, aluguel) com data pra terminar"}
             </p>
             <FieldError messages={state?.errors?.installmentCount} />
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Lança o mesmo valor todo mês, indefinidamente — pra aluguel, mensalidade ou qualquer
-            gasto fixo sem previsão de acabar. Dá pra cancelar quando quiser na página do gasto.
+            Lança o mesmo valor {FREQUENCY_SHORT_LABEL[frequency].toLowerCase()},
+            indefinidamente — pra aluguel, mensalidade, diarista ou qualquer gasto fixo sem
+            previsão de acabar. Dá pra cancelar quando quiser na página do gasto.
           </p>
         )}
       </div>
@@ -205,12 +241,12 @@ export function FinancingForm({
       <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm">
         {countMode === "recurring" ? (
           <>
-            <span className="text-muted-foreground">Valor por mês: </span>
+            <span className="text-muted-foreground">{FREQUENCY_SHORT_LABEL[frequency]}: </span>
             <span className="font-semibold text-foreground">{formatCurrency(Number(amount) || 0)}</span>
           </>
         ) : (
           <>
-            <span className="text-muted-foreground">Total do financiamento: </span>
+            <span className="text-muted-foreground">Total ({computedCount || 0}x): </span>
             <span className="font-semibold text-foreground">{formatCurrency(total)}</span>
           </>
         )}
@@ -222,7 +258,7 @@ export function FinancingForm({
         </p>
       ) : null}
       <SubmitButton className="w-full">
-        {countMode === "recurring" ? "Criar gasto fixo" : "Criar financiamento"}
+        {countMode === "recurring" ? "Criar gasto fixo" : "Criar"}
       </SubmitButton>
     </form>
   );

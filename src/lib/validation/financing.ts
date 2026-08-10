@@ -1,9 +1,5 @@
 import * as z from "zod";
-
-// A "gasto fixo mensal" with no real end date still needs a finite
-// installmentCount under the hood (reusing the same schedule machinery as
-// any other financing) — this is that practical cap, ~50 years out.
-export const MAX_RECURRING_MONTHS = 600;
+import { FREQUENCIES, MAX_INSTALLMENTS } from "@/lib/recurrence";
 
 export const FinancingSchema = z.object({
   description: z
@@ -21,7 +17,12 @@ export const FinancingSchema = z.object({
     .number({ error: "Informe a quantidade de parcelas." })
     .int({ error: "A quantidade de parcelas deve ser um número inteiro." })
     .min(1, { error: "Informe pelo menos 1 parcela." })
-    .max(MAX_RECURRING_MONTHS, { error: "Quantidade de parcelas muito alta." }),
+    .max(MAX_INSTALLMENTS, { error: "Quantidade de parcelas muito alta." }),
+  // Absent (older form payload) means the only thing this could have been
+  // before frequencies existed: monthly.
+  frequency: z
+    .enum(FREQUENCIES, { error: "Selecione com que frequência se repete." })
+    .default("monthly"),
   installmentAmount: z.coerce
     .number({ error: "Informe o valor da parcela." })
     .positive({ error: "O valor da parcela deve ser maior que zero." }),

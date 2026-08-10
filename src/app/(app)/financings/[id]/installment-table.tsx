@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Input, Label, FieldError } from "@/components/ui/input";
+import type { Frequency } from "@/lib/recurrence";
 import { formatCurrency, formatDate, formatMonthYear, cn } from "@/lib/utils";
 
 export function InstallmentTable({
@@ -16,13 +17,20 @@ export function InstallmentTable({
   installmentCount,
   scheduledAmount,
   isRecurring = false,
+  frequency = "monthly",
 }: {
   financingId: string;
   installments: Transaction[];
   installmentCount: number;
   scheduledAmount: number;
   isRecurring?: boolean;
+  frequency?: Frequency;
 }) {
+  // A monthly gasto fixo reads better as "Agosto de 2026" than as an exact
+  // day. Anything that repeats more than once a month (quinzenal, semanal)
+  // would collapse two different charges into the same label, so those
+  // keep the full date.
+  const byMonthLabel = isRecurring && frequency === "monthly";
   const [payingId, setPayingId] = useState<string | null>(null);
   const paying = installments.find((i) => i.id === payingId) ?? null;
 
@@ -52,7 +60,7 @@ export function InstallmentTable({
                     </td>
                   )}
                   <td className="px-3 py-2.5 text-muted-foreground">
-                    {isRecurring
+                    {byMonthLabel
                       ? formatMonthYear(new Date(inst.date).getUTCMonth() + 1, new Date(inst.date).getUTCFullYear())
                       : formatDate(inst.date)}
                   </td>

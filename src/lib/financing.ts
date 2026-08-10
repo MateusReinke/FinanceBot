@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import { addMonthsUTC } from "@/lib/utils";
+import { addIntervalUTC, type Frequency } from "@/lib/recurrence";
 
 export type ScheduledInstallment = {
   installmentNumber: number;
@@ -9,7 +9,8 @@ export type ScheduledInstallment = {
   balanceApplied: boolean;
 };
 
-// Pure: computes the N installment dates from the first due date, and marks
+// Pure: computes the N installment dates from the first due date, one per
+// `frequency` step (monthly, a cada 15 dias, ...), and marks
 // each one as already-applied if its date is due (<= now) at schedule-build
 // time. Used both when creating a Financing (a backdated first payment can
 // mean installments 1, 2, and 3 are all already due on day one, not just
@@ -18,11 +19,12 @@ export type ScheduledInstallment = {
 export function buildInstallmentSchedule(
   firstDueDate: Date,
   installmentCount: number,
-  installmentAmount: number
+  installmentAmount: number,
+  frequency: Frequency
 ): ScheduledInstallment[] {
   const now = new Date();
   return Array.from({ length: installmentCount }, (_, i) => {
-    const date = addMonthsUTC(firstDueDate, i);
+    const date = addIntervalUTC(firstDueDate, frequency, i);
     return {
       installmentNumber: i + 1,
       date,

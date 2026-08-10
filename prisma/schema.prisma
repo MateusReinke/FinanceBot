@@ -164,6 +164,11 @@ model Financing {
   installmentAmount Float // V — always positive, one installment's value
   installmentCount  Int // N — total number of installments (a recurring expense just uses a long practical cap, see isRecurring)
   firstDueDate      DateTime // calendar date (UTC midnight) of installment #1
+  // How far apart consecutive installments fall: weekly, biweekly (every
+  // 15 days), monthly, quarterly, semiannual, annual — see
+  // src/lib/recurrence.ts. Defaults to "monthly", which is exactly what
+  // every row created before this field existed already was.
+  frequency         String   @default("monthly")
   // True for a fixed monthly expense with no real end date (rent, a
   // subscription with no planned cancellation, ...). installmentCount is
   // still a normal finite number under the hood — MAX_RECURRING_MONTHS,

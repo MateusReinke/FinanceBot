@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { verifySession } from "@/lib/dal";
 import { getFinancingDetail } from "@/lib/queries/financing";
+import { FREQUENCY_AMOUNT_LABEL, FREQUENCY_SHORT_LABEL } from "@/lib/recurrence";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -24,8 +25,8 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
     .reduce((sum, i) => sum + Math.max(0, financing.installmentAmount - i.amount), 0);
 
   // A recurring "gasto fixo" schedule is a long practical cap under the
-  // hood (see MAX_RECURRING_MONTHS), not a real end date — showing all of
-  // it would dump hundreds of rows, and "X of 600 paid" / a completion bar
+  // hood (see recurringOccurrenceCount), not a real end date — showing all of
+  // it would dump hundreds of rows, and "X of 360 paid" / a completion bar
   // isn't a meaningful thing to show for it. Only a window around the
   // present is rendered instead.
   const visibleInstallments = financing.isRecurring
@@ -48,13 +49,16 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
       <p className="-mt-4 text-sm text-muted-foreground">
         {financing.account.name}
         {financing.category ? ` · ${financing.category.name}` : ""} ·{" "}
-        {financing.isRecurring ? "Gasto fixo desde" : "Primeira parcela em"}{" "}
-        {formatDate(financing.firstDueDate)}
+        {FREQUENCY_SHORT_LABEL[financing.frequency]} ·{" "}
+        {financing.isRecurring ? "desde" : "primeira cobrança em"} {formatDate(financing.firstDueDate)}
       </p>
 
       {financing.isRecurring ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <StatCard label="Valor por mês" value={formatCurrency(financing.installmentAmount)} />
+          <StatCard
+            label={FREQUENCY_AMOUNT_LABEL[financing.frequency]}
+            value={formatCurrency(financing.installmentAmount)}
+          />
           <StatCard
             label="Já pago até agora"
             value={formatCurrency(financing.paidTotal)}
@@ -111,6 +115,7 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
             financingId={financing.id}
             installments={visibleInstallments}
             installmentCount={financing.installmentCount}
+            frequency={financing.frequency}
             scheduledAmount={financing.installmentAmount}
             isRecurring={financing.isRecurring}
           />

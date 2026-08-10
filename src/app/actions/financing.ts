@@ -25,6 +25,9 @@ export async function createFinancing(_state: FormState, formData: FormData): Pr
     categoryId: formData.get("categoryId"),
     firstDueDate: formData.get("firstDueDate"),
     installmentCount: formData.get("installmentCount"),
+    // ?? undefined, not the raw null: an absent field is what makes the
+    // schema's "monthly" default kick in.
+    frequency: formData.get("frequency") ?? undefined,
     installmentAmount: formData.get("installmentAmount"),
     isRecurring: formData.get("isRecurring"),
   });
@@ -48,7 +51,12 @@ export async function createFinancing(_state: FormState, formData: FormData): Pr
     if (!category) return { errors: { categoryId: ["Categoria inválida."] } };
   }
 
-  const schedule = buildInstallmentSchedule(data.firstDueDate, data.installmentCount, data.installmentAmount);
+  const schedule = buildInstallmentSchedule(
+    data.firstDueDate,
+    data.installmentCount,
+    data.installmentAmount,
+    data.frequency
+  );
   const alreadyDueTotal = schedule
     .filter((s) => s.balanceApplied)
     .reduce((sum, s) => sum + s.amount, 0);
@@ -63,6 +71,7 @@ export async function createFinancing(_state: FormState, formData: FormData): Pr
         installmentAmount: data.installmentAmount,
         installmentCount: data.installmentCount,
         firstDueDate: data.firstDueDate,
+        frequency: data.frequency,
         isRecurring: data.isRecurring,
         installments: {
           create: schedule.map((s) => ({
