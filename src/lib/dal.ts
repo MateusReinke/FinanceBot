@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { reconcileDueInstallments, maintainRecurringSchedules } from "@/lib/financing";
+import { dispatchOutboundEvents } from "@/lib/outbound";
 
 export const verifySession = cache(async () => {
   const session = await getSession();
@@ -17,6 +18,9 @@ export const verifySession = cache(async () => {
     // living here: there is no cron in this app, and verifySession is the
     // one call every page and action already awaits.
     await maintainRecurringSchedules(session.userId);
+    // Retries anything the automation didn't accept the first time. A no-op
+    // when the queue is empty or no webhook is configured.
+    await dispatchOutboundEvents();
   } catch (error) {
     // Never let a reconciliation hiccup block login, navigation, or an
     // unrelated action — worst case the balance is one request more stale

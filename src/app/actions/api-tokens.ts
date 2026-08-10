@@ -5,6 +5,7 @@ import * as z from "zod";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { generateApiToken } from "@/lib/api-auth";
+import { optionalPhoneField } from "@/lib/phone";
 import type { FormState } from "@/lib/form-state";
 
 const CreateTokenSchema = z.object({
@@ -57,17 +58,7 @@ export async function revokeApiToken(formData: FormData) {
   revalidatePath("/settings");
 }
 
-const PhoneSchema = z.object({
-  // Stored as the user typed it minus formatting; comparisons are
-  // digits-only anyway (see the messages route).
-  phoneNumber: z
-    .string()
-    .trim()
-    .transform((v) => v.replace(/[^\d+]/g, ""))
-    .refine((v) => v === "" || /^\+?\d{10,15}$/.test(v), {
-      error: "Informe um número com DDI e DDD, ex: +5511999999999.",
-    }),
-});
+const PhoneSchema = z.object({ phoneNumber: optionalPhoneField });
 
 export async function updatePhoneNumber(_state: FormState, formData: FormData): Promise<FormState> {
   const { userId } = await verifySession();
@@ -75,7 +66,7 @@ export async function updatePhoneNumber(_state: FormState, formData: FormData): 
   const parsed = PhoneSchema.safeParse({ phoneNumber: formData.get("phoneNumber") });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
 
-  const phoneNumber = parsed.data.phoneNumber || null;
+  const phoneNumber = parsed.data.phoneNumber;
 
   if (phoneNumber) {
     const taken = await prisma.user.findFirst({

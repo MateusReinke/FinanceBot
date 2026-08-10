@@ -17,9 +17,10 @@ model User {
   // env var (see src/lib/admin.ts) — never trusted from the JWT session,
   // always re-read from the DB in src/lib/admin-dal.ts.
   role         String   @default("user")
-  // E.164 ("+5511999999999"). Set when the user links WhatsApp, and used to
-  // prove an inbound message really belongs to them — the automation that
-  // forwards messages never gets to name the user itself.
+  // E.164 ("+5511999999999"). Required at signup, and the key the WhatsApp
+  // side works from: it proves an inbound message belongs to this user, and
+  // it is what an event's group is built out of. Nullable only because
+  // accounts created before it was required still exist.
   phoneNumber  String?  @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -274,6 +275,31 @@ model InboundMessage {
   @@index([userId, createdAt])
 }
 
+// One thing that happened in the app and that an automation may want to
+// act on — an event being created, someone joining it, an expense being
+// added. Rows are the queue: written in the same breath as the change
+// itself, then delivered to N8N_WEBHOOK_URL with retries.
+//
+// A queue rather than a direct call because the two must not share a fate:
+// a webhook that is down cannot be allowed to fail the expense the user
+// just recorded, and a delivery that fails deserves another try later.
+model OutboundEvent {
+  id            String    @id @default(cuid())
+  userId        String?
+  eventId       String?
+  type          String // event.created, event.participant_joined, event.expense_created, ...
+  payload       Json
+  status        String    @default("pending") // pending, delivered, failed
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now())
+  lastError     String?
+  deliveredAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([eventId])
+}
+
 model Budget {
   id         String   @id @default(cuid())
   userId     String
@@ -304,6 +330,13 @@ model Event {
   createdById String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Set by the automation after it actually creates the group, via the
+  // callback route — the app never talks to WhatsApp itself.
+  whatsappGroupId     String?
+  // none (nobody asked for a group) | pending (asked, waiting on the
+  // automation) | created | failed
+  whatsappGroupStatus String  @default("none")
 
   createdBy    User?              @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
   participants EventParticipant[]

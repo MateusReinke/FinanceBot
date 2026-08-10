@@ -15,11 +15,31 @@ import {
   ALLOWED_RECEIPT_MIME_TYPES,
 } from "@/lib/validation/events";
 import { splitEqually } from "@/lib/events";
+import { buildEventPayload } from "@/lib/queries/event-payload";
+import { enqueueOutboundEvent, dispatchOutboundEventsInBackground } from "@/lib/outbound";
 import type { FormState } from "@/lib/form-state";
 
 function revalidateEvent(eventId: string) {
   revalidatePath("/events");
   revalidatePath(`/events/${eventId}`);
+}
+
+// Publishes one event to the automation and kicks off delivery without
+// blocking the user's action on it. Wrapped so a broken integration can
+// never take down the thing the user actually did.
+async function publish(
+  type: Parameters<typeof enqueueOutboundEvent>[0]["type"],
+  eventId: string,
+  extra: Record<string, unknown> = {}
+) {
+  try {
+    const payload = await buildEventPayload(eventId);
+    if (!payload) return;
+    await enqueueOutboundEvent({ type, eventId, payload: { ...payload, ...extra } });
+    dispatchOutboundEventsInBackground();
+  } catch (error) {
+    console.error(`Falha ao publicar ${type}`, error);
+  }
 }
 
 export async function createEvent(_state: FormState, formData: FormData): Promise<FormState> {
@@ -33,13 +53,20 @@ export async function createEvent(_state: FormState, formData: FormData): Promis
     return { errors: validated.error.flatten().fieldErrors };
   }
 
+  const wantsGroup = formData.get("createWhatsappGroup") === "true";
+
   const event = await prisma.event.create({
     data: {
       ...validated.data,
       createdById: userId,
       participants: { create: { userId } },
+      whatsappGroupStatus: wantsGroup ? "pending" : "none",
     },
   });
+
+  if (wantsGroup) {
+    await publish("event.created", event.id);
+  }
 
   revalidatePath("/events");
   redirect(`/events/${event.id}`);
@@ -130,7 +157,7 @@ export async function addExpense(_state: FormState, formData: FormData): Promise
     }
   }
 
-  await prisma.eventExpense.create({
+  const expense = await prisma.eventExpense.create({
     data: {
       eventId,
       description,
@@ -143,6 +170,20 @@ export async function addExpense(_state: FormState, formData: FormData): Promise
           amount: splitAmount,
         })),
       },
+    },
+    include: { paidBy: { select: { name: true } } },
+  });
+
+  await publish("event.expense_created", eventId, {
+    expense: {
+      id: expense.id,
+      description: expense.description,
+      amount: expense.amount,
+      date: expense.date,
+      paidBy: expense.paidBy.name,
+      // Per-person share, so the group message can say who owes what
+      // without the automation having to do the arithmetic.
+      splits: Object.entries(splits).map(([userId, amountDue]) => ({ userId, amount: amountDue })),
     },
   });
 
@@ -316,11 +357,25 @@ export async function joinEventByCode(_state: FormState, formData: FormData): Pr
     return { message: "Este convite não é mais válido." };
   }
 
+  const before = await prisma.eventParticipant.findUnique({
+    where: { eventId_userId: { eventId: invite.eventId, userId } },
+  });
+
   await prisma.eventParticipant.upsert({
     where: { eventId_userId: { eventId: invite.eventId, userId } },
     update: {},
     create: { eventId: invite.eventId, userId },
   });
+
+  // Only on a genuinely new join — re-opening the invite link should not
+  // announce the same person to the group again.
+  if (!before) {
+    const joiner = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, phoneNumber: true },
+    });
+    await publish("event.participant_joined", invite.eventId, { joined: joiner });
+  }
 
   revalidateEvent(invite.eventId);
   redirect(`/events/${invite.eventId}`);

@@ -53,7 +53,9 @@ export async function getEventDetail(eventId: string) {
     where: { id: eventId },
     include: {
       participants: {
-        include: { user: { select: { id: true, name: true, email: true } } },
+        // phoneNumber comes along so the event page can name who is missing
+        // one and therefore can't be added to the WhatsApp group.
+        include: { user: { select: { id: true, name: true, email: true, phoneNumber: true } } },
         orderBy: { joinedAt: "asc" },
       },
       expenses: {
@@ -77,8 +79,14 @@ export async function getEventDetail(eventId: string) {
   // leaving — fold them in as a "former participant" so balances stay
   // accurate and attributable.
   const participantUserIds = new Set(event.participants.map((p) => p.userId));
+  // Projected down to the identity fields the balance rows actually
+  // render. Participants carry phoneNumber for the group panel, but that
+  // has no business travelling into every balance row on the client.
   const historicalUsers = new Map(
-    event.participants.map((p) => [p.userId, p.user])
+    event.participants.map((p) => [
+      p.userId,
+      { id: p.user.id, name: p.user.name, email: p.user.email },
+    ])
   );
   for (const expense of event.expenses) {
     historicalUsers.set(expense.paidBy.id, expense.paidBy);

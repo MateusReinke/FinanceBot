@@ -3,6 +3,7 @@ import * as z from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateApiRequest, rateLimit } from "@/lib/api-auth";
 import { handleInboundMessage } from "@/lib/inbound-message";
+import { samePhone } from "@/lib/phone";
 
 // The endpoint the n8n WhatsApp agent calls. One message in, one reply out:
 //
@@ -27,11 +28,6 @@ const MessageSchema = z.object({
   channel: z.enum(["whatsapp", "api"]).default("whatsapp"),
 });
 
-// Digits only, so "+55 (11) 99999-9999" and "5511999999999" compare equal.
-function normalizePhone(value: string) {
-  return value.replace(/\D/g, "");
-}
-
 export async function POST(request: Request) {
   const auth = await authenticateApiRequest(request);
   if (!auth.ok) return auth.response;
@@ -54,7 +50,7 @@ export async function POST(request: Request) {
       where: { id: auth.userId },
       select: { phoneNumber: true },
     });
-    if (!user?.phoneNumber || normalizePhone(user.phoneNumber) !== normalizePhone(from)) {
+    if (!samePhone(user?.phoneNumber, from)) {
       return NextResponse.json(
         { error: "Número não confere com o WhatsApp vinculado a esta conta." },
         { status: 403 }

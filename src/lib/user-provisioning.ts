@@ -12,6 +12,7 @@ export async function createUserWithDefaultCategories(data: {
   name: string;
   email: string;
   passwordHash: string;
+  phoneNumber?: string | null;
   role?: string;
 }) {
   return prisma.$transaction(async (tx) => {
@@ -20,6 +21,7 @@ export async function createUserWithDefaultCategories(data: {
         name: data.name,
         email: data.email,
         passwordHash: data.passwordHash,
+        phoneNumber: data.phoneNumber ?? null,
         role: data.role ?? "user",
       },
     });

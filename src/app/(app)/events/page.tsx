@@ -5,6 +5,7 @@ import { verifySession } from "@/lib/dal";
 import { getUserEvents } from "@/lib/queries/events";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { CreateEventButton } from "./create-event-button";
+import { isOutboundConfigured } from "@/lib/outbound";
 import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Eventos — FinanceBot" };
@@ -20,7 +21,7 @@ export default async function EventsPage() {
           title="Dividir contas"
           description="Divida contas com outras pessoas — só quem participa do evento vê os gastos dele."
         />
-        <CreateEventButton />
+        <CreateEventButton whatsappEnabled={isOutboundConfigured()} />
       </div>
 
       {events.length === 0 ? (
@@ -30,7 +31,7 @@ export default async function EventsPage() {
             Crie um evento para dividir uma conta com amigos, ou entre em um pelo link de convite
             que alguém compartilhou com você.
           </p>
-          <CreateEventButton />
+          <CreateEventButton whatsappEnabled={isOutboundConfigured()} />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

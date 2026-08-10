@@ -11,6 +11,7 @@ import { ExpenseRow } from "./expense-row";
 import { BalancePanel } from "./balance-panel";
 import { ParticipantsPanel } from "./participants-panel";
 import { InvitePanel } from "./invite-panel";
+import { WhatsAppGroupPanel } from "./whatsapp-group-panel";
 
 export const metadata: Metadata = { title: "Evento — FinanceBot" };
 
@@ -28,6 +29,14 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         name={event.name}
         description={event.description}
         canDelete={canDelete}
+      />
+
+      <WhatsAppGroupPanel
+        status={event.whatsappGroupStatus}
+        groupId={event.whatsappGroupId}
+        membersWithoutPhone={event.participants
+          .filter((p) => !p.user.phoneNumber)
+          .map((p) => p.user.name)}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

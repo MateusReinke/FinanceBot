@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { phoneField } from "@/lib/phone";
 
 export const SignupSchema = z.object({
   name: z
@@ -10,6 +11,9 @@ export const SignupSchema = z.object({
     .email({ error: "Informe um e-mail válido." })
     .trim()
     .toLowerCase(),
+  // Required at signup: it is what lets the WhatsApp side reach this person
+  // — both for their own lançamentos and to be added to an event's group.
+  phoneNumber: phoneField,
   password: z
     .string()
     .min(8, { error: "A senha deve ter pelo menos 8 caracteres." })
