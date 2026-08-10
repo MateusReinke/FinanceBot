@@ -1,6 +1,12 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import { addIntervalUTC, type Frequency } from "@/lib/recurrence";
+import {
+  addIntervalUTC,
+  recurringHorizon,
+  toFrequency,
+  RECURRING_HORIZON_MONTHS,
+  type Frequency,
+} from "@/lib/recurrence";
 import { signedAmount } from "@/lib/utils";
 
 export type ScheduledInstallment = {
@@ -93,3 +99,99 @@ export async function reconcileDueInstallments(userId: string) {
     }),
   ]);
 }
+
+// Keeps every open-ended entry materialized exactly RECURRING_HORIZON_MONTHS
+// ahead — no further, no less. Two halves:
+//
+//  - Extend: append the occurrences that time has brought inside the window.
+//    This is what makes "sem data pra acabar" actually endless while only
+//    ever holding two years of rows.
+//  - Trim: drop unpaid occurrences that sit beyond the window. This is what
+//    reclaims schedules created before the window existed (they ran ~30
+//    years out) and it is safe for the same reason skipping is: a pending
+//    occurrence never touched Account.balance.
+//
+// Only isRecurring entries are touched. A real parcelamento has a promised
+// number of installments and the user must be able to see all of them.
+// A canceled entry is skipped, or "Encerrar" would immediately be undone.
+export async function maintainRecurringSchedules(userId: string) {
+  const horizon = recurringHorizon();
+
+  const financings = await prisma.financing.findMany({
+    where: { userId, isRecurring: true, canceledAt: null },
+    select: {
+      id: true, accountId: true, categoryId: true, description: true, type: true,
+      installmentAmount: true, frequency: true, firstDueDate: true,
+    },
+  });
+  if (financings.length === 0) return;
+
+  const ids = financings.map((f) => f.id);
+
+  // Trim first, so the edges read below already reflect the window.
+  const trimmed = await prisma.transaction.deleteMany({
+    where: { financingId: { in: ids }, date: { gt: horizon }, balanceApplied: false },
+  });
+
+  // One grouped read for every entry's furthest occurrence — no per-entry
+  // query. This function runs on every request, so the do-nothing path has
+  // to stay two queries flat.
+  const edges = await prisma.transaction.groupBy({
+    by: ["financingId"],
+    where: { financingId: { in: ids } },
+    _max: { date: true, installmentNumber: true },
+  });
+  const edgeById = new Map(edges.map((e) => [e.financingId, e._max]));
+
+  for (const f of financings) {
+    const edge = edgeById.get(f.id);
+    const furthest = edge?.date ?? null;
+    if (furthest && furthest >= horizon) continue;
+
+    const frequency = toFrequency(f.frequency);
+    let number = edge?.installmentNumber ?? 0;
+    // With nothing materialized yet (a brand-new entry, or one whose every
+    // occurrence was just trimmed) the first due date is itself the next
+    // occurrence; otherwise pick up one interval past the furthest one.
+    let candidate = furthest ? addIntervalUTC(furthest, frequency, 1) : f.firstDueDate;
+
+    const rows = [];
+    // `<= horizon`, never `<`: appending one occurrence past the horizon
+    // would be deleted by the trim at the top of the next run, and
+    // re-appended by this loop, forever.
+    while (candidate <= horizon && rows.length < MAX_APPEND_PER_RUN) {
+      number += 1;
+      rows.push({
+        userId,
+        accountId: f.accountId,
+        categoryId: f.categoryId,
+        description: f.description,
+        amount: f.installmentAmount,
+        date: candidate,
+        type: f.type,
+        installmentNumber: number,
+        balanceApplied: false,
+        financingId: f.id,
+      });
+      candidate = addIntervalUTC(candidate, frequency, 1);
+    }
+
+    if (rows.length > 0) {
+      // skipDuplicates so a concurrent request that got here first (two tabs
+      // loading at once) collides on (financingId, installmentNumber)
+      // harmlessly instead of failing the page.
+      await prisma.transaction.createMany({ data: rows, skipDuplicates: true });
+      await prisma.financing.update({ where: { id: f.id }, data: { installmentCount: number } });
+    }
+  }
+
+  if (trimmed.count > 0) {
+    console.info(`Removidas ${trimmed.count} ocorrências além do horizonte de ${RECURRING_HORIZON_MONTHS} meses`);
+  }
+}
+
+// A weekly entry needs ~110 rows to cover the whole window from scratch;
+// this leaves room for that while capping a single pass.
+const MAX_APPEND_PER_RUN = 130;
+
+export { RECURRING_HORIZON_MONTHS };

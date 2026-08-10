@@ -19,9 +19,9 @@ export function AddTransactionButton({
   return (
     <>
       <Button size="sm" onClick={() => setOpen(true)} disabled={accounts.length === 0}>
-        <Plus className="h-4 w-4" /> Nova transação
+        <Plus className="h-4 w-4" /> Novo lançamento
       </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Nova transação">
+      <Modal open={open} onClose={() => setOpen(false)} title="Novo lançamento">
         <TransactionForm accounts={accounts} categories={categories} onSuccess={() => setOpen(false)} />
       </Modal>
     </>

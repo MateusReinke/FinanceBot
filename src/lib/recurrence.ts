@@ -85,21 +85,36 @@ export function addIntervalUTC(date: Date, frequency: Frequency, n: number) {
 // write and every later query over them.
 export const MAX_INSTALLMENTS = 600;
 
-// A gasto fixo with no end date still needs a finite number of occurrences
-// under the hood (it reuses the exact same schedule/reconciliation
-// machinery as a financiamento). These are chosen to cover a decade or
-// more of real life per frequency while staying under MAX_INSTALLMENTS.
+// How far ahead an open-ended gasto fixo is materialized. A rolling window,
+// not a lifetime: the schedule is topped back up to this horizon on every
+// request (see extendRecurringSchedules), so it stays open-ended without
+// writing decades of rows nobody asked to see.
+//
+// The first cut of this generated ~30 years per entry, which meant a
+// handful of fixed expenses produced over a thousand transactions running
+// out to 2056 — every list, count and export had to wade through them.
+export const RECURRING_HORIZON_MONTHS = 24;
+
+// Occurrences needed to cover the horizon at each frequency, with a little
+// slack so the extender has nothing to do right after creation.
 const RECURRING_COUNT: Record<Frequency, number> = {
-  weekly: 520, // ~10 anos
-  biweekly: 480, // ~20 anos
-  monthly: 360, // 30 anos
-  quarterly: 120,
-  semiannual: 60,
-  annual: 30,
+  weekly: 110,
+  biweekly: 52,
+  monthly: 24,
+  quarterly: 8,
+  semiannual: 4,
+  annual: 2,
 };
 
 export function recurringOccurrenceCount(frequency: Frequency) {
   return RECURRING_COUNT[frequency];
+}
+
+// The far edge of the rolling window, as a UTC calendar date.
+export function recurringHorizon(from = new Date()) {
+  return new Date(
+    Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + RECURRING_HORIZON_MONTHS, from.getUTCDate())
+  );
 }
 
 // How many occurrences fit between the first due date and an end date the

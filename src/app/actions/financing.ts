@@ -283,7 +283,12 @@ export async function settleFinancingEarly(formData: FormData) {
   const financing = await prisma.financing.findFirst({ where: { id, userId } });
   if (!financing) return;
 
-  await prisma.transaction.deleteMany({ where: { financingId: id, balanceApplied: false } });
+  await prisma.$transaction([
+    prisma.transaction.deleteMany({ where: { financingId: id, balanceApplied: false } }),
+    // Marks the entry as ended so the rolling extender doesn't regenerate
+    // the occurrences we just removed on the very next request.
+    prisma.financing.update({ where: { id }, data: { canceledAt: new Date() } }),
+  ]);
 
   revalidateFinancingPages();
 }

@@ -20,7 +20,11 @@ para importar automaticamente contas e transações do seu banco.
   Cartões de crédito têm campos próprios de limite, dia de fechamento e dia de
   vencimento, com barra de limite disponível calculada a partir do saldo atual
 - Categorias de receita/despesa personalizáveis (cor + ícone)
-- Lançamentos com filtros (conta, categoria, tipo, **situação**, período, busca) e paginação
+- Lançamentos em formato de **extrato mensal**: a lista mostra um mês por vez
+  (navegue com as setas), agrupada por dia com o total de cada dia e o resumo
+  de entradas/saídas/saldo do período no topo. A busca por texto sai do mês e
+  procura em todo o histórico. Filtros de conta, categoria, tipo e situação
+  ficam recolhidos até você precisar deles
 - Painel com saldo total, receitas x despesas, gráfico de tendência (6 meses),
   gastos por categoria e transações recentes
 - Orçamentos mensais por categoria com barra de progresso
@@ -51,7 +55,10 @@ para importar automaticamente contas e transações do seu banco.
   semana, a cada 15 dias (quinzenal), todo mês, a cada 3 ou 6 meses, ou uma vez por
   ano — e se tem quantidade de cobranças definida, data pra terminar, ou nenhuma das
   duas ("sem data pra acabar"). Cada cobrança vira um lançamento normal na data em
-  que vence, então já conta no painel, nos orçamentos e no saldo da conta sozinha
+  que vence, então já conta no painel, nos orçamentos e no saldo da conta sozinha.
+  Um lançamento sem data pra acabar é materializado numa **janela de 24 meses**
+  que anda junto com o tempo — continua infinito na prática, sem encher a base
+  com décadas de parcelas futuras
 - **Débito automático x confirmar na mão**: cada lançamento fixo escolhe se cai no
   saldo sozinho no vencimento (débito automático, salário) ou se fica pendente
   esperando você confirmar — nesse caso aparece como **atrasada** quando passa do

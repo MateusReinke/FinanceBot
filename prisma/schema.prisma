@@ -210,6 +210,10 @@ model Financing {
   // it stays pending until the user confirms payment, and shows up as
   // atrasada once the due date passes.
   autoSettle        Boolean  @default(true)
+  // Set when an open-ended entry is ended by the user. Without it, the
+  // rolling extender would simply regenerate the occurrences that
+  // "Encerrar" had just removed.
+  canceledAt        DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

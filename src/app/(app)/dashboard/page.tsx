@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Landmark, ArrowLeftRight } from "lucide-react";
+import { Landmark, ArrowLeftRight, BarChart3 } from "lucide-react";
 import { verifySession } from "@/lib/dal";
 import { getDashboardData } from "@/lib/queries/dashboard";
 import { getBillsSummary } from "@/lib/queries/bills";
@@ -15,8 +15,21 @@ import { TrendChart } from "@/components/charts/trend-chart";
 import { CategoryBarChart } from "@/components/charts/category-bar-chart";
 import { MonthSelector } from "@/components/ui/month-selector";
 import { UpcomingBills, UpcomingBillsEmpty } from "@/components/dashboard/upcoming-bills";
+import { BalanceHero } from "@/components/dashboard/balance-hero";
 
 export const metadata: Metadata = { title: "Painel — FinanceBot" };
+
+// Charts render an axis grid even with nothing to plot, which reads as
+// broken rather than empty. This replaces them outright when there is no
+// data for the period.
+function EmptyChart({ message }: { message: string }) {
+  return (
+    <div className="flex h-56 flex-col items-center justify-center gap-2 text-center">
+      <BarChart3 className="h-7 w-7 text-muted-foreground" />
+      <p className="max-w-xs text-sm text-muted-foreground">{message}</p>
+    </div>
+  );
+}
 
 function percentChange(current: number, previous: number) {
   if (previous === 0) return current === 0 ? 0 : 100;
@@ -63,18 +76,15 @@ export default async function DashboardPage({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <BalanceHero
+            totalBalance={data.totalBalance}
+            forecastBalance={bills.forecastBalance}
+            accounts={data.accountSummaries}
+          />
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <StatCard
-              label="Saldo total"
-              value={formatCurrency(data.totalBalance)}
-              hint={
-                bills.forecastBalance !== data.totalBalance
-                  ? `${formatCurrency(bills.forecastBalance)} previsto no fim do mês`
-                  : undefined
-              }
-            />
-            <StatCard
-              label="Receitas no mês"
+              label="Entradas no mês"
               value={formatCurrency(data.income)}
               hint={
                 data.scheduledIncome > 0
@@ -89,7 +99,7 @@ export default async function DashboardPage({
               }
             />
             <StatCard
-              label="Despesas no mês"
+              label="Saídas no mês"
               value={formatCurrency(data.expense)}
               valueClassName="text-danger"
               hint={
@@ -104,7 +114,7 @@ export default async function DashboardPage({
               }
             />
             <StatCard
-              label="Saldo do mês"
+              label="Sobrou no mês"
               value={formatCurrency(data.net)}
               valueClassName={data.net >= 0 ? "text-success" : "text-danger"}
               hint={
@@ -123,7 +133,11 @@ export default async function DashboardPage({
                 <CardTitle>Receitas x despesas — últimos 6 meses</CardTitle>
               </CardHeader>
               <CardContent>
-                <TrendChart data={data.trend} />
+                {data.trend.every((t) => t.income === 0 && t.expense === 0) ? (
+                  <EmptyChart message="Sem histórico ainda. Assim que houver lançamentos, a comparação dos últimos 6 meses aparece aqui." />
+                ) : (
+                  <TrendChart data={data.trend} />
+                )}
               </CardContent>
             </Card>
 
@@ -133,9 +147,7 @@ export default async function DashboardPage({
               </CardHeader>
               <CardContent>
                 {data.expenseBreakdown.length === 0 ? (
-                  <p className="py-10 text-center text-sm text-muted-foreground">
-                    Nenhuma despesa neste mês.
-                  </p>
+                  <EmptyChart message="Nenhuma despesa realizada neste mês." />
                 ) : (
                   <CategoryBarChart
                     data={data.expenseBreakdown.slice(0, 7).map((c) => ({
@@ -153,8 +165,11 @@ export default async function DashboardPage({
             <Card className="lg:col-span-3">
               <CardHeader>
                 <CardTitle>Lançamentos recentes</CardTitle>
-                <Link href="/transactions" className="text-xs font-medium text-primary hover:underline">
-                  Ver todas
+                <Link
+                  href={`/transactions?month=${month}&year=${year}`}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Ver todos
                 </Link>
               </CardHeader>
               <CardContent>

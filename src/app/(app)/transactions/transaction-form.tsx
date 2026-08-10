@@ -199,7 +199,7 @@ export function TransactionForm({
         </p>
       ) : null}
       <SubmitButton className="w-full">
-        {transaction ? "Salvar alterações" : "Adicionar transação"}
+        {transaction ? "Salvar alterações" : "Adicionar lançamento"}
       </SubmitButton>
     </form>
   );

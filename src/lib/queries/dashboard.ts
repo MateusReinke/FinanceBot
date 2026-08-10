@@ -118,6 +118,11 @@ export async function getDashboardData(userId: string, month: number, year: numb
   return {
     totalBalance,
     accountCount: accounts.length,
+    // Fed to the hero block so "where is that money" is answered without a
+    // trip to Contas. Biggest first — that is the order people scan.
+    accountSummaries: [...accounts]
+      .sort((a, b) => b.balance - a.balance)
+      .map((a) => ({ id: a.id, name: a.name, balance: a.balance, color: a.color })),
     income,
     expense,
     net: income - expense,
