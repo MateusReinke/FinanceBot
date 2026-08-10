@@ -7,6 +7,7 @@ import { formatCurrency, getCurrentMonthYear, cn } from "@/lib/utils";
 import { MonthSelector } from "@/components/ui/month-selector";
 import { StatCard } from "@/components/ui/stat-card";
 import { BudgetRow } from "./budget-row";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Orçamentos — FinanceBot" };
 
@@ -27,10 +28,10 @@ export default async function BudgetsPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Orçamentos</h1>
-          <p className="text-sm text-muted-foreground">Defina limites de gasto mensal por categoria.</p>
-        </div>
+        <PageHeader
+          title="Orçamentos"
+          description="Defina limites de gasto mensal por categoria."
+        />
         <MonthSelector month={month} year={year} basePath="/budgets" />
       </div>
 
@@ -63,6 +64,7 @@ export default async function BudgetsPage({
                 category={r.category}
                 budget={r.budget}
                 spent={r.spent}
+                scheduled={r.scheduled}
                 month={month}
                 year={year}
               />

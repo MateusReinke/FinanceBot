@@ -25,6 +25,7 @@ export async function upsertTransaction(_state: FormState, formData: FormData): 
     accountId: formData.get("accountId"),
     categoryId: formData.get("categoryId"),
     notes: formData.get("notes"),
+    paid: formData.get("paid"),
   });
 
   if (!validatedFields.success) {
@@ -32,7 +33,7 @@ export async function upsertTransaction(_state: FormState, formData: FormData): 
   }
 
   const id = formData.get("id");
-  const data = validatedFields.data;
+  const { paid, ...data } = validatedFields.data;
 
   const account = await prisma.account.findFirst({ where: { id: data.accountId, userId } });
   if (!account) return { errors: { accountId: ["Conta inválida."] } };
@@ -46,12 +47,16 @@ export async function upsertTransaction(_state: FormState, formData: FormData): 
     const existing = await prisma.transaction.findFirst({ where: { id, userId } });
     if (!existing) return { message: "Transação não encontrada." };
 
-    // Reverse the previous balance effect, then apply the new one — but only
-    // if this row had already applied one. A not-yet-due financing
-    // installment (balanceApplied: false) never touched the balance, and an
-    // edit here doesn't change that; it's picked up normally the next time
-    // reconcileDueInstallments() runs (see src/lib/dal.ts). This action never
-    // changes balanceApplied itself.
+    // Reverse whatever balance effect this row currently has, then apply
+    // whatever it should have after the edit. Writing both sides from the
+    // stored flags (instead of assuming the row was applied) is what lets a
+    // pending transaction be edited freely, and lets an edit flip it
+    // between previsto and realizado in one step.
+    //
+    // A financing installment is deliberately excluded from flipping: its
+    // paid/pending state belongs to the schedule and is driven by
+    // reconcileDueInstallments / payInstallmentNow, never by a plain edit.
+    const nextApplied = existing.financingId ? existing.balanceApplied : paid;
     await prisma.$transaction([
       ...(existing.balanceApplied
         ? [
@@ -59,21 +64,32 @@ export async function upsertTransaction(_state: FormState, formData: FormData): 
               where: { id: existing.accountId },
               data: { balance: { increment: -signedAmount(existing.amount, existing.type) } },
             }),
+          ]
+        : []),
+      ...(nextApplied
+        ? [
             prisma.account.update({
               where: { id: data.accountId },
               data: { balance: { increment: signedAmount(data.amount, data.type) } },
             }),
           ]
         : []),
-      prisma.transaction.update({ where: { id }, data }),
+      prisma.transaction.update({ where: { id }, data: { ...data, balanceApplied: nextApplied } }),
     ]);
   } else {
+    // A transaction created as "ainda não paguei" is scheduled, not
+    // realized: it shows up in previsto and in Próximos vencimentos, and
+    // only touches the balance when confirmed.
     await prisma.$transaction([
-      prisma.transaction.create({ data: { ...data, userId } }),
-      prisma.account.update({
-        where: { id: data.accountId },
-        data: { balance: { increment: signedAmount(data.amount, data.type) } },
-      }),
+      prisma.transaction.create({ data: { ...data, userId, balanceApplied: paid } }),
+      ...(paid
+        ? [
+            prisma.account.update({
+              where: { id: data.accountId },
+              data: { balance: { increment: signedAmount(data.amount, data.type) } },
+            }),
+          ]
+        : []),
     ]);
   }
 
@@ -99,6 +115,30 @@ export async function deleteTransaction(formData: FormData) {
         ]
       : []),
     prisma.transaction.delete({ where: { id } }),
+  ]);
+
+  revalidateTransactionPages();
+}
+
+// Marks a scheduled transaction as actually paid/received, moving the
+// balance once. The balanceApplied: false in the filter makes it idempotent
+// under a double submit — the second call matches nothing and stops.
+export async function confirmTransaction(formData: FormData) {
+  const { userId } = await verifySession();
+  const id = formData.get("id");
+  if (typeof id !== "string") return;
+
+  const existing = await prisma.transaction.findFirst({
+    where: { id, userId, balanceApplied: false },
+  });
+  if (!existing) return;
+
+  await prisma.$transaction([
+    prisma.transaction.update({ where: { id }, data: { balanceApplied: true } }),
+    prisma.account.update({
+      where: { id: existing.accountId },
+      data: { balance: { increment: signedAmount(existing.amount, existing.type) } },
+    }),
   ]);
 
   revalidateTransactionPages();

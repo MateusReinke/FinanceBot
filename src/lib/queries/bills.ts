@@ -1,25 +1,21 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { signedAmount } from "@/lib/utils";
-
-// Start of today in UTC — the same calendar-date convention every other
-// date in this app uses. An occurrence due *today* is not late.
-function startOfTodayUTC() {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
+import { startOfTodayUTC } from "@/lib/transaction-status";
 
 const UPCOMING_DAYS = 30;
 
-// Everything still pending across all of the user's schedules, split the
-// way every "contas a pagar" screen splits it: what's late, what's coming
-// up, and what the balance will look like once the rest of this month
-// clears.
+// Everything scheduled and not yet realized, split the way every "contas a
+// pagar" screen splits it: what's late, what's coming up, and what the
+// balance will look like once the rest of this month clears.
 //
-// Only autoSettle: false schedules can ever be late — an automatic one is
-// applied by reconcileDueInstallments the moment it comes due (and that
-// runs in verifySession, before this query). So "atrasado" here really
-// means "you told the app you'd pay this by hand, and the day passed".
+// Reads every pending transaction, whether it came from a recurring
+// schedule or was entered on its own as "ainda não paguei" — they are the
+// same thing to the balance, so they are the same thing here.
+//
+// A recurring entry set to debit automatically can never show up as late:
+// reconcileDueInstallments applies it the moment it comes due, and that
+// runs in verifySession, before this query.
 export async function getBillsSummary(userId: string) {
   const today = startOfTodayUTC();
   const horizon = new Date(today);
@@ -28,7 +24,7 @@ export async function getBillsSummary(userId: string) {
 
   const [pending, accounts] = await Promise.all([
     prisma.transaction.findMany({
-      where: { userId, financingId: { not: null }, balanceApplied: false, date: { lt: horizon } },
+      where: { userId, balanceApplied: false, date: { lt: horizon } },
       include: { account: true, category: true, financing: { select: { isRecurring: true } } },
       orderBy: { date: "asc" },
     }),

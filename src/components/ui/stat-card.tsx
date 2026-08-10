@@ -6,11 +6,15 @@ export function StatCard({
   value,
   valueClassName,
   delta,
+  hint,
 }: {
   label: string;
   value: string;
   valueClassName?: string;
   delta?: { percent: number; tone: "success" | "danger" };
+  // Secondary line under the number — used for the previsto figure next to
+  // the realizado one, so both are visible without a second card each.
+  hint?: string;
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -33,6 +37,7 @@ export function StatCard({
           </span>
         ) : null}
       </div>
+      {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }

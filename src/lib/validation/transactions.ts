@@ -22,12 +22,19 @@ export const TransactionSchema = z.object({
     .max(500, { error: "Nota muito longa." })
     .optional()
     .transform((v) => (v ? v : undefined)),
+  // Whether the money already moved. Absent means true, so every existing
+  // caller (and the API) keeps creating realized transactions by default.
+  paid: z
+    .string()
+    .nullish()
+    .transform((v) => v === null || v === undefined || v === "" || v === "true" || v === "on"),
 });
 
 export const TransactionFiltersSchema = z.object({
   accountId: z.string().optional(),
   categoryId: z.string().optional(),
   type: z.enum(["income", "expense"]).optional(),
+  status: z.enum(["paid", "pending", "overdue"]).optional(),
   from: z.string().optional(),
   to: z.string().optional(),
   q: z.string().optional(),

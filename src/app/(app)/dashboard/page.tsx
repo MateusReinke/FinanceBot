@@ -7,6 +7,9 @@ import { getBillsSummary } from "@/lib/queries/bills";
 import { formatCurrency, formatDate, getCurrentMonthYear, cn } from "@/lib/utils";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { StatCard } from "@/components/ui/stat-card";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { transactionStatus } from "@/lib/transaction-status";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { CategoryBarChart } from "@/components/charts/category-bar-chart";
@@ -42,10 +45,11 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-foreground">Painel</h1>
-        <MonthSelector month={month} year={year} basePath="/dashboard" />
-      </div>
+      <PageHeader
+        title="Painel"
+        description="Realizado é o que já entrou ou saiu de verdade; previsto inclui o que ainda está agendado para o mês."
+        actions={<MonthSelector month={month} year={year} basePath="/dashboard" />}
+      />
 
       {data.accountCount === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
@@ -60,10 +64,23 @@ export default async function DashboardPage({
       ) : (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Saldo total" value={formatCurrency(data.totalBalance)} />
+            <StatCard
+              label="Saldo total"
+              value={formatCurrency(data.totalBalance)}
+              hint={
+                bills.forecastBalance !== data.totalBalance
+                  ? `${formatCurrency(bills.forecastBalance)} previsto no fim do mês`
+                  : undefined
+              }
+            />
             <StatCard
               label="Receitas no mês"
               value={formatCurrency(data.income)}
+              hint={
+                data.scheduledIncome > 0
+                  ? `+ ${formatCurrency(data.scheduledIncome)} a receber`
+                  : undefined
+              }
               valueClassName="text-success"
               delta={
                 incomeDelta !== undefined
@@ -75,6 +92,11 @@ export default async function DashboardPage({
               label="Despesas no mês"
               value={formatCurrency(data.expense)}
               valueClassName="text-danger"
+              hint={
+                data.scheduledExpense > 0
+                  ? `+ ${formatCurrency(data.scheduledExpense)} a pagar`
+                  : undefined
+              }
               delta={
                 expenseDelta !== undefined
                   ? { percent: expenseDelta, tone: expenseDelta <= 0 ? "success" : "danger" }
@@ -85,6 +107,11 @@ export default async function DashboardPage({
               label="Saldo do mês"
               value={formatCurrency(data.net)}
               valueClassName={data.net >= 0 ? "text-success" : "text-danger"}
+              hint={
+                data.forecastNet !== data.net
+                  ? `${formatCurrency(data.forecastNet)} previsto`
+                  : undefined
+              }
             />
           </div>
 
@@ -125,7 +152,7 @@ export default async function DashboardPage({
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <Card className="lg:col-span-3">
               <CardHeader>
-                <CardTitle>Transações recentes</CardTitle>
+                <CardTitle>Lançamentos recentes</CardTitle>
                 <Link href="/transactions" className="text-xs font-medium text-primary hover:underline">
                   Ver todas
                 </Link>
@@ -134,12 +161,13 @@ export default async function DashboardPage({
                 {data.recentTransactions.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-8 text-center">
                     <ArrowLeftRight className="h-6 w-6 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Nenhuma transação neste mês.</p>
+                    <p className="text-sm text-muted-foreground">Nenhum lançamento neste mês.</p>
                   </div>
                 ) : (
                   <ul className="divide-y divide-border">
                     {data.recentTransactions.map((t) => {
                       const isExpense = t.type === "expense";
+                      const status = transactionStatus(t);
                       return (
                         <li key={t.id} className="flex items-center gap-3 py-2.5">
                           <span
@@ -152,9 +180,14 @@ export default async function DashboardPage({
                             <CategoryIcon icon={t.category?.icon} className="h-4 w-4" />
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-foreground">
-                              {t.description}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {t.description}
+                              </p>
+                              {status === "paid" ? null : (
+                                <StatusBadge status={status} type={t.type} />
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground">
                               {formatDate(t.date)} · {t.account.name}
                             </p>
@@ -162,7 +195,11 @@ export default async function DashboardPage({
                           <span
                             className={cn(
                               "shrink-0 text-sm font-semibold",
-                              isExpense ? "text-danger" : "text-success"
+                              status !== "paid"
+                                ? "text-muted-foreground"
+                                : isExpense
+                                  ? "text-danger"
+                                  : "text-success"
                             )}
                           >
                             {isExpense ? "-" : "+"}

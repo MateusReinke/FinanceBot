@@ -4,10 +4,12 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { TransactionFiltersSchema } from "@/lib/validation/transactions";
+import { statusWhere } from "@/lib/transaction-status";
 import { FiltersBar } from "./filters-bar";
 import { AddTransactionButton } from "./add-transaction-button";
 import { TransactionRow } from "./transaction-row";
 import { ArrowLeftRight } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Transações — FinanceBot" };
 
@@ -26,6 +28,7 @@ export default async function TransactionsPage({
     accountId: asString(rawParams.accountId),
     categoryId: asString(rawParams.categoryId),
     type: asString(rawParams.type),
+    status: asString(rawParams.status),
     from: asString(rawParams.from),
     to: asString(rawParams.to),
     q: asString(rawParams.q),
@@ -37,9 +40,14 @@ export default async function TransactionsPage({
   if (filters.accountId) where.accountId = filters.accountId;
   if (filters.categoryId) where.categoryId = filters.categoryId;
   if (filters.type) where.type = filters.type;
+  // Merged rather than assigned: the status filter also constrains `date`
+  // (an overdue row is a pending one in the past), and the period filter
+  // below writes to the same field.
+  if (filters.status) Object.assign(where, statusWhere(filters.status));
   if (filters.q) where.description = { contains: filters.q, mode: "insensitive" };
   if (filters.from || filters.to) {
     where.date = {
+      ...(typeof where.date === "object" && where.date !== null ? where.date : {}),
       ...(filters.from ? { gte: new Date(filters.from) } : {}),
       ...(filters.to ? { lte: new Date(`${filters.to}T23:59:59.999Z`) } : {}),
     };
@@ -73,15 +81,11 @@ export default async function TransactionsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Transações</h1>
-          <p className="text-sm text-muted-foreground">
-            {total} {total === 1 ? "transação encontrada" : "transações encontradas"}
-          </p>
-        </div>
-        <AddTransactionButton accounts={accounts} categories={categories} />
-      </div>
+      <PageHeader
+        title="Lançamentos"
+        description={`${total} ${total === 1 ? "lançamento encontrado" : "lançamentos encontrados"}`}
+        actions={<AddTransactionButton accounts={accounts} categories={categories} />}
+      />
 
       <FiltersBar accounts={accounts} categories={categories} filters={filters} />
 

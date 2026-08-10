@@ -36,6 +36,11 @@ export function TransactionForm({
   const [type, setType] = useState<"income" | "expense">(
     (transaction?.type as "income" | "expense") ?? initial?.type ?? "expense"
   );
+  // Realizado by default: the overwhelmingly common case is recording
+  // something that already happened. An installment of a financing is
+  // driven by its own schedule, so the switch is hidden for those.
+  const isInstallment = Boolean(transaction?.financingId);
+  const [paid, setPaid] = useState(transaction ? transaction.balanceApplied : true);
 
   useEffect(() => {
     if (state?.success) onSuccess();
@@ -145,6 +150,43 @@ export function TransactionForm({
         </Select>
         <FieldError messages={state?.errors?.categoryId} />
       </div>
+
+      {isInstallment ? null : (
+        <div className="space-y-2">
+          <input type="hidden" name="paid" value={paid ? "true" : "false"} />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setPaid(true)}
+              className={cn(
+                "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+                paid
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {type === "income" ? "Já recebi" : "Já paguei"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaid(false)}
+              className={cn(
+                "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+                !paid
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {type === "income" ? "Ainda vou receber" : "Ainda vou pagar"}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {paid
+              ? "Entra no saldo agora."
+              : "Fica agendado: aparece em Próximos vencimentos e só mexe no saldo quando você confirmar."}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label htmlFor="notes">Notas (opcional)</Label>

@@ -6,6 +6,7 @@ import { isOpenAiConfigured } from "@/lib/openai";
 import { AccountManager } from "./account-manager";
 import { CardInvoiceSummary } from "./card-invoice-summary";
 import { OpenFinanceSection } from "@/components/openfinance/open-finance-section";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Contas — FinanceBot" };
 
@@ -23,12 +24,10 @@ export default async function AccountsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Contas</h1>
-        <p className="text-sm text-muted-foreground">
-          Gerencie suas contas manuais ou conecte seu banco via Open Finance.
-        </p>
-      </div>
+      <PageHeader
+        title="Contas"
+        description="Gerencie suas contas manuais ou conecte seu banco via Open Finance."
+      />
 
       {pluggyEnabled ? (
         <OpenFinanceSection

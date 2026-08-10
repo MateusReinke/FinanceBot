@@ -5,6 +5,7 @@ import { verifySession } from "@/lib/dal";
 import { getUserEvents } from "@/lib/queries/events";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { CreateEventButton } from "./create-event-button";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Eventos — FinanceBot" };
 
@@ -15,12 +16,10 @@ export default async function EventsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Eventos</h1>
-          <p className="text-sm text-muted-foreground">
-            Divida contas com outras pessoas — só quem participa do evento vê os gastos dele.
-          </p>
-        </div>
+        <PageHeader
+          title="Dividir contas"
+          description="Divida contas com outras pessoas — só quem participa do evento vê os gastos dele."
+        />
         <CreateEventButton />
       </div>
 

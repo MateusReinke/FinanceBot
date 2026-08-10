@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { CategoryManager } from "./category-manager";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Categorias — FinanceBot" };
 
@@ -18,12 +19,10 @@ export default async function CategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Categorias</h1>
-        <p className="text-sm text-muted-foreground">
-          Organize suas transações em categorias personalizadas.
-        </p>
-      </div>
+      <PageHeader
+        title="Categorias"
+        description="Organize seus lançamentos em categorias personalizadas."
+      />
       <CategoryManager expense={expense} income={income} />
     </div>
   );

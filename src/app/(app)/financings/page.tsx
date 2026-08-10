@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { getFinancingsList } from "@/lib/queries/financing";
 import { FinancingList } from "./financing-list";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Lançamentos fixos — FinanceBot" };
 
@@ -19,13 +20,10 @@ export default async function FinancingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Lançamentos fixos</h1>
-        <p className="text-sm text-muted-foreground">
-          Gastos fixos, receitas fixas e compras parceladas — cada cobrança entra sozinha nos seus
-          lançamentos na data em que vence.
-        </p>
-      </div>
+      <PageHeader
+        title="Fixos e parcelados"
+        description="Gastos fixos, receitas fixas e compras parceladas — cada cobrança entra sozinha nos seus lançamentos na data em que vence."
+      />
       <FinancingList financings={financings} accounts={accounts} categories={categories} />
     </div>
   );

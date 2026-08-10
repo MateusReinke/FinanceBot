@@ -20,7 +20,7 @@ para importar automaticamente contas e transações do seu banco.
   Cartões de crédito têm campos próprios de limite, dia de fechamento e dia de
   vencimento, com barra de limite disponível calculada a partir do saldo atual
 - Categorias de receita/despesa personalizáveis (cor + ícone)
-- Transações com filtros (conta, categoria, tipo, período, busca) e paginação
+- Lançamentos com filtros (conta, categoria, tipo, **situação**, período, busca) e paginação
 - Painel com saldo total, receitas x despesas, gráfico de tendência (6 meses),
   gastos por categoria e transações recentes
 - Orçamentos mensais por categoria com barra de progresso
@@ -62,10 +62,90 @@ para importar automaticamente contas e transações do seu banco.
   cobrança avulsa de um lançamento fixo
 - **Próximos vencimentos no painel**: o que está atrasado, o que vence nos próximos
   30 dias, quanto há a pagar e a receber, e o **saldo previsto no fim do mês**
+- **Previsto x realizado em qualquer lançamento**: todo lançamento (não só os
+  fixos) pode ser criado como "já paguei" ou "ainda vou pagar". O que está
+  agendado não entra no saldo nem no orçamento até ser confirmado, aparece como
+  **atrasado** quando passa da data, e é mostrado ao lado do realizado no painel
+  ("R$ 1.200 gastos + R$ 300 a pagar")
+- **Lançar gasto pelo WhatsApp**: gere um token em Configurações, ligue no seu
+  fluxo do n8n e mande "gastei 45 no mercado com o nubank" — o app interpreta,
+  lança e devolve a confirmação pronta para o bot responder. Também responde
+  perguntas ("qual meu saldo?", "o que vence essa semana?"). Veja
+  [API pública](#api-pública-whatsapp-n8n-e-outras-automações) abaixo
 - **Painel administrativo**: quem faz login com o e-mail definido em `ADMIN_EMAIL`
   ganha acesso a `/admin` para criar, editar, resetar senha e excluir outros
   usuários — sem nenhum acesso aos dados financeiros deles
 - Configurações de perfil, troca de senha e exclusão de conta
+
+
+## API pública (WhatsApp, n8n e outras automações)
+
+Todo o fluxo do WhatsApp roda por uma API REST autenticada por token. A
+inteligência fica no FinanceBot: o n8n só encaminha o texto da mensagem e
+devolve a resposta ao usuário — não precisa de nó de IA no meio, nem de saber
+ids de conta ou categoria.
+
+### Autenticação
+
+Gere um token em **Configurações → WhatsApp e automações**. Ele aparece uma
+única vez (só o hash SHA-256 é guardado) e vale para **um usuário** — não
+existe token de serviço capaz de lançar na conta de qualquer pessoa.
+
+```
+Authorization: Bearer fbot_...
+```
+
+Opcionalmente, vincule seu número de WhatsApp na mesma tela. Com o número
+vinculado, a automação precisa enviar `from` e ele tem que bater — assim uma
+mensagem de outra pessoa nunca cai na sua conta.
+
+### `POST /api/v1/messages` — texto cru (é o que o n8n usa)
+
+```jsonc
+{
+  "text": "gastei 45 no mercado com o nubank",
+  "messageId": "wamid.XYZ",   // id do provedor: é o que evita lançamento duplicado
+  "from": "+5511999999999"     // opcional; conferido contra o número vinculado
+}
+```
+
+```jsonc
+{
+  "reply": "✅ Gasto lançado: R$ 45,00 — Mercado\nConta: Nubank\n...",
+  "status": "created"   // created | answered | duplicate | failed
+}
+```
+
+Mande `reply` de volta pro usuário no WhatsApp. Mensagens que parecem perguntas
+("quanto gastei?", "qual meu saldo?", "o que vence?") são respondidas com um
+resumo em vez de virarem lançamento — e sem custar chamada de IA.
+
+### `POST /api/v1/transactions` — campos estruturados
+
+Para quando a automação já sabe o que quer lançar. Conta e categoria vão por
+**nome**, não por id; nome desconhecido devolve 400 com a lista de contas
+válidas, nunca um palpite silencioso.
+
+```jsonc
+{ "description": "Almoço", "amount": 32.5, "type": "expense",
+  "account": "Nubank", "category": "Alimentação", "paid": true }
+```
+
+### `GET /api/v1/transactions?limit=20` e `GET /api/v1/summary`
+
+Últimos lançamentos e o resumo do mês (saldo, realizado, previsto, atrasados,
+próximos vencimentos) — úteis para um fluxo agendado no n8n que manda um
+resumo diário.
+
+### Notas de operação
+
+- **Idempotência**: sempre envie o `messageId` do provedor. Gateways de
+  WhatsApp reentregam a mesma mensagem, e é o índice único `(userId,
+  externalId)` que impede o gasto de ser lançado duas vezes.
+- **Rate limit**: 30 requisições por minuto por usuário e por rota.
+- **Interpretação de texto** exige `OPENAI_API_KEY`. Sem ela, `/api/v1/messages`
+  responde perguntas normalmente, mas não cria lançamento a partir de texto
+  livre — use `/api/v1/transactions` nesse caso.
 
 ## Segurança e isolamento de dados
 
@@ -127,6 +207,8 @@ Veja `.env.example`. As principais são:
 | `ADMIN_EMAIL` | não | E-mail que, ao se cadastrar ou logar, vira administrador com acesso a `/admin`. Deixe em branco para desativar o painel admin |
 | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | Credenciais do Pluggy. Sem elas, o app funciona normalmente só com contas manuais — a seção de Open Finance fica oculta |
 | `PLUGGY_USE_SANDBOX` | não | `true` (padrão) inclui os conectores de teste do Pluggy no widget |
+| `PLUGGY_WEBHOOK_SECRET` | recomendada | Segredo do HMAC-SHA256 conferido contra o header `x-signature` do webhook. Sem ele nem `PLUGGY_WEBHOOK_TOKEN`, o endpoint de webhook recusa todas as chamadas |
+| `PLUGGY_WEBHOOK_TOKEN` | alternativa | Token na query string, para quando só a URL do webhook é configurável. O app já anexa `?token=...` na URL registrada no Pluggy |
 | `PLUGGY_WEBHOOK_URL` | não | URL pública para receber eventos do Pluggy (sincronização automática). Sem isso, a sincronização é manual/no momento da conexão |
 | `OPENAI_API_KEY` | não | Chave da OpenAI — liga o Assistente de IA (topbar) e a leitura de nota fiscal (Eventos). Sem ela, os dois ficam ocultos e o lançamento manual continua funcionando normalmente |
 | `OPENAI_MODEL` | não | Sobrescreve o modelo usado pelas duas features de IA acima (padrão: `gpt-4o`) |

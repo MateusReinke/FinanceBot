@@ -17,6 +17,10 @@ model User {
   // env var (see src/lib/admin.ts) — never trusted from the JWT session,
   // always re-read from the DB in src/lib/admin-dal.ts.
   role         String   @default("user")
+  // E.164 ("+5511999999999"). Set when the user links WhatsApp, and used to
+  // prove an inbound message really belongs to them — the automation that
+  // forwards messages never gets to name the user itself.
+  phoneNumber  String?  @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -26,6 +30,9 @@ model User {
   budgets      Budget[]
   pluggyItems  PluggyItem[]
   financings   Financing[]
+
+  apiTokens        ApiToken[]
+  inboundMessages  InboundMessage[]
 
   createdEvents       Event[]             @relation("EventCreator")
   eventParticipations EventParticipant[]
@@ -44,6 +51,13 @@ model PluggyItem {
   status            String // UPDATED, UPDATING, LOGIN_ERROR, OUTDATED, WAITING_USER_INPUT, ERROR
   executionStatus   String?
   lastSyncedAt      DateTime?
+  // Last failure message, cleared on the next successful sync, so the UI can
+  // say what actually went wrong instead of a generic "erro".
+  lastSyncError     String?
+  // Set while a sync is in flight and cleared when it ends. Two syncs of the
+  // same item (a webhook landing while the user hits "sincronizar") would
+  // otherwise both walk the same pages and fight over the same rows.
+  syncStartedAt     DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -128,11 +142,16 @@ model Transaction {
   // balanceApplied true, so nothing about existing behavior changes.
   financingId       String?
   installmentNumber Int? // 1-based position within the financing; fixed at creation, never renumbered
-  // False only for a not-yet-due financing installment. True for every other
-  // transaction (the balance effect already applies immediately at creation,
-  // as it always has) and for a financing installment once its due date has
-  // been reconciled — see src/lib/financing.ts.
+  // The realizado/previsto flag for EVERY transaction, not just financing
+  // installments: true means the money actually moved and Account.balance
+  // already reflects it; false means it is only scheduled. A pending row
+  // past its date is what the app calls "atrasada". Defaults to true, so a
+  // plain transaction keeps behaving exactly as it always has.
   balanceApplied Boolean @default(true)
+
+  // Set when this transaction came in through the public API (WhatsApp via
+  // n8n, or any other automation) rather than the web UI.
+  source         String  @default("app") // app, whatsapp, api, openfinance
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -202,6 +221,53 @@ model Financing {
   @@index([userId])
   @@index([accountId])
   @@index([categoryId])
+}
+
+// A bearer token for the public API — how an automation (the n8n WhatsApp
+// agent) acts on one user's behalf. Only the hash is ever stored, exactly
+// like a password: the plaintext is shown once at creation and cannot be
+// recovered afterwards.
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  // SHA-256 of the token. Unique so a lookup is a single indexed read
+  // rather than a scan comparing every row.
+  tokenHash  String    @unique
+  // First characters of the plaintext ("fbot_a1b2"), so the UI can tell two
+  // tokens apart without being able to reconstruct either.
+  prefix     String
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// One inbound automation message. Exists for idempotency above all:
+// WhatsApp providers retry aggressively, and without a dedupe key a single
+// "gastei 50 no mercado" can post three times. externalId is whatever
+// message id the provider sent; scoped per user so one user's ids can
+// never collide with another's.
+model InboundMessage {
+  id         String   @id @default(cuid())
+  userId     String
+  externalId String
+  channel    String // whatsapp, api
+  body       String
+  // The transaction this message created, when it created one. Null for a
+  // message that was a question ("quanto gastei?") or that failed to parse.
+  resultId   String?
+  status     String // created, duplicate, failed, answered
+  reply      String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, externalId])
+  @@index([userId, createdAt])
 }
 
 model Budget {

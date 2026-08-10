@@ -14,6 +14,7 @@ export function FiltersBar({
     accountId?: string;
     categoryId?: string;
     type?: string;
+    status?: string;
     from?: string;
     to?: string;
     q?: string;
@@ -22,12 +23,20 @@ export function FiltersBar({
   const hasFilters = Object.values(filters).some(Boolean);
 
   return (
-    <form method="get" className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-3 lg:grid-cols-6">
+    <form method="get" className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-3 lg:grid-cols-7">
       <div className="col-span-2 sm:col-span-1">
         <Select name="type" defaultValue={filters.type ?? ""}>
           <option value="">Todos os tipos</option>
           <option value="expense">Despesas</option>
           <option value="income">Receitas</option>
+        </Select>
+      </div>
+      <div>
+        <Select name="status" defaultValue={filters.status ?? ""}>
+          <option value="">Toda situação</option>
+          <option value="paid">Realizados</option>
+          <option value="pending">A pagar/receber</option>
+          <option value="overdue">Atrasados</option>
         </Select>
       </div>
       <div>
