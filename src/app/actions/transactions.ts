@@ -4,11 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { TransactionSchema } from "@/lib/validation/transactions";
+import { signedAmount } from "@/lib/utils";
 import type { FormState } from "@/lib/form-state";
-
-function signedAmount(amount: number, type: string) {
-  return type === "expense" ? -amount : amount;
-}
 
 function revalidateTransactionPages() {
   revalidatePath("/transactions");

@@ -9,6 +9,13 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+// A Transaction always stores a positive `amount`; its `type` is what says
+// which way the account balance moves. Every balance write in the app goes
+// through this so the two can never disagree.
+export function signedAmount(amount: number, type: string) {
+  return type === "expense" ? -amount : amount;
+}
+
 export function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }

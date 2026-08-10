@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import type { Category } from "@prisma/client";
 import { Pencil, CheckCircle2, Trash2 } from "lucide-react";
+import type { Frequency } from "@/lib/recurrence";
 import { deleteFinancing, settleFinancingEarly } from "@/app/actions/financing";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -12,11 +14,25 @@ export function FinancingHeader({
   description,
   remainingCount,
   isRecurring = false,
+  isIncome = false,
+  categories,
+  categoryId,
+  installmentAmount,
+  frequency,
+  autoSettle,
+  nextDueDate,
 }: {
   id: string;
   description: string;
   remainingCount: number;
   isRecurring?: boolean;
+  isIncome?: boolean;
+  categories: Category[];
+  categoryId: string | null;
+  installmentAmount: number;
+  frequency: Frequency;
+  autoSettle: boolean;
+  nextDueDate: Date | null;
 }) {
   const [editOpen, setEditOpen] = useState(false);
 
@@ -32,14 +48,14 @@ export function FinancingHeader({
             action={settleFinancingEarly}
             onSubmit={(e) => {
               const message = isRecurring
-                ? "Cancelar este gasto fixo? Ele para de ser lançado a partir de agora; os meses já pagos continuam no histórico."
+                ? `Encerrar este ${isIncome ? "recebimento" : "gasto"} fixo? Ele para de ser lançado a partir de agora; o que já foi ${isIncome ? "recebido" : "pago"} continua no histórico.`
                 : `Quitar antecipadamente? As ${remainingCount} parcelas futuras serão removidas; as já pagas continuam no histórico.`;
               if (!confirm(message)) e.preventDefault();
             }}
           >
             <input type="hidden" name="id" value={id} />
             <Button type="submit" variant="outline" size="sm">
-              <CheckCircle2 className="h-4 w-4" /> {isRecurring ? "Cancelar" : "Quitar"}
+              <CheckCircle2 className="h-4 w-4" /> {isRecurring ? "Encerrar" : "Quitar"}
             </Button>
           </form>
         ) : null}
@@ -57,8 +73,20 @@ export function FinancingHeader({
         </form>
       </div>
 
-      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar financiamento">
-        <EditFinancingForm id={id} description={description} onSuccess={() => setEditOpen(false)} />
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar esta e as próximas">
+        <EditFinancingForm
+          id={id}
+          description={description}
+          categories={categories}
+          categoryId={categoryId}
+          installmentAmount={installmentAmount}
+          frequency={frequency}
+          autoSettle={autoSettle}
+          nextDueDate={nextDueDate}
+          remainingCount={remainingCount}
+          isRecurring={isRecurring}
+          onSuccess={() => setEditOpen(false)}
+        />
       </Modal>
     </div>
   );

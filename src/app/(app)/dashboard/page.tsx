@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Landmark, ArrowLeftRight } from "lucide-react";
 import { verifySession } from "@/lib/dal";
 import { getDashboardData } from "@/lib/queries/dashboard";
+import { getBillsSummary } from "@/lib/queries/bills";
 import { formatCurrency, formatDate, getCurrentMonthYear, cn } from "@/lib/utils";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { StatCard } from "@/components/ui/stat-card";
@@ -10,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { CategoryBarChart } from "@/components/charts/category-bar-chart";
 import { MonthSelector } from "@/components/ui/month-selector";
+import { UpcomingBills, UpcomingBillsEmpty } from "@/components/dashboard/upcoming-bills";
 
 export const metadata: Metadata = { title: "Painel — FinanceBot" };
 
@@ -29,7 +31,11 @@ export default async function DashboardPage({
   const month = Number(sp.month) || current.month;
   const year = Number(sp.year) || current.year;
 
-  const data = await getDashboardData(userId, month, year);
+  const [data, bills] = await Promise.all([
+    getDashboardData(userId, month, year),
+    getBillsSummary(userId),
+  ]);
+  const hasBills = bills.overdue.length > 0 || bills.upcoming.length > 0;
   const previous = data.trend[data.trend.length - 2];
   const incomeDelta = previous ? percentChange(data.income, previous.income) : undefined;
   const expenseDelta = previous ? percentChange(data.expense, previous.expense) : undefined;
@@ -81,6 +87,8 @@ export default async function DashboardPage({
               valueClassName={data.net >= 0 ? "text-success" : "text-danger"}
             />
           </div>
+
+          {hasBills ? <UpcomingBills bills={bills} /> : <UpcomingBillsEmpty />}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <Card className="lg:col-span-3">

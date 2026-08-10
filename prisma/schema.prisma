@@ -150,7 +150,11 @@ model Transaction {
   @@index([financingId])
 }
 
-// One "N monthly installments of R$V" plan (financiamento). The Financing
+// One repeating money plan: a financiamento/parcelamento (N installments
+// of R$V), a gasto fixo (aluguel, assinatura), or a receita fixa (salário).
+// All three are the same thing mechanically — N occurrences spaced by
+// `frequency` — and differ only in `type`, `isRecurring` and how they read.
+// The Financing
 // row itself is metadata; the actual N Transaction rows (linked via
 // financingId) are what drive balances, the dashboard, and budgets — no
 // extra code was needed there, since a normal expense-type Transaction
@@ -161,6 +165,10 @@ model Financing {
   accountId         String
   categoryId        String?
   description       String
+  // "expense" (aluguel, assinatura, parcela) or "income" (salário, aluguel
+  // que você recebe). Every installment Transaction is created with this
+  // type, which is what decides the sign of its balance effect.
+  type              String   @default("expense")
   installmentAmount Float // V — always positive, one installment's value
   installmentCount  Int // N — total number of installments (a recurring expense just uses a long practical cap, see isRecurring)
   firstDueDate      DateTime // calendar date (UTC midnight) of installment #1
@@ -171,11 +179,18 @@ model Financing {
   frequency         String   @default("monthly")
   // True for a fixed monthly expense with no real end date (rent, a
   // subscription with no planned cancellation, ...). installmentCount is
-  // still a normal finite number under the hood — MAX_RECURRING_MONTHS,
-  // see financing-form.tsx — so it reuses 100% of the same schedule/
+  // still a normal finite number under the hood — see
+  // recurringOccurrenceCount in src/lib/recurrence.ts — so it reuses the
+  // exact same schedule/
   // reconciliation machinery; this flag only changes how it's displayed
   // (no "X of Y" progress, no meaningful total).
   isRecurring       Boolean  @default(false)
+  // True (the default, and what every row created before this field
+  // existed already did) = the installment hits the balance on its own the
+  // moment it comes due, for things really debited automatically. False =
+  // it stays pending until the user confirms payment, and shows up as
+  // atrasada once the due date passes.
+  autoSettle        Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

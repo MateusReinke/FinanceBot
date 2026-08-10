@@ -20,15 +20,21 @@ export function FinancingForm({
   categories,
   onSuccess,
   initialMode = "count",
+  initialType = "expense",
 }: {
   accounts: Account[];
   categories: Category[];
   onSuccess: () => void;
   initialMode?: "count" | "endDate" | "recurring";
+  initialType?: "expense" | "income";
 }) {
   const [state, action] = useActionState(createFinancing, undefined);
   const [countMode, setCountMode] = useState<"count" | "endDate" | "recurring">(initialMode);
   const [frequency, setFrequency] = useState<Frequency>("monthly");
+  const [type, setType] = useState<"expense" | "income">(initialType);
+  // See the same pattern in edit-financing-form: an unchecked checkbox
+  // posts nothing, so the value rides on a hidden input instead.
+  const [autoSettleOn, setAutoSettleOn] = useState(true);
   const [count, setCount] = useState("");
   const [amount, setAmount] = useState("");
   const [firstDueDate, setFirstDueDate] = useState(toDateInputValue(new Date()));
@@ -55,15 +61,44 @@ export function FinancingForm({
   }, [computedCount, amount]);
 
   const eligibleAccounts = accounts.filter((a) => !a.archived && !a.pluggyItemId);
+  const eligibleCategories = categories.filter((c) => c.type === type);
+  const isIncome = type === "income";
 
   return (
     <form action={action} className="space-y-4">
+      <input type="hidden" name="type" value={type} />
+      <div className="grid grid-cols-2 gap-2">
+        {(["expense", "income"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setType(t)}
+            className={cn(
+              "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+              type === t
+                ? t === "income"
+                  ? "border-success bg-success-bg text-success"
+                  : "border-danger bg-danger-bg text-danger"
+                : "border-border text-muted-foreground hover:bg-muted"
+            )}
+          >
+            {t === "income" ? "Dinheiro que entra" : "Dinheiro que sai"}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-1.5">
         <Label htmlFor="description">Descrição</Label>
         <Input
           id="description"
           name="description"
-          placeholder={countMode === "recurring" ? "Ex: Aluguel" : "Ex: Financiamento do carro"}
+          placeholder={
+            isIncome
+              ? "Ex: Salário"
+              : countMode === "recurring"
+                ? "Ex: Aluguel"
+                : "Ex: Financiamento do carro"
+          }
           required
           autoFocus
         />
@@ -95,7 +130,7 @@ export function FinancingForm({
         <Label htmlFor="categoryId">Categoria (opcional)</Label>
         <Select id="categoryId" name="categoryId" defaultValue="">
           <option value="">Sem categoria</option>
-          {categories.map((c) => (
+          {eligibleCategories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -105,7 +140,7 @@ export function FinancingForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="firstDueDate">Data do primeiro pagamento</Label>
+        <Label htmlFor="firstDueDate">{isIncome ? "Data do primeiro recebimento" : "Data do primeiro pagamento"}</Label>
         <Input
           id="firstDueDate"
           name="firstDueDate"
@@ -139,7 +174,7 @@ export function FinancingForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="installmentAmount">Valor de cada cobrança (R$)</Label>
+        <Label htmlFor="installmentAmount">Valor de cada {isIncome ? "recebimento" : "cobrança"} (R$)</Label>
         <Input
           id="installmentAmount"
           name="installmentAmount"
@@ -238,6 +273,24 @@ export function FinancingForm({
         )}
       </div>
 
+      <input type="hidden" name="autoSettle" value={autoSettleOn ? "true" : "false"} />
+      <label className="flex items-start gap-2 text-sm text-foreground">
+        <input
+          type="checkbox"
+          checked={autoSettleOn}
+          onChange={(e) => setAutoSettleOn(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-[var(--primary)]"
+        />
+        <span>
+          {isIncome ? "Cai sozinho na conta" : "Debita sozinho na conta"}
+          <span className="block text-xs text-muted-foreground">
+            {autoSettleOn
+              ? `Marcado: no dia do vencimento o valor ${isIncome ? "entra" : "sai"} do saldo automaticamente — pra débito automático, salário e afins.`
+              : `Desmarcado: cada ${isIncome ? "recebimento" : "cobrança"} espera você confirmar, e aparece em "Contas a pagar" como atrasada se passar do dia.`}
+          </span>
+        </span>
+      </label>
+
       <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm">
         {countMode === "recurring" ? (
           <>
@@ -258,7 +311,7 @@ export function FinancingForm({
         </p>
       ) : null}
       <SubmitButton className="w-full">
-        {countMode === "recurring" ? "Criar gasto fixo" : "Criar"}
+        {countMode === "recurring" ? (isIncome ? "Criar receita fixa" : "Criar gasto fixo") : "Criar"}
       </SubmitButton>
     </form>
   );

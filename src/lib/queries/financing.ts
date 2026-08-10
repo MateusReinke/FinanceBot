@@ -2,7 +2,16 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { toFrequency } from "@/lib/recurrence";
 
-function summarize(installments: { amount: number; balanceApplied: boolean }[], installmentCount: number) {
+function startOfTodayUTC() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+function summarize(
+  installments: { amount: number; balanceApplied: boolean; date: Date }[],
+  installmentCount: number
+) {
+  const today = startOfTodayUTC();
   const paidCount = installments.filter((i) => i.balanceApplied).length;
   const paidTotal = installments.filter((i) => i.balanceApplied).reduce((sum, i) => sum + i.amount, 0);
   const remainingCount = installments.filter((i) => !i.balanceApplied).length;
@@ -20,7 +29,22 @@ function summarize(installments: { amount: number; balanceApplied: boolean }[], 
     status = "andamento";
   }
 
-  return { paidCount, paidTotal, remainingCount, remainingTotal, totalAmount, status };
+  // Only reachable for an autoSettle: false schedule — an automatic one is
+  // applied the moment it comes due, so it can never sit here past its date.
+  const pending = installments.filter((i) => !i.balanceApplied);
+  const overdueCount = pending.filter((i) => i.date < today).length;
+  const nextDueDate = pending.find((i) => i.date >= today)?.date ?? null;
+
+  return {
+    paidCount,
+    paidTotal,
+    remainingCount,
+    remainingTotal,
+    totalAmount,
+    status,
+    overdueCount,
+    nextDueDate,
+  };
 }
 
 export async function getFinancingsList(userId: string) {
@@ -29,7 +53,7 @@ export async function getFinancingsList(userId: string) {
     include: {
       account: true,
       category: true,
-      installments: { select: { amount: true, balanceApplied: true } },
+      installments: { select: { amount: true, balanceApplied: true, date: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -39,6 +63,8 @@ export async function getFinancingsList(userId: string) {
     description: f.description,
     account: f.account,
     category: f.category,
+    type: f.type,
+    autoSettle: f.autoSettle,
     installmentAmount: f.installmentAmount,
     installmentCount: f.installmentCount,
     firstDueDate: f.firstDueDate,
