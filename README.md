@@ -79,7 +79,38 @@ para importar automaticamente contas e transações do seu banco.
   (é assim que um reajuste de aluguel fica correto). Dá também para pular uma
   cobrança avulsa de um lançamento fixo
 - **Próximos vencimentos no painel**: o que está atrasado, o que vence nos próximos
-  30 dias, quanto há a pagar e a receber, e o **saldo previsto no fim do mês**
+  30 dias, quanto há a pagar e a receber, e o **saldo previsto no fim do mês**.
+  Cada linha traz o botão de confirmar ali mesmo — não precisa ir a outra tela
+  para dizer que pagou
+- **Alertas visuais de vencimento**: o painel abre com um aviso do que está
+  atrasado (e de quanto), e cada lançamento pendente mostra a contagem em
+  palavras — "Vence hoje", "Vence em 2 dias", "Venceu há 5 dias", "Recebe
+  amanhã" — com uma faixa colorida na lateral da linha. O menu lateral mostra
+  um contador de atrasados em **Lançamentos** e em **A receber**, então o aviso
+  aparece de qualquer tela do app
+- **Marcar como pago / recebido em um clique**: todo lançamento pendente tem o
+  botão **Paguei** (despesa) ou **Recebi** (receita) visível na lista, no painel
+  e na tela A receber. O botão só confirma o que já estava agendado: mexe no
+  saldo uma vez e é idempotente. Clicou errado? A seta de **desmarcar** desfaz,
+  devolvendo o lançamento para pendente e estornando o saldo
+- **A receber (controle de cobranças)**: uma tela dedicada a quem te deve,
+  agrupada **por pessoa**, com o total de cada um, a data de cada valor, o que
+  já passou do prazo e quanto. O botão **Cobrar no WhatsApp** abre a conversa
+  com a mensagem já escrita (valores, descrições e datas), e registra que a
+  cobrança foi enviada — a lista passa a mostrar "cobrado em 12/08", pra você
+  não cobrar a mesma pessoa duas vezes no mesmo dia. Para usar, lance a receita
+  como "ainda vou receber" e preencha **de quem** (e o WhatsApp, se tiver): o
+  número é lembrado e preenchido sozinho na próxima vez que a mesma pessoa
+  aparecer. Nada disso é um cadastro paralelo — é o mesmo lançamento previsto
+  que já conta no saldo previsto do mês
+- **Faturas futuras de cartão**: no cartão, **Programar faturas futuras** lança
+  as próximas faturas (1, 2, 3, 6 ou 12) como previstas, usando o dia de
+  vencimento do cartão, com prévia das datas antes de confirmar. Elas entram em
+  Próximos vencimentos e no saldo previsto, e só mexem no saldo quando você
+  confirmar. A fatura é lançada na **conta que vai pagar**, nunca no cartão (uma
+  fatura não é uma compra — lançá-la no cartão aumentaria a própria dívida que
+  ela quita), e fica ligada ao cartão: quando você usa "Marcar fatura como paga",
+  o app **quita a fatura programada** em vez de criar um pagamento duplicado
 - **Previsto x realizado em qualquer lançamento**: todo lançamento (não só os
   fixos) pode ser criado como "já paguei" ou "ainda vou pagar". O que está
   agendado não entra no saldo nem no orçamento até ser confirmado, aparece como
@@ -491,8 +522,9 @@ POSTGRES_PASSWORD="$(openssl rand -hex 16)" SESSION_SECRET="$(openssl rand -base
 src/
   app/
     (auth)/           # login e cadastro
-    (app)/             # área autenticada (painel, transações, contas, financiamentos,
-                        # orçamentos, categorias, eventos, admin, configurações)
+    (app)/             # área autenticada (painel, transações, a receber, contas,
+                        # financiamentos, orçamentos, categorias, eventos, admin,
+                        # configurações)
     api/openfinance/    # rotas do fluxo Pluggy (connect-token, items, sync, webhook)
     api/health/          # healthcheck (usado pelo Docker/Coolify)
     api/events/            # imagem da nota fiscal, atrás de verifyEventAccess
@@ -509,9 +541,16 @@ src/
     admin-dal.ts             # verifyAdminSession — gate central de acesso a /admin
     admin.ts                  # isAdminEmail — decide quem vira admin
     financing.ts               # cronograma de parcelas + reconciliação de saldo
-    user-provisioning.ts        # criação de usuário + categorias padrão (signup e admin)
+    transaction-status.ts       # realizado/previsto/atrasado — o que um lançamento É
+    due-dates.ts                 # "vence hoje", "venceu há 3 dias" — quão urgente ele é
+    card-invoices.ts              # projeção das próximas faturas de um cartão (puro)
+    charge.ts                      # mensagem de cobrança + link do WhatsApp (puro)
+    queries/receivables.ts          # "quem me deve", agrupado por pessoa
+    user-provisioning.ts             # criação de usuário + categorias padrão (signup e admin)
 prisma/
   schema.prisma           # modelos (User, Account, Category, Transaction, Budget,
                            # PluggyItem, Event, EventParticipant, EventInvite,
                            # EventExpense, EventExpenseSplit, EventReceipt, Financing)
+                           # Transaction carrega counterparty/counterpartyPhone
+                           # (quem deve) e invoiceForAccountId (fatura de qual cartão)
 ```

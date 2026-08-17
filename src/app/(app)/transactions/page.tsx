@@ -9,6 +9,7 @@ import {
   isSearchingAllTime,
   PAGE_SIZE,
 } from "@/lib/queries/transactions";
+import { getCounterpartySuggestions } from "@/lib/queries/receivables";
 import { formatCurrency, formatMonthYear, getCurrentMonthYear, cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { MonthSelector } from "@/components/ui/month-selector";
@@ -44,10 +45,11 @@ export default async function TransactionsPage({
   const year = Number(asString(rawParams.year)) || current.year;
   const allTime = isSearchingAllTime(filters);
 
-  const [accounts, categories, data] = await Promise.all([
+  const [accounts, categories, data, counterparties] = await Promise.all([
     prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
     prisma.category.findMany({ where: { userId }, orderBy: { name: "asc" } }),
     getTransactionsPageData(userId, filters, month, year),
+    getCounterpartySuggestions(userId),
   ]);
 
   const { transactions, total, totalPages, summary } = data;
@@ -75,7 +77,13 @@ export default async function TransactionsPage({
     <div className="space-y-5">
       <PageHeader
         title="Lançamentos"
-        actions={<AddTransactionButton accounts={accounts} categories={categories} />}
+        actions={
+          <AddTransactionButton
+            accounts={accounts}
+            categories={categories}
+            counterparties={counterparties}
+          />
+        }
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -115,7 +123,12 @@ export default async function TransactionsPage({
           </p>
         </div>
       ) : (
-        <StatementList transactions={transactions} accounts={accounts} categories={categories} />
+        <StatementList
+          transactions={transactions}
+          accounts={accounts}
+          categories={categories}
+          counterparties={counterparties}
+        />
       )}
 
       {totalPages > 1 ? (

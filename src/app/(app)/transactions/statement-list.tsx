@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import type { Account, Category, Transaction } from "@prisma/client";
-import { Pencil, Trash2, Check } from "lucide-react";
+import { Pencil, Trash2, User } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { TransactionForm } from "./transaction-form";
-import { deleteTransaction, confirmTransaction } from "@/app/actions/transactions";
+import { deleteTransaction } from "@/app/actions/transactions";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { DueChip, urgencyRail } from "@/components/ui/due-chip";
+import { ConfirmButton, UndoConfirmButton } from "@/components/transactions/confirm-buttons";
 import { transactionStatus, startOfTodayUTC } from "@/lib/transaction-status";
+import { urgencyOf } from "@/lib/due-dates";
 import { formatCurrency, cn } from "@/lib/utils";
 
 type Row = Transaction & { account: Account; category: Category | null };
@@ -42,10 +45,12 @@ export function StatementList({
   transactions,
   accounts,
   categories,
+  counterparties = [],
 }: {
   transactions: Row[];
   accounts: Account[];
   categories: Category[];
+  counterparties?: { name: string; phone: string | null }[];
 }) {
   const [editing, setEditing] = useState<Row | null>(null);
   const today = startOfTodayUTC();
@@ -88,8 +93,16 @@ export function StatementList({
                   const status = transactionStatus(t, today);
                   const isExpense = t.type === "expense";
                   const color = t.category?.color ?? "#94a3b8";
+                  const pending = status !== "paid";
                   return (
-                    <li key={t.id} className="group flex items-center gap-3 px-3 py-3 sm:px-4">
+                    <li
+                      key={t.id}
+                      className={cn(
+                        "group flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 sm:px-4",
+                        pending && urgencyRail(urgencyOf(t.date, today)),
+                        status === "overdue" && "bg-danger-bg/20"
+                      )}
+                    >
                       <span
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
                         style={{ backgroundColor: `${color}20`, color }}
@@ -102,65 +115,72 @@ export function StatementList({
                           <p className="truncate text-sm font-medium text-foreground">
                             {t.description}
                           </p>
-                          {status === "paid" ? null : <StatusBadge status={status} type={t.type} />}
+                          {pending ? <StatusBadge status={status} type={t.type} /> : null}
+                          {pending ? <DueChip date={t.date} type={t.type} /> : null}
                         </div>
                         <p className="truncate text-xs text-muted-foreground">
                           {t.category?.name ?? "Sem categoria"} · {t.account.name}
+                          {/* Plain inline, not inline-flex: a flex container
+                              collapses the leading space of the " · " and the
+                              separator ends up glued to the account name. */}
+                          {t.counterparty ? (
+                            <span>
+                              {" · "}
+                              <User className="mr-0.5 inline h-3 w-3 align-[-1px]" />
+                              {t.counterparty}
+                            </span>
+                          ) : null}
                         </p>
                       </div>
 
+                      {/* Amount and actions share a line that goes full-width
+                          on a phone, so the description above keeps the whole
+                          first line to itself. */}
+                      <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
                       <span
                         className={cn(
                           "shrink-0 text-sm font-semibold tabular-nums",
-                          status !== "paid"
-                            ? "text-muted-foreground"
-                            : isExpense
-                              ? "text-danger"
-                              : "text-success"
+                          pending ? "text-muted-foreground" : isExpense ? "text-danger" : "text-success"
                         )}
                       >
                         {isExpense ? "−" : "+"}
                         {formatCurrency(t.amount)}
                       </span>
 
-                      {/* Revealed on hover/focus so the list stays calm, but
-                          always present for keyboard and touch users. */}
-                      <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-                        {status !== "paid" ? (
-                          <form action={confirmTransaction}>
+                      {/* The confirm button is always visible — it is the most
+                          used action in the app and was previously hidden
+                          behind a hover, which put it out of reach entirely on
+                          a phone. Edit and delete stay quiet until hovered. */}
+                      <div className="flex shrink-0 items-center gap-1">
+                        {pending ? <ConfirmButton id={t.id} type={t.type} /> : null}
+                        <div className="flex items-center gap-0.5 opacity-60 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                          {!pending && !t.financingId ? (
+                            <UndoConfirmButton id={t.id} type={t.type} />
+                          ) : null}
+                          <button
+                            onClick={() => setEditing(t)}
+                            className="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+                            aria-label="Editar lançamento"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <form
+                            action={deleteTransaction}
+                            onSubmit={(e) => {
+                              if (!confirm("Excluir este lançamento?")) e.preventDefault();
+                            }}
+                          >
                             <input type="hidden" name="id" value={t.id} />
                             <button
                               type="submit"
-                              className="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-success-bg hover:text-success"
-                              title={isExpense ? "Confirmar pagamento" : "Confirmar recebimento"}
-                              aria-label={isExpense ? "Confirmar pagamento" : "Confirmar recebimento"}
+                              className="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-danger-bg hover:text-danger"
+                              aria-label="Excluir lançamento"
                             >
-                              <Check className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </form>
-                        ) : null}
-                        <button
-                          onClick={() => setEditing(t)}
-                          className="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-muted"
-                          aria-label="Editar lançamento"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <form
-                          action={deleteTransaction}
-                          onSubmit={(e) => {
-                            if (!confirm("Excluir este lançamento?")) e.preventDefault();
-                          }}
-                        >
-                          <input type="hidden" name="id" value={t.id} />
-                          <button
-                            type="submit"
-                            className="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-danger-bg hover:text-danger"
-                            aria-label="Excluir lançamento"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </form>
+                        </div>
+                      </div>
                       </div>
                     </li>
                   );
@@ -177,6 +197,7 @@ export function StatementList({
             transaction={editing}
             accounts={accounts}
             categories={categories}
+            counterparties={counterparties}
             onSuccess={() => setEditing(null)}
           />
         ) : null}

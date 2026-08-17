@@ -28,7 +28,10 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
           tickLine={false}
           tick={{ fill: "var(--chart-axis)", fontSize: 12 }}
           tickFormatter={(v) => formatCompactCurrency(Number(v))}
-          width={56}
+          // Wide enough for the longest label this formatter produces
+          // ("R$ 10 mil"). At 56 the leading "R" was being clipped off every
+          // tick, which read as a rendering fault rather than an axis.
+          width={72}
         />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--muted)" }} />
         <Legend

@@ -1,4 +1,5 @@
-import { ArrowUp, ArrowDown } from "lucide-react";
+import Link from "next/link";
+import { ArrowUp, ArrowDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function StatCard({
@@ -7,6 +8,8 @@ export function StatCard({
   valueClassName,
   delta,
   hint,
+  hintClassName,
+  href,
 }: {
   label: string;
   value: string;
@@ -15,16 +18,29 @@ export function StatCard({
   // Secondary line under the number — used for the previsto figure next to
   // the realizado one, so both are visible without a second card each.
   hint?: string;
+  // For a hint that is itself the warning ("R$ 400 atrasado"), which should
+  // not be muted grey like an ordinary footnote.
+  hintClassName?: string;
+  // Makes the whole card a link. Used where the number is a prompt to go do
+  // something about it, rather than just a figure to read.
+  href?: string;
 }) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
+  const body = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        {href ? (
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        ) : null}
+      </div>
       <div className="mt-1.5 flex items-end justify-between gap-2">
-        <p className={cn("text-2xl font-semibold text-foreground", valueClassName)}>{value}</p>
+        <p className={cn("text-2xl font-semibold tabular-nums text-foreground", valueClassName)}>
+          {value}
+        </p>
         {delta ? (
           <span
             className={cn(
-              "mb-1 flex items-center gap-0.5 text-xs font-medium",
+              "mb-1 flex items-center gap-0.5 text-xs font-medium tabular-nums",
               delta.tone === "success" ? "text-success" : "text-danger"
             )}
           >
@@ -37,7 +53,21 @@ export function StatCard({
           </span>
         ) : null}
       </div>
-      {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
-    </div>
+      {hint ? (
+        <p className={cn("mt-1 text-xs text-muted-foreground", hintClassName)}>{hint}</p>
+      ) : null}
+    </>
   );
+
+  const base = "rounded-xl border border-border bg-card p-4 shadow-card";
+
+  if (href) {
+    return (
+      <Link href={href} className={cn(base, "group block transition-colors hover:border-primary")}>
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className={base}>{body}</div>;
 }

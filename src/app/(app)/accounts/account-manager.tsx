@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { AccountForm } from "./account-form";
 import { InvoiceImportButton } from "./invoice-import-button";
 import { PayInvoiceButton } from "./pay-invoice-button";
+import { ScheduleInvoiceButton } from "./schedule-invoice-button";
 import { toggleArchiveAccount, deleteAccount } from "@/app/actions/accounts";
 import { getAccountTypeMeta } from "@/lib/account-types";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -102,6 +103,7 @@ function AccountCard({
       {isCard && !isSynced ? (
         <div className="space-y-1.5">
           <PayInvoiceButton account={account} sourceAccounts={sourceAccounts} />
+          <ScheduleInvoiceButton account={account} sourceAccounts={sourceAccounts} />
           {aiEnabled ? <InvoiceImportButton accountId={account.id} /> : null}
         </div>
       ) : null}

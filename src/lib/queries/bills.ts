@@ -2,12 +2,13 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { signedAmount } from "@/lib/utils";
 import { startOfTodayUTC } from "@/lib/transaction-status";
+import { SOON_DAYS, urgencyOf } from "@/lib/due-dates";
 
 const UPCOMING_DAYS = 30;
 
 // Everything scheduled and not yet realized, split the way every "contas a
 // pagar" screen splits it: what's late, what's coming up, and what the
-// balance will look like once the rest of this month clears.
+// balance will look like once the month clears.
 //
 // Reads every pending transaction, whether it came from a recurring
 // schedule or was entered on its own as "ainda não paguei" — they are the
@@ -25,7 +26,11 @@ export async function getBillsSummary(userId: string) {
   const [pending, accounts] = await Promise.all([
     prisma.transaction.findMany({
       where: { userId, balanceApplied: false, date: { lt: horizon } },
-      include: { account: true, category: true, financing: { select: { isRecurring: true } } },
+      include: {
+        account: true,
+        category: true,
+        financing: { select: { isRecurring: true } },
+      },
       orderBy: { date: "asc" },
     }),
     prisma.account.findMany({ where: { userId, archived: false }, select: { balance: true } }),
@@ -33,6 +38,15 @@ export async function getBillsSummary(userId: string) {
 
   const overdue = pending.filter((t) => t.date < today);
   const upcoming = pending.filter((t) => t.date >= today);
+  // What needs attention *today* — due today or inside the next few days.
+  // This is what the dashboard's alert banner counts, and keeping it here
+  // rather than in the component is what stops the banner and the list from
+  // disagreeing about which bills are pressing.
+  const dueSoon = upcoming.filter((t) => {
+    const urgency = urgencyOf(t.date, today);
+    return urgency === "today" || urgency === "soon";
+  });
+  const dueToday = upcoming.filter((t) => urgencyOf(t.date, today) === "today");
 
   const signedSum = (rows: typeof pending) =>
     rows.reduce((acc, t) => acc + signedAmount(t.amount, t.type), 0);
@@ -51,12 +65,26 @@ export async function getBillsSummary(userId: string) {
   return {
     overdue,
     upcoming,
+    dueSoon,
     overdueTotal: totalOf(overdue, "expense"),
+    // Deliberately split in three. The old single "toPayTotal" mixed
+    // overdue into a figure labelled "a pagar em 30 dias", so a bill from
+    // last month was being reported as something due in the next 30 days —
+    // the number was right for "what I owe", wrong for what it was called.
+    upcomingPayTotal: totalOf(upcoming, "expense"),
+    upcomingReceiveTotal: totalOf(upcoming, "income"),
+    // Everything still owed, late or not — what the user actually has to
+    // find the money for.
     toPayTotal: totalOf([...overdue, ...upcoming], "expense"),
     toReceiveTotal: totalOf([...overdue, ...upcoming], "income"),
+    overdueReceiveTotal: totalOf(overdue, "income"),
+    dueSoonTotal: totalOf(dueSoon, "expense"),
+    dueTodayCount: dueToday.length,
+    dueSoonCount: dueSoon.length,
     currentBalance,
     forecastBalance: currentBalance + restOfMonth,
     upcomingDays: UPCOMING_DAYS,
+    soonDays: SOON_DAYS,
   };
 }
 

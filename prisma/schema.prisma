@@ -97,6 +97,9 @@ model Account {
   pluggyItem   PluggyItem?   @relation(fields: [pluggyItemId], references: [id], onDelete: SetNull)
   transactions Transaction[]
   financings   Financing[]
+  // Payments of this card's invoices, which live on whichever account the
+  // money left. Only ever populated for type: "credit_card".
+  invoicePayments Transaction[] @relation("CardInvoicePayment")
 
   @@index([userId])
 }
@@ -154,6 +157,34 @@ model Transaction {
   // n8n, or any other automation) rather than the web UI.
   source         String  @default("app") // app, whatsapp, api, openfinance
 
+  // Who the money is owed by (on an income) or to (on an expense) — "João",
+  // "Cliente ACME". Deliberately free text and not a User relation: the
+  // person you need to chase for R$200 is almost never an app user, and
+  // making them sign up first would kill the feature. Null is the normal
+  // case (a supermarket purchase has no counterparty worth naming).
+  counterparty      String?
+  // The counterparty's WhatsApp, so "Cobrar" can open a chat with the
+  // message already written instead of making the user go find the contact.
+  // Normalized through lib/phone.ts like every other number in the app.
+  counterpartyPhone String?
+  // Last time the user actually sent a charge for this entry. Only a record
+  // of "I already asked" — it never changes the amount or the due date, and
+  // is what stops the same person being pestered twice in one afternoon.
+  chargedAt         DateTime?
+
+  // Set when this expense is the *payment of a credit card's invoice*,
+  // pointing at the card it settles. The row itself lives on the account the
+  // money leaves (the checking account), because that is where the money
+  // actually moves — a card's own invoice is not a purchase and must never
+  // be an expense on the card, which would inflate the very debt it pays.
+  //
+  // This link is what keeps scheduling a future invoice and pressing
+  // "marcar fatura como paga" from booking the same payment twice:
+  // payCardInvoice settles the matching scheduled row when it finds one
+  // instead of writing a second expense.
+  invoiceForAccountId String?
+  invoiceForAccount   Account? @relation("CardInvoicePayment", fields: [invoiceForAccountId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -165,9 +196,14 @@ model Transaction {
   @@unique([userId, pluggyTransactionId])
   @@unique([financingId, installmentNumber])
   @@index([userId, date])
+  // Serves the "a receber" screen, which reads one narrow slice — this
+  // user's unsettled rows — and would otherwise scan every transaction they
+  // have ever had to find the handful that are still open.
+  @@index([userId, balanceApplied, date])
   @@index([accountId])
   @@index([categoryId])
   @@index([financingId])
+  @@index([invoiceForAccountId])
 }
 
 // One repeating money plan: a financiamento/parcelamento (N installments

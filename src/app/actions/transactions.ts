@@ -12,6 +12,10 @@ function revalidateTransactionPages() {
   revalidatePath("/accounts");
   revalidatePath("/dashboard");
   revalidatePath("/budgets");
+  // Confirming or editing an income is exactly what removes it from (or
+  // adds it to) the a-receber list, so that page has to be invalidated by
+  // the same actions.
+  revalidatePath("/receivables");
 }
 
 export async function upsertTransaction(_state: FormState, formData: FormData): Promise<FormState> {
@@ -26,6 +30,8 @@ export async function upsertTransaction(_state: FormState, formData: FormData): 
     categoryId: formData.get("categoryId"),
     notes: formData.get("notes"),
     paid: formData.get("paid"),
+    counterparty: formData.get("counterparty"),
+    counterpartyPhone: formData.get("counterpartyPhone"),
   });
 
   if (!validatedFields.success) {
@@ -33,7 +39,15 @@ export async function upsertTransaction(_state: FormState, formData: FormData): 
   }
 
   const id = formData.get("id");
-  const { paid, ...data } = validatedFields.data;
+  const { paid, counterparty, counterpartyPhone, ...rest } = validatedFields.data;
+  // Written as explicit nulls rather than left undefined: clearing the "de
+  // quem" field has to actually clear it, and Prisma reads undefined as
+  // "leave this column alone".
+  const data = {
+    ...rest,
+    counterparty: counterparty ?? null,
+    counterpartyPhone: counterpartyPhone ?? null,
+  };
 
   const account = await prisma.account.findFirst({ where: { id: data.accountId, userId } });
   if (!account) return { errors: { accountId: ["Conta inválida."] } };
@@ -142,4 +156,71 @@ export async function confirmTransaction(formData: FormData) {
   ]);
 
   revalidateTransactionPages();
+}
+
+// The exact inverse of confirmTransaction: puts a row back to previsto and
+// takes its effect out of the balance. Marking something paid is a
+// one-click action sitting next to a delete button, so it needs a one-click
+// way back — before this, undoing a mis-click meant opening the edit form
+// and knowing that the paid/pending switch was what to change.
+//
+// balanceApplied: true in the filter makes it idempotent under a double
+// submit, mirroring the guard on the way in.
+//
+// A financing installment is excluded for the same reason a plain edit
+// can't flip one: its state belongs to the schedule, and un-applying an
+// occurrence that reconcileDueInstallments considers due would just be
+// re-applied on the next request, silently undoing the undo.
+export async function unconfirmTransaction(formData: FormData) {
+  const { userId } = await verifySession();
+  const id = formData.get("id");
+  if (typeof id !== "string") return;
+
+  const existing = await prisma.transaction.findFirst({
+    where: { id, userId, balanceApplied: true, financingId: null },
+  });
+  if (!existing) return;
+
+  await prisma.$transaction([
+    prisma.transaction.update({ where: { id }, data: { balanceApplied: false } }),
+    prisma.account.update({
+      where: { id: existing.accountId },
+      data: { balance: { increment: -signedAmount(existing.amount, existing.type) } },
+    }),
+  ]);
+
+  revalidateTransactionPages();
+}
+
+// Records that the user sent a charge for this entry. Touches nothing about
+// the money — it exists so the list can say "cobrado hoje" and stop the
+// same person being messaged three times in an afternoon.
+export async function markAsCharged(formData: FormData) {
+  const { userId } = await verifySession();
+  const id = formData.get("id");
+  if (typeof id !== "string") return;
+
+  // updateMany, not update: it scopes the write to this user's own row, so
+  // an id from somewhere else matches nothing instead of throwing.
+  await prisma.transaction.updateMany({
+    where: { id, userId, balanceApplied: false },
+    data: { chargedAt: new Date() },
+  });
+
+  revalidatePath("/receivables");
+}
+
+// Same, for a whole person at once — the "cobrar tudo" button on a group
+// that owes several things.
+export async function markCounterpartyAsCharged(formData: FormData) {
+  const { userId } = await verifySession();
+  const ids = formData.getAll("ids").filter((v): v is string => typeof v === "string");
+  if (ids.length === 0) return;
+
+  await prisma.transaction.updateMany({
+    where: { id: { in: ids }, userId, balanceApplied: false },
+    data: { chargedAt: new Date() },
+  });
+
+  revalidatePath("/receivables");
 }

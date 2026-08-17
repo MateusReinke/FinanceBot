@@ -7,6 +7,7 @@ import {
   Tags,
   Users,
   CalendarClock,
+  HandCoins,
   Settings,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Dia a dia",
     items: [
       { href: "/transactions", label: "Lançamentos", icon: ArrowLeftRight },
+      { href: "/receivables", label: "A receber", icon: HandCoins },
       { href: "/accounts", label: "Contas", icon: Landmark },
     ],
   },

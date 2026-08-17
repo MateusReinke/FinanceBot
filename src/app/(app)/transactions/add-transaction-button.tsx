@@ -10,9 +10,11 @@ import { TransactionForm } from "./transaction-form";
 export function AddTransactionButton({
   accounts,
   categories,
+  counterparties = [],
 }: {
   accounts: Account[];
   categories: Category[];
+  counterparties?: { name: string; phone: string | null }[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -22,7 +24,12 @@ export function AddTransactionButton({
         <Plus className="h-4 w-4" /> Novo lançamento
       </Button>
       <Modal open={open} onClose={() => setOpen(false)} title="Novo lançamento">
-        <TransactionForm accounts={accounts} categories={categories} onSuccess={() => setOpen(false)} />
+        <TransactionForm
+          accounts={accounts}
+          categories={categories}
+          counterparties={counterparties}
+          onSuccess={() => setOpen(false)}
+        />
       </Modal>
     </>
   );

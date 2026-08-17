@@ -22,11 +22,18 @@ export function BalanceHero({
   const rest = accounts.length - visible.length;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    // The one gradient in the app, and it is deliberately faint: it marks
+    // this block as the top of the hierarchy without turning the number
+    // people came to read into decoration.
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-card">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-accent/8 blur-3xl"
+      />
+      <div className="relative flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Wallet2 className="h-4 w-4" /> Saldo total
+            <Wallet2 className="h-4 w-4 text-accent" /> Saldo total
           </p>
           <p
             className={cn(
@@ -63,7 +70,7 @@ export function BalanceHero({
       </div>
 
       {visible.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+        <div className="relative mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
           {visible.map((a) => (
             <Link
               key={a.id}

@@ -16,6 +16,7 @@ import { CategoryBarChart } from "@/components/charts/category-bar-chart";
 import { MonthSelector } from "@/components/ui/month-selector";
 import { UpcomingBills, UpcomingBillsEmpty } from "@/components/dashboard/upcoming-bills";
 import { BalanceHero } from "@/components/dashboard/balance-hero";
+import { DueAlerts } from "@/components/dashboard/due-alerts";
 
 export const metadata: Metadata = { title: "Painel — FinanceBot" };
 
@@ -76,13 +77,17 @@ export default async function DashboardPage({
         </div>
       ) : (
         <>
+          {/* Above the balance on purpose: an overdue bill is the one thing
+              the user needs to know before anything else on this page. */}
+          <DueAlerts bills={bills} />
+
           <BalanceHero
             totalBalance={data.totalBalance}
             forecastBalance={bills.forecastBalance}
             accounts={data.accountSummaries}
           />
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Entradas no mês"
               value={formatCurrency(data.income)}
@@ -122,6 +127,23 @@ export default async function DashboardPage({
                   ? `${formatCurrency(data.forecastNet)} previsto`
                   : undefined
               }
+            />
+            {/* Promoted to a card of its own: money other people owe you is
+                the easiest kind to lose track of, precisely because nothing
+                reminds you of it. */}
+            <StatCard
+              label="A receber"
+              value={formatCurrency(bills.toReceiveTotal)}
+              valueClassName={bills.toReceiveTotal > 0 ? "text-success" : undefined}
+              href="/receivables"
+              hint={
+                bills.overdueReceiveTotal > 0
+                  ? `${formatCurrency(bills.overdueReceiveTotal)} atrasado — cobrar`
+                  : bills.toReceiveTotal > 0
+                    ? "Ver quem deve"
+                    : "Ninguém te devendo"
+              }
+              hintClassName={bills.overdueReceiveTotal > 0 ? "text-danger" : undefined}
             />
           </div>
 

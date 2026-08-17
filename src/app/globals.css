@@ -1,23 +1,49 @@
 @import "tailwindcss";
 
+/* Design tokens.
+ *
+ * Every colour the app uses is named here by ROLE, never by hue, and the
+ * dark theme redefines the same names. That is what lets a component say
+ * `text-danger` once and be legible in both themes — the alternative,
+ * `dark:` variants sprinkled per component, is how the first cut ended up
+ * with three different reds for "atrasado".
+ *
+ * Two families exist on purpose:
+ *   - UI roles (background, card, primary, danger, ...) — chrome.
+ *   - Money roles (success/danger for in/out, urgency for how late a bill
+ *     is) — meaning. These never get reused for decoration, so a red on
+ *     this screen always means the same thing as a red on the next one.
+ */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #f6f7fb;
+  --foreground: #101423;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
+  --card-foreground: #101423;
+  --muted: #f0f2f8;
+  --muted-foreground: #5a6379;
+  --border: #e3e7f0;
   --primary: #4f46e5;
   --primary-hover: #4338ca;
   --primary-foreground: #ffffff;
-  --success: #10b981;
-  --success-bg: #ecfdf5;
-  --danger: #e11d48;
-  --danger-bg: #fff1f2;
-  --warning: #d97706;
-  --warning-bg: #fffbeb;
+  /* Secondary brand note, used for the balance hero and highlights so the
+   * app has a colour of its own that is not competing with the semantic
+   * green/red of money moving. */
+  --accent: #0d9488;
+  --accent-soft: #ecfdfa;
+  --success: #047857;
+  --success-bg: #e9fbf3;
+  --danger: #dc2626;
+  --danger-bg: #fef1f2;
+  --warning: #b45309;
+  --warning-bg: #fef8ec;
   --ring: #4f46e5;
+
+  /* Elevation. Kept as tokens because a card, a modal and a popover should
+   * differ by depth in a consistent way, and dark mode needs *less* shadow
+   * and more border rather than the same shadow on a dark ground. */
+  --shadow-card: 0 1px 2px rgb(16 20 35 / 0.04), 0 1px 3px rgb(16 20 35 / 0.06);
+  --shadow-raised: 0 2px 4px rgb(16 20 35 / 0.04), 0 8px 20px rgb(16 20 35 / 0.08);
+  --shadow-overlay: 0 12px 32px rgb(16 20 35 / 0.18);
 
   /* Validated income/expense pair for charts — see dataviz palette check. */
   --chart-income: #008300;
@@ -28,23 +54,29 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0f1a;
-    --foreground: #e2e8f0;
-    --card: #131826;
-    --card-foreground: #e2e8f0;
-    --muted: #1b2233;
-    --muted-foreground: #8b96ab;
-    --border: #232b3d;
+    --background: #0a0d16;
+    --foreground: #e5e9f2;
+    --card: #121725;
+    --card-foreground: #e5e9f2;
+    --muted: #1a2032;
+    --muted-foreground: #939fb6;
+    --border: #232b3f;
     --primary: #6366f1;
-    --primary-hover: #7c7ff2;
+    --primary-hover: #818cf8;
     --primary-foreground: #ffffff;
+    --accent: #2dd4bf;
+    --accent-soft: #0b2b28;
     --success: #34d399;
-    --success-bg: #0d2b21;
+    --success-bg: #08281e;
     --danger: #fb7185;
-    --danger-bg: #2c1116;
+    --danger-bg: #2b1017;
     --warning: #fbbf24;
-    --warning-bg: #2b2110;
-    --ring: #6366f1;
+    --warning-bg: #2a2010;
+    --ring: #818cf8;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-raised: 0 2px 6px rgb(0 0 0 / 0.35), 0 10px 24px rgb(0 0 0 / 0.3);
+    --shadow-overlay: 0 16px 40px rgb(0 0 0 / 0.55);
 
     --chart-income: #008300;
     --chart-expense: #e66767;
@@ -64,6 +96,8 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
   --color-success: var(--success);
   --color-success-bg: var(--success-bg);
   --color-danger: var(--danger);
@@ -72,6 +106,10 @@
   --color-warning-bg: var(--warning-bg);
   --color-ring: var(--ring);
   --font-sans: var(--font-sans-stack);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-overlay: var(--shadow-overlay);
 }
 
 :root {
@@ -87,6 +125,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans-stack);
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
@@ -100,8 +139,44 @@ textarea {
   font-family: inherit;
 }
 
+/* Money is read in columns and compared line to line, so every figure in
+ * the app uses lining tabular numerals — without this, a list of amounts
+ * fails to align on the decimal and reads as noise. Applied globally
+ * rather than per component because there is no place in this app where
+ * proportional digits are the better choice. */
+.tabular-nums,
+[class*="tabular"] {
+  font-variant-numeric: tabular-nums;
+}
+
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
+  }
+
+  /* The one attention-getting motion in the app, for a bill that is
+   * genuinely late. Slow and low-contrast on purpose: an alert that
+   * strobes gets muted by the reader within a day. */
+  .pulse-soft {
+    animation: pulse-soft 2.6s ease-in-out infinite;
+  }
+
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+
+  /* Respects the OS setting rather than assuming everyone can tolerate
+   * movement — the alert still reads without it, since colour and copy
+   * carry the meaning. */
+  @media (prefers-reduced-motion: reduce) {
+    .pulse-soft {
+      animation: none;
+    }
   }
 }

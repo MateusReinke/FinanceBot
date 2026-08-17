@@ -92,24 +92,52 @@ export async function getDashboardData(userId: string, month: number, year: numb
     const d = new Date(Date.UTC(year, month - 1 - offset, 1));
     return { month: d.getUTCMonth() + 1, year: d.getUTCFullYear() };
   });
-  const trend = await Promise.all(
-    trendMonths.map(async ({ month: m, year: y }) => {
-      const range = monthRangeUTC(y, m);
-      const [inc, exp] = await Promise.all([
-        // Realized-only, like the cards above, so the chart and the numbers
-        // over it always tell the same story.
-        prisma.transaction.aggregate({
-          where: { userId, type: "income", date: range, balanceApplied: true },
-          _sum: { amount: true },
-        }),
-        prisma.transaction.aggregate({
-          where: { userId, type: "expense", date: range, balanceApplied: true },
-          _sum: { amount: true },
-        }),
-      ]);
-      return { month: m, year: y, income: inc._sum.amount ?? 0, expense: exp._sum.amount ?? 0 };
-    })
+
+  // One read spanning the whole window, bucketed in memory — six months of
+  // chart used to cost twelve aggregates (an income and an expense query per
+  // month), all of them hitting the same index over the same rows. The
+  // grouping is by (year, month) via a raw query because Prisma's groupBy
+  // cannot group on a date truncation.
+  //
+  // Realized-only, like the cards above, so the chart and the numbers over
+  // it always tell the same story.
+  //
+  // EXTRACT is safe to bucket on here: Transaction.date is TIMESTAMP(3),
+  // i.e. timezone-naive, and every date in this app is written at UTC
+  // midnight — so EXTRACT reads back the same calendar month the rest of the
+  // app computed, with no session-timezone conversion in between.
+  const trendStart = monthRangeUTC(trendMonths[0].year, trendMonths[0].month).gte;
+  const trendEnd = monthRangeUTC(
+    trendMonths[trendMonths.length - 1].year,
+    trendMonths[trendMonths.length - 1].month
+  ).lt;
+
+  const trendRows = await prisma.$queryRaw<
+    { year: number; month: number; type: string; total: number }[]
+  >`
+    SELECT
+      EXTRACT(YEAR FROM "date")::int  AS year,
+      EXTRACT(MONTH FROM "date")::int AS month,
+      "type",
+      COALESCE(SUM("amount"), 0)::float8 AS total
+    FROM "Transaction"
+    WHERE "userId" = ${userId}
+      AND "balanceApplied" = true
+      AND "type" IN ('income', 'expense')
+      AND "date" >= ${trendStart}
+      AND "date" <  ${trendEnd}
+    GROUP BY year, month, "type"
+  `;
+
+  const trendTotals = new Map(
+    trendRows.map((r) => [`${r.year}-${r.month}-${r.type}`, Number(r.total)])
   );
+  const trend = trendMonths.map(({ month: m, year: y }) => ({
+    month: m,
+    year: y,
+    income: trendTotals.get(`${y}-${m}-income`) ?? 0,
+    expense: trendTotals.get(`${y}-${m}-expense`) ?? 0,
+  }));
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
   const income = incomeAgg._sum.amount ?? 0;

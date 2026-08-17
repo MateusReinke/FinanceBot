@@ -12,12 +12,16 @@ export function AppShell({
   email,
   role,
   aiEnabled,
+  badges,
   children,
 }: {
   name: string;
   email: string;
   role: string;
   aiEnabled: boolean;
+  // Overdue counts per nav href, so "3 contas atrasadas" is visible from
+  // every screen rather than only on the dashboard.
+  badges?: Record<string, number>;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -25,12 +29,14 @@ export function AppShell({
   return (
     <div className="flex min-h-screen w-full">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card p-4 lg:flex">
-        <Link href="/dashboard" className="flex items-center gap-2 px-2 py-3 text-lg font-semibold text-foreground">
-          <Wallet2 className="h-6 w-6 text-primary" />
+        <Link href="/dashboard" className="flex items-center gap-2.5 px-2 py-3 text-lg font-semibold text-foreground">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-card">
+            <Wallet2 className="h-5 w-5" />
+          </span>
           FinanceBot
         </Link>
         <div className="mt-4 flex flex-1 flex-col">
-          <NavLinks />
+          <NavLinks badges={badges} />
         </div>
       </aside>
 
@@ -40,10 +46,12 @@ export function AppShell({
             className="absolute inset-0 bg-black/40"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-card p-4 shadow-xl">
+          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-card p-4 shadow-overlay">
             <div className="flex items-center justify-between px-2 py-3">
-              <span className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                <Wallet2 className="h-6 w-6 text-primary" />
+              <span className="flex items-center gap-2.5 text-lg font-semibold text-foreground">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <Wallet2 className="h-5 w-5" />
+                </span>
                 FinanceBot
               </span>
               <button
@@ -55,7 +63,7 @@ export function AppShell({
               </button>
             </div>
             <div className="mt-4 flex flex-1 flex-col">
-              <NavLinks onNavigate={() => setMobileOpen(false)} />
+              <NavLinks onNavigate={() => setMobileOpen(false)} badges={badges} />
             </div>
           </aside>
         </div>

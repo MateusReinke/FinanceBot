@@ -6,11 +6,14 @@ type Size = "sm" | "md" | "lg";
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm",
+    "bg-primary text-primary-foreground hover:bg-primary-hover shadow-card",
   secondary: "bg-muted text-foreground hover:opacity-80",
   outline: "border border-border text-foreground hover:bg-muted",
   ghost: "text-foreground hover:bg-muted",
-  danger: "bg-danger text-white hover:opacity-90 shadow-sm",
+  // text-background, not white: --danger is a deep red in the light theme
+  // and a light rose in the dark one, so white text on it is unreadable in
+  // dark mode. --background inverts alongside it and stays legible in both.
+  danger: "bg-danger text-background hover:opacity-90 shadow-card",
 };
 
 const sizeClasses: Record<Size, string> = {
