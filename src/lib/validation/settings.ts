@@ -10,7 +10,10 @@ export const UpdateProfileSchema = z.object({
 
 export const ChangePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, { error: "Informe sua senha atual." }),
+    // Optional at the schema level because an account that signs in with
+    // Google has no current password to give. changePassword still demands
+    // it whenever one is actually set.
+    currentPassword: z.string().optional().default(""),
     newPassword: z
       .string()
       .min(8, { error: "A nova senha deve ter pelo menos 8 caracteres." })

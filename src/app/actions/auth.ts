@@ -62,7 +62,17 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
   const { email, password } = validatedFields.data;
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  // An account created through "Entrar com Google" has no password at all.
+  // Saying so is better than "senha incorreta", which would send someone off
+  // to reset a password that never existed — and it leaks nothing an
+  // attacker could not learn by pressing the Google button themselves.
+  if (user && !user.passwordHash) {
+    return {
+      message:
+        "Esta conta entra com o Google. Use o botão “Entrar com Google” — ou defina uma senha em Configurações depois de entrar.",
+    };
+  }
+  if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
     return { message: "E-mail ou senha incorretos." };
   }
 

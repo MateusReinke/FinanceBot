@@ -19,6 +19,37 @@ export function samePhone(a: string | null | undefined, b: string | null | undef
   return normalizePhone(a) === normalizePhone(b);
 }
 
+// Google Contacts stores numbers exactly as people typed them into their
+// phone, which in Brazil overwhelmingly means the local form with a DDD and
+// no country code ("(11) 98888-7777"). Prefixing a bare "+" to those digits
+// produces "+11988887777" — a number that reads as country code +1 and
+// dials nowhere, which silently breaks every WhatsApp link built from it.
+//
+// So a number is only trusted as international when it says so: an explicit
+// leading "+", or enough digits that a country code must already be in
+// there. A 10-11 digit number is a local one and gets the default country.
+const DEFAULT_COUNTRY_CODE = "55";
+
+export function toE164FromLocal(value: string, countryCode = DEFAULT_COUNTRY_CODE) {
+  const trimmed = value.trim();
+  const digits = normalizePhone(trimmed);
+  if (!digits) return null;
+
+  // Already international: either written with a +, or long enough that the
+  // country code cannot be missing.
+  if (trimmed.startsWith("+") || digits.length >= 12) {
+    return digits.length >= 10 && digits.length <= 15 ? `+${digits}` : null;
+  }
+
+  // DDD + 8 or 9 digits — the local form.
+  if (digits.length === 10 || digits.length === 11) return `+${countryCode}${digits}`;
+
+  // Anything shorter is an extension or a fragment, and anything that lands
+  // here longer than 15 is not a phone number. Both are dropped rather than
+  // stored as something that looks dialable and is not.
+  return null;
+}
+
 // 10-15 digits covers every country code; Brazilian mobiles are 13 with
 // the +55 and the 9. Deliberately not stricter than that — rejecting a
 // valid foreign number at signup would be worse than accepting a typo the

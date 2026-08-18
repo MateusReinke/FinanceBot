@@ -11,7 +11,9 @@ import {
 export async function createUserWithDefaultCategories(data: {
   name: string;
   email: string;
-  passwordHash: string;
+  // Null for an account created by signing in with Google, which has no
+  // password until the user chooses to set one in Configurações.
+  passwordHash: string | null;
   phoneNumber?: string | null;
   role?: string;
 }) {
@@ -20,7 +22,7 @@ export async function createUserWithDefaultCategories(data: {
       data: {
         name: data.name,
         email: data.email,
-        passwordHash: data.passwordHash,
+        passwordHash: data.passwordHash ?? null,
         phoneNumber: data.phoneNumber ?? null,
         role: data.role ?? "user",
       },

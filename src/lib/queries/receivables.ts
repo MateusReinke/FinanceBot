@@ -134,16 +134,30 @@ export async function getReceivables(userId: string) {
 
 export type ReceivablesData = Awaited<ReturnType<typeof getReceivables>>;
 
-// Names already used, for the "de quem" autocomplete in the entry form. Both
-// halves of the app read the same list, so typing "João" a second time
-// attaches to the same person instead of creating a near-duplicate group.
+// Who the "de quem" field offers, from two sources merged into one list:
+// people already used on a lançamento, and contacts imported from Google.
+//
+// People you have actually tracked come first and win on conflicts — a
+// number you typed here for this purpose beats whatever is in the address
+// book — while the imported contacts turn the field from an empty text box
+// into a picker of real people, which is the point of importing them.
 export async function getCounterpartySuggestions(userId: string) {
-  const rows = await prisma.transaction.findMany({
-    where: { userId, counterparty: { not: null } },
-    select: { counterparty: true, counterpartyPhone: true },
-    orderBy: { date: "desc" },
-    take: 200,
-  });
+  const [rows, contacts] = await Promise.all([
+    prisma.transaction.findMany({
+      where: { userId, counterparty: { not: null } },
+      select: { counterparty: true, counterpartyPhone: true },
+      orderBy: { date: "desc" },
+      take: 200,
+    }),
+    prisma.contact.findMany({
+      where: { userId },
+      select: { name: true, phone: true },
+      orderBy: { name: "asc" },
+      // A datalist the browser filters as you type stays usable at this
+      // size; past it, the payload costs more than the suggestions help.
+      take: 1000,
+    }),
+  ]);
 
   const seen = new Map<string, { name: string; phone: string | null }>();
   for (const row of rows) {
@@ -163,5 +177,17 @@ export async function getCounterpartySuggestions(userId: string) {
       existing.phone ??= row.counterpartyPhone;
     }
   }
+  // Added after the used-counterparty loop, so an imported contact never
+  // overwrites the spelling or the number already associated with someone
+  // you have lent money to before.
+  for (const contact of contacts) {
+    const name = contact.name.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    const existing = seen.get(key);
+    if (!existing) seen.set(key, { name, phone: contact.phone });
+    else existing.phone ??= contact.phone;
+  }
+
   return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 }

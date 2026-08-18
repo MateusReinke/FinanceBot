@@ -9,6 +9,8 @@ import { ProfileForm } from "./profile-form";
 import { PasswordForm } from "./password-form";
 import { DangerZone } from "./danger-zone";
 import { WhatsAppPanel } from "./whatsapp-panel";
+import { GooglePanel } from "./google-panel";
+import { isGoogleConfigured, CONTACTS_SCOPE } from "@/lib/google";
 import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Configurações — FinanceBot" };
@@ -17,14 +19,22 @@ export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [tokens, profile, headerList] = await Promise.all([
+  const googleEnabled = isGoogleConfigured();
+  const [tokens, profile, headerList, googleAccount, contactCount] = await Promise.all([
     prisma.apiToken.findMany({
       where: { userId: user.id, revokedAt: null },
       select: { id: true, name: true, prefix: true, lastUsedAt: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.user.findUnique({ where: { id: user.id }, select: { phoneNumber: true } }),
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: { phoneNumber: true, passwordHash: true },
+    }),
     headers(),
+    googleEnabled
+      ? prisma.googleAccount.findUnique({ where: { userId: user.id } })
+      : Promise.resolve(null),
+    googleEnabled ? prisma.contact.count({ where: { userId: user.id } }) : Promise.resolve(0),
   ]);
   // Built from the request rather than an env var so the snippet shows the
   // URL this deployment is actually reachable at.
@@ -47,12 +57,27 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Senha</CardTitle>
+          <CardTitle>{profile?.passwordHash ? "Senha" : "Definir uma senha"}</CardTitle>
         </CardHeader>
         <CardContent>
-          <PasswordForm />
+          {/* An account created through Google has no password yet, so the
+              form asks for one instead of asking to confirm a password that
+              was never set. */}
+          <PasswordForm hasPassword={Boolean(profile?.passwordHash)} />
         </CardContent>
       </Card>
+
+      {googleEnabled ? (
+        <GooglePanel
+          connected={Boolean(googleAccount)}
+          email={googleAccount?.email ?? null}
+          hasContactsScope={Boolean(
+            googleAccount?.grantedScopes.split(" ").includes(CONTACTS_SCOPE)
+          )}
+          contactCount={contactCount}
+          lastSyncAt={googleAccount?.lastContactsSyncAt?.toISOString() ?? null}
+        />
+      ) : null}
 
       <Card>
         <CardHeader>

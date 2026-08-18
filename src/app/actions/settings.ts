@@ -36,9 +36,17 @@ export async function changePassword(_state: FormState, formData: FormData): Pro
   }
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-  const isValid = await verifyPassword(validatedFields.data.currentPassword, user.passwordHash);
-  if (!isValid) {
-    return { errors: { currentPassword: ["Senha atual incorreta."] } };
+  // A Google-only account is *setting* a first password rather than changing
+  // one, so there is no current password to prove. The session already
+  // proves who they are, which is the same guarantee the check provides.
+  if (user.passwordHash) {
+    if (!validatedFields.data.currentPassword) {
+      return { errors: { currentPassword: ["Informe sua senha atual."] } };
+    }
+    const isValid = await verifyPassword(validatedFields.data.currentPassword, user.passwordHash);
+    if (!isValid) {
+      return { errors: { currentPassword: ["Senha atual incorreta."] } };
+    }
   }
 
   const passwordHash = await hashPassword(validatedFields.data.newPassword);

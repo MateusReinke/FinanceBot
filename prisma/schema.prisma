@@ -11,7 +11,11 @@ model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
-  passwordHash String
+  // Null for an account that only ever signs in with Google. Password login
+  // checks for this and says so, rather than failing as "senha incorreta"
+  // for a password that was never set. Setting one in Configurações is what
+  // gives such an account a second way in.
+  passwordHash String?
   // Plain string ("user" | "admin"), consistent with every other enum-like
   // field in this schema. The first admin is designated via the ADMIN_EMAIL
   // env var (see src/lib/admin.ts) — never trusted from the JWT session,
@@ -34,6 +38,8 @@ model User {
 
   apiTokens        ApiToken[]
   inboundMessages  InboundMessage[]
+  googleAccount    GoogleAccount?
+  contacts         Contact[]
 
   createdEvents       Event[]             @relation("EventCreator")
   eventParticipations EventParticipant[]
@@ -503,4 +509,69 @@ model EventExpenseSplit {
 
   @@unique([eventExpenseId, userId])
   @@index([userId])
+}
+
+
+// One Google account linked to one FinanceBot user — the "Entrar com Google"
+// side, and the credentials the contacts import runs on.
+//
+// A separate model rather than columns on User for the same reason
+// PluggyItem is separate: it holds third-party tokens with their own
+// lifecycle, and deleting the link must not touch the user's own data.
+model GoogleAccount {
+  id     String @id @default(cuid())
+  userId String @unique
+  // Google's stable subject claim ("sub"). The join key, never the email:
+  // an address can be reassigned within a Workspace domain, the sub cannot.
+  googleId String @unique
+  email    String
+  // Whatever picture/name Google returned, kept only to show which account
+  // is connected in Configurações.
+  pictureUrl String?
+
+  // Tokens for the People API. accessToken is short-lived and refreshed on
+  // demand; refreshToken is only issued when the consent screen is forced
+  // (access_type=offline + prompt=consent), so it is nullable and its
+  // absence simply means the user has to reconnect to import again.
+  accessToken     String?
+  refreshToken    String?
+  accessExpiresAt DateTime?
+  // Space-separated scopes actually granted. Google lets the user untick
+  // individual scopes on the consent screen, so what was asked for and what
+  // was granted are different questions — the UI reads this one.
+  grantedScopes String @default("")
+
+  lastContactsSyncAt DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A person imported from the user's Google Contacts, used to fill in "de
+// quem" on a lançamento without retyping a name and number.
+//
+// Deliberately a thin copy — name and phone only, never emails, addresses,
+// birthdays or photos. This is somebody else's personal data sitting in a
+// finance app, so the app holds the least it can get away with, only after
+// an explicit import, and drops all of it when the user disconnects Google.
+model Contact {
+  id     String @id @default(cuid())
+  userId String
+  name   String
+  // E.164, normalized through lib/phone.ts like every other number here.
+  // Null for a contact saved without a number, which is still worth having:
+  // the name alone is enough to group what someone owes you.
+  phone  String?
+  // Google's resourceName ("people/c123..."), the dedupe key across
+  // re-imports so editing a contact in Google updates the row instead of
+  // adding a second one. Null for a contact the user typed by hand.
+  googleResourceName String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, googleResourceName])
+  @@index([userId, name])
 }

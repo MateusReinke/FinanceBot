@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
 import { LoginForm } from "./login-form";
+import { GoogleButton, AuthDivider, GoogleError } from "@/components/auth/google-button";
+import { isGoogleConfigured } from "@/lib/google";
 
 export const metadata: Metadata = { title: "Entrar — FinanceBot" };
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
+  // Same pattern as Pluggy and the AI features: unconfigured means the
+  // button is simply not there, rather than there and broken.
+  const googleEnabled = isGoogleConfigured();
 
   return (
     <div className="space-y-6">
@@ -18,6 +23,16 @@ export default async function LoginPage({
           Entre para continuar controlando suas finanças.
         </p>
       </div>
+
+      <GoogleError code={error} />
+
+      {googleEnabled ? (
+        <>
+          <GoogleButton next={next} />
+          <AuthDivider />
+        </>
+      ) : null}
+
       <LoginForm next={next} />
     </div>
   );

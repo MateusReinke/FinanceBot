@@ -103,6 +103,20 @@ para importar automaticamente contas e transações do seu banco.
   número é lembrado e preenchido sozinho na próxima vez que a mesma pessoa
   aparecer. Nada disso é um cadastro paralelo — é o mesmo lançamento previsto
   que já conta no saldo previsto do mês
+- **Entrar com Google + importar contatos**: com `GOOGLE_CLIENT_ID` e
+  `GOOGLE_CLIENT_SECRET` configurados, a tela de login ganha **Entrar com
+  Google** (a primeira entrada já cria a conta) e Configurações ganha um
+  painel para **importar seus contatos do Google**. Os contatos alimentam o
+  campo **de quem** dos lançamentos: você escolhe a pessoa em vez de digitar,
+  e o WhatsApp dela vai junto — que é o número que o botão **Cobrar** usa.
+  Só nome e telefone são guardados (nunca e-mail, endereço ou foto), a
+  importação só acontece quando você clica, e desconectar o Google apaga
+  todos os contatos importados. Uma conta criada pelo Google não tem senha:
+  dá para definir uma em Configurações e passar a entrar dos dois jeitos.
+  ⚠️ O escopo de contatos é **restrito** no Google — enquanto o app não
+  passar pela verificação deles, só contas cadastradas como *usuários de
+  teste* conseguem autorizar a importação (o login em si funciona normal).
+  Veja `.env.example` para o passo a passo no Google Cloud
 - **Faturas futuras de cartão**: no cartão, **Programar faturas futuras** lança
   as próximas faturas (1, 2, 3, 6 ou 12) como previstas, usando o dia de
   vencimento do cartão, com prévia das datas antes de confirmar. Elas entram em
@@ -545,6 +559,8 @@ src/
     due-dates.ts                 # "vence hoje", "venceu há 3 dias" — quão urgente ele é
     card-invoices.ts              # projeção das próximas faturas de um cartão (puro)
     charge.ts                      # mensagem de cobrança + link do WhatsApp (puro)
+    google.ts                       # OAuth do Google + People API (contatos)
+    phone.ts                         # normalização de telefone, incl. número local -> E.164
     queries/receivables.ts          # "quem me deve", agrupado por pessoa
     user-provisioning.ts             # criação de usuário + categorias padrão (signup e admin)
 prisma/
@@ -552,5 +568,7 @@ prisma/
                            # PluggyItem, Event, EventParticipant, EventInvite,
                            # EventExpense, EventExpenseSplit, EventReceipt, Financing)
                            # Transaction carrega counterparty/counterpartyPhone
-                           # (quem deve) e invoiceForAccountId (fatura de qual cartão)
+                           # (quem deve), invoiceForAccountId (fatura de qual
+                           # cartão) e unsettledAt (desfazer um "paguei")
+                           # GoogleAccount = vínculo OAuth; Contact = agenda importada
 ```
