@@ -4,7 +4,7 @@ import { Landmark, ArrowLeftRight, BarChart3 } from "lucide-react";
 import { verifySession } from "@/lib/dal";
 import { getDashboardData } from "@/lib/queries/dashboard";
 import { getBillsSummary } from "@/lib/queries/bills";
-import { formatCurrency, formatDate, getCurrentMonthYear, cn } from "@/lib/utils";
+import { formatCurrency, formatDate, formatMonthYear, getCurrentMonthYear, cn } from "@/lib/utils";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -14,6 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { CategoryBarChart } from "@/components/charts/category-bar-chart";
 import { MonthSelector } from "@/components/ui/month-selector";
+import { Alert } from "@/components/ui/alert";
 import { UpcomingBills, UpcomingBillsEmpty } from "@/components/dashboard/upcoming-bills";
 import { BalanceHero } from "@/components/dashboard/balance-hero";
 import { DueAlerts } from "@/components/dashboard/due-alerts";
@@ -52,6 +53,17 @@ export default async function DashboardPage({
     getDashboardData(userId, month, year),
     getBillsSummary(userId),
   ]);
+  // Half of this page is month-scoped (the stat cards, the charts, the
+  // budgets) and half is inherently about today (the balance in your
+  // accounts, what is overdue, what is coming due). Nothing said which was
+  // which, so picking an older month left the biggest blocks on screen
+  // unchanged and the month selector read as broken.
+  //
+  // The fix is to stop mixing the two on the same screen: on another month
+  // this becomes a report about that month, and the today-only blocks step
+  // aside rather than quietly showing today's numbers under a July heading.
+  const isCurrentMonth = month === current.month && year === current.year;
+  const monthLabel = formatMonthYear(month, year);
   const hasBills = bills.overdue.length > 0 || bills.upcoming.length > 0;
   const previous = data.trend[data.trend.length - 2];
   const incomeDelta = previous ? percentChange(data.income, previous.income) : undefined;
@@ -61,9 +73,24 @@ export default async function DashboardPage({
     <div className="space-y-6">
       <PageHeader
         title="Painel"
-        description="Realizado é o que já entrou ou saiu de verdade; previsto inclui o que ainda está agendado para o mês."
+        description={
+          isCurrentMonth
+            ? "Realizado é o que já entrou ou saiu de verdade; previsto inclui o que ainda está agendado para o mês."
+            : `Resumo de ${monthLabel.toLowerCase()}. Saldo e vencimentos são sempre de hoje, então ficam de fora deste mês.`
+        }
         actions={<MonthSelector month={month} year={year} basePath="/dashboard" />}
       />
+
+      {isCurrentMonth ? null : (
+        <Alert
+          tone="info"
+          title={`Você está vendo ${monthLabel}`}
+          action={{ href: "/dashboard", label: `Voltar para ${formatMonthYear(current.month, current.year)}` }}
+        >
+          Os números abaixo são desse mês. Saldo das contas, próximos vencimentos e cobranças
+          continuam valendo para hoje, por isso não aparecem aqui.
+        </Alert>
+      )}
 
       {data.accountCount === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
@@ -78,18 +105,23 @@ export default async function DashboardPage({
       ) : (
         <>
           {/* Above the balance on purpose: an overdue bill is the one thing
-              the user needs to know before anything else on this page. */}
-          <DueAlerts bills={bills} />
-
-          <BalanceHero
-            totalBalance={data.totalBalance}
-            forecastBalance={bills.forecastBalance}
-            accounts={data.accountSummaries}
-          />
+              the user needs to know before anything else on this page. Both
+              this and the hero are about today, so they are shown only while
+              today is what you are looking at. */}
+          {isCurrentMonth ? (
+            <>
+              <DueAlerts bills={bills} />
+              <BalanceHero
+                totalBalance={data.totalBalance}
+                forecastBalance={bills.forecastBalance}
+                accounts={data.accountSummaries}
+              />
+            </>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              label="Entradas no mês"
+              label={isCurrentMonth ? "Entradas no mês" : `Entradas em ${monthLabel.split(" de ")[0].toLowerCase()}`}
               value={formatCurrency(data.income)}
               hint={
                 data.scheduledIncome > 0
@@ -104,7 +136,7 @@ export default async function DashboardPage({
               }
             />
             <StatCard
-              label="Saídas no mês"
+              label={isCurrentMonth ? "Saídas no mês" : `Saídas em ${monthLabel.split(" de ")[0].toLowerCase()}`}
               value={formatCurrency(data.expense)}
               valueClassName="text-danger"
               hint={
@@ -119,7 +151,7 @@ export default async function DashboardPage({
               }
             />
             <StatCard
-              label="Sobrou no mês"
+              label={isCurrentMonth ? "Sobrou no mês" : `Sobrou em ${monthLabel.split(" de ")[0].toLowerCase()}`}
               value={formatCurrency(data.net)}
               valueClassName={data.net >= 0 ? "text-success" : "text-danger"}
               hint={
@@ -130,7 +162,9 @@ export default async function DashboardPage({
             />
             {/* Promoted to a card of its own: money other people owe you is
                 the easiest kind to lose track of, precisely because nothing
-                reminds you of it. */}
+                reminds you of it. Today-scoped like the hero, so it sits out
+                on other months. */}
+            {isCurrentMonth ? (
             <StatCard
               label="A receber"
               value={formatCurrency(bills.toReceiveTotal)}
@@ -145,9 +179,10 @@ export default async function DashboardPage({
               }
               hintClassName={bills.overdueReceiveTotal > 0 ? "text-danger" : undefined}
             />
+            ) : null}
           </div>
 
-          {hasBills ? <UpcomingBills bills={bills} /> : <UpcomingBillsEmpty />}
+          {isCurrentMonth ? (hasBills ? <UpcomingBills bills={bills} /> : <UpcomingBillsEmpty />) : null}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <Card className="lg:col-span-3">

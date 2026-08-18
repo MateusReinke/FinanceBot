@@ -76,6 +76,12 @@ export async function reconcileDueInstallments(userId: string) {
       balanceApplied: false,
       date: { lte: new Date() },
       financing: { autoSettle: true },
+      // Skips anything the user explicitly un-marked as paid. Without this,
+      // pressing Desfazer on a due installment of an automatic entry would
+      // be reverted here on the next request — the undo would appear to do
+      // nothing at all. The override lifts as soon as the row is confirmed
+      // again, which is what clears unsettledAt.
+      unsettledAt: null,
     },
     select: { id: true, accountId: true, amount: true, type: true },
   });

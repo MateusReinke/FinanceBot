@@ -172,6 +172,15 @@ model Transaction {
   // is what stops the same person being pestered twice in one afternoon.
   chargedAt         DateTime?
 
+  // Set when the user explicitly said "this has NOT been paid after all",
+  // by pressing Desfazer on a row they had confirmed. It exists for one
+  // reason: a recurring entry set to debit automatically is re-applied by
+  // reconcileDueInstallments the moment it is due, so without a marker
+  // saying the user overrode that, undoing a past-due installment would be
+  // silently redone on the very next page load. Cleared whenever the row is
+  // confirmed again.
+  unsettledAt         DateTime?
+
   // Set when this expense is the *payment of a credit card's invoice*,
   // pointing at the card it settles. The row itself lives on the account the
   // money leaves (the checking account), because that is where the money

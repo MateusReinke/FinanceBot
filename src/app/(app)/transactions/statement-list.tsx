@@ -152,11 +152,16 @@ export function StatementList({
                           behind a hover, which put it out of reach entirely on
                           a phone. Edit and delete stay quiet until hovered. */}
                       <div className="flex shrink-0 items-center gap-1">
-                        {pending ? <ConfirmButton id={t.id} type={t.type} /> : null}
+                        {/* Confirm and undo are peers, and both stay at full
+                            opacity: undo is a recovery action, and burying it
+                            in the hover group made a mis-click on "Paguei"
+                            feel permanent. Edit and delete stay quiet. */}
+                        {pending ? (
+                          <ConfirmButton id={t.id} type={t.type} />
+                        ) : (
+                          <UndoConfirmButton id={t.id} type={t.type} />
+                        )}
                         <div className="flex items-center gap-0.5 opacity-60 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-                          {!pending && !t.financingId ? (
-                            <UndoConfirmButton id={t.id} type={t.type} />
-                          ) : null}
                           <button
                             onClick={() => setEditing(t)}
                             className="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-muted"

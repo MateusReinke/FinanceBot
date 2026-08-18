@@ -44,3 +44,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local throwaway scripts used while testing against a scratch database.
+*-tmp.ts
+*-tmp.mts
+*-tmp.mjs

@@ -88,7 +88,17 @@ export async function upsertTransaction(_state: FormState, formData: FormData): 
             }),
           ]
         : []),
-      prisma.transaction.update({ where: { id }, data: { ...data, balanceApplied: nextApplied } }),
+      prisma.transaction.update({
+        where: { id },
+        // Editing a row to "já paguei" is the same statement as pressing
+        // Paguei, so it lifts the manual override too — otherwise a row
+        // could sit confirmed while still carrying a stale "não paguei".
+        data: {
+          ...data,
+          balanceApplied: nextApplied,
+          ...(nextApplied ? { unsettledAt: null } : {}),
+        },
+      }),
     ]);
   } else {
     // A transaction created as "ainda não paguei" is scheduled, not
@@ -148,7 +158,13 @@ export async function confirmTransaction(formData: FormData) {
   if (!existing) return;
 
   await prisma.$transaction([
-    prisma.transaction.update({ where: { id }, data: { balanceApplied: true } }),
+    // unsettledAt is cleared here: confirming is the user taking back an
+    // earlier "não paguei", so the override that was holding the automatic
+    // reconciliation off must go with it.
+    prisma.transaction.update({
+      where: { id },
+      data: { balanceApplied: true, unsettledAt: null },
+    }),
     prisma.account.update({
       where: { id: existing.accountId },
       data: { balance: { increment: signedAmount(existing.amount, existing.type) } },
@@ -167,22 +183,31 @@ export async function confirmTransaction(formData: FormData) {
 // balanceApplied: true in the filter makes it idempotent under a double
 // submit, mirroring the guard on the way in.
 //
-// A financing installment is excluded for the same reason a plain edit
-// can't flip one: its state belongs to the schedule, and un-applying an
-// occurrence that reconcileDueInstallments considers due would just be
-// re-applied on the next request, silently undoing the undo.
+// Works on installments of a gasto fixo too, which is the case that needed
+// it most: those are the rows people confirm by accident, and they used to
+// be the only ones with no way back — the paid/pending switch is hidden in
+// their edit form, so a mis-click on "Paguei" was permanent.
+//
+// Making that safe is what unsettledAt is for. An installment of an
+// autoSettle financing whose date has passed is due, and
+// reconcileDueInstallments would re-apply it on the very next request;
+// stamping the override tells the reconciler the user has spoken, and it
+// leaves that row alone until the row is confirmed again.
 export async function unconfirmTransaction(formData: FormData) {
   const { userId } = await verifySession();
   const id = formData.get("id");
   if (typeof id !== "string") return;
 
   const existing = await prisma.transaction.findFirst({
-    where: { id, userId, balanceApplied: true, financingId: null },
+    where: { id, userId, balanceApplied: true },
   });
   if (!existing) return;
 
   await prisma.$transaction([
-    prisma.transaction.update({ where: { id }, data: { balanceApplied: false } }),
+    prisma.transaction.update({
+      where: { id },
+      data: { balanceApplied: false, unsettledAt: new Date() },
+    }),
     prisma.account.update({
       where: { id: existing.accountId },
       data: { balance: { increment: -signedAmount(existing.amount, existing.type) } },
