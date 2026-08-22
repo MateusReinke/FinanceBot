@@ -181,7 +181,7 @@ function SummaryStrip({
   ];
 
   return (
-    <div className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+    <div className="grid grid-cols-1 divide-y divide-border overflow-hidden surface sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       {items.map((item) => (
         <div key={item.label} className="px-4 py-3">
           <p className="text-xs text-muted-foreground">{item.label}</p>

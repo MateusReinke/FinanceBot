@@ -37,15 +37,15 @@ export function Modal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div
         className={cn(
-          "relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-overlay",
+          "surface surface-strong relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl p-5 shadow-overlay",
           className
         )}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
           <button
             onClick={onClose}
             className="rounded-md p-1 text-muted-foreground hover:bg-muted cursor-pointer"

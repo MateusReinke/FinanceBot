@@ -34,7 +34,12 @@ export function StatCard({
         ) : null}
       </div>
       <div className="mt-1.5 flex items-end justify-between gap-2">
-        <p className={cn("text-2xl font-semibold tabular-nums text-foreground", valueClassName)}>
+        <p
+          className={cn(
+            "text-2xl font-semibold tracking-tight tabular-nums text-foreground",
+            valueClassName
+          )}
+        >
           {value}
         </p>
         {delta ? (
@@ -59,11 +64,17 @@ export function StatCard({
     </>
   );
 
-  const base = "rounded-xl border border-border bg-card p-4 shadow-card";
+  const base = "surface p-4";
 
   if (href) {
     return (
-      <Link href={href} className={cn(base, "group block transition-colors hover:border-primary")}>
+      <Link
+        href={href}
+        className={cn(
+          base,
+          "group block transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-raised"
+        )}
+      >
         {body}
       </Link>
     );

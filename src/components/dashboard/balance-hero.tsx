@@ -22,13 +22,18 @@ export function BalanceHero({
   const rest = accounts.length - visible.length;
 
   return (
-    // The one gradient in the app, and it is deliberately faint: it marks
-    // this block as the top of the hierarchy without turning the number
-    // people came to read into decoration.
-    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-card">
+    // The brightest panel on the page, and the only one that glows: this is
+    // the number people opened the app for, so it gets the top of the
+    // hierarchy. The two washes are decoration and nothing else — the block
+    // still reads if neither of them paints.
+    <div className="surface relative overflow-hidden rounded-2xl p-6 shadow-raised">
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-accent/8 blur-3xl"
+        className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-accent/15 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-28 -left-16 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
       />
       <div className="relative flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -37,7 +42,7 @@ export function BalanceHero({
           </p>
           <p
             className={cn(
-              "mt-1 text-3xl font-semibold tabular-nums sm:text-4xl",
+              "mt-1 text-3xl font-semibold tracking-tight tabular-nums sm:text-[2.5rem] sm:leading-tight",
               totalBalance < 0 ? "text-danger" : "text-foreground"
             )}
           >

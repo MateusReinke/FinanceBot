@@ -67,7 +67,7 @@ export function CardInvoiceSummary({
     .reduce((sum, c) => sum + (invoiceOf(c.id, c.balance) ?? 0), 0);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="surface p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">Resumo das faturas</h2>
         <button

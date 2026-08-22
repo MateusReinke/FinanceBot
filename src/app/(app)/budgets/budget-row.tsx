@@ -31,7 +31,7 @@ export function BudgetRow({
   const over = budget ? spent > budget.amount : false;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="surface p-4">
       <div className="flex items-center gap-3">
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"

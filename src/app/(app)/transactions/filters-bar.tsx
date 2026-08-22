@@ -70,7 +70,7 @@ export function FiltersBar({
       </div>
 
       {open ? (
-        <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 surface p-4 sm:grid-cols-3">
           <Select name="type" defaultValue={filters.type ?? ""} aria-label="Tipo">
             <option value="">Todos os tipos</option>
             <option value="expense">Despesas</option>

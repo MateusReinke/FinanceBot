@@ -88,7 +88,7 @@ export function StatementList({
                 </span>
               </header>
 
-              <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+              <ul className="divide-y divide-border overflow-hidden surface">
                 {group.rows.map((t) => {
                   const status = transactionStatus(t, today);
                   const isExpense = t.type === "expense";

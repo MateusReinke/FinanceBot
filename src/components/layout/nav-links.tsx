@@ -22,7 +22,7 @@ export function NavLinks({
       {NAV_GROUPS.map((group, i) => (
         <div key={group.label ?? `group-${i}`} className="flex flex-col gap-1">
           {group.label ? (
-            <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
               {group.label}
             </p>
           ) : null}
@@ -36,9 +36,9 @@ export function NavLinks({
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
                   active
-                    ? "bg-primary text-primary-foreground shadow-card"
+                    ? "bg-brand-gradient text-primary-foreground shadow-brand"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >

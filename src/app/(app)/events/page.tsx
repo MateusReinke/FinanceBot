@@ -39,7 +39,7 @@ export default async function EventsPage() {
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary"
+              className="group flex flex-col gap-3 surface p-4 transition-colors hover:border-primary"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">

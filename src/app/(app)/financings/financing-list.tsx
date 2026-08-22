@@ -90,7 +90,7 @@ export function FinancingList({
               <Link
                 key={f.id}
                 href={`/financings/${f.id}`}
-                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary"
+                className="flex flex-col gap-3 surface p-4 transition-colors hover:border-primary"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">

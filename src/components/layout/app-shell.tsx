@@ -28,9 +28,12 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen w-full">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card p-4 lg:flex">
-        <Link href="/dashboard" className="flex items-center gap-2.5 px-2 py-3 text-lg font-semibold text-foreground">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-card">
+      <aside className="surface-shell hidden w-64 shrink-0 flex-col border-r border-border p-4 lg:flex">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2.5 px-2 py-3 text-lg font-semibold tracking-tight text-foreground"
+        >
+          <span className="bg-brand-gradient flex h-9 w-9 items-center justify-center rounded-xl text-primary-foreground shadow-brand">
             <Wallet2 className="h-5 w-5" />
           </span>
           FinanceBot
@@ -43,13 +46,13 @@ export function AppShell({
       {mobileOpen ? (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-card p-4 shadow-overlay">
+          <aside className="surface-shell absolute inset-y-0 left-0 flex w-72 flex-col border-r border-border p-4 shadow-overlay">
             <div className="flex items-center justify-between px-2 py-3">
-              <span className="flex items-center gap-2.5 text-lg font-semibold text-foreground">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <span className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground">
+                <span className="bg-brand-gradient flex h-9 w-9 items-center justify-center rounded-xl text-primary-foreground shadow-brand">
                   <Wallet2 className="h-5 w-5" />
                 </span>
                 FinanceBot
@@ -70,7 +73,7 @@ export function AppShell({
       ) : null}
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6">
+        <header className="surface-shell sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border px-4 sm:px-6">
           <button
             onClick={() => setMobileOpen(true)}
             className="rounded-md p-2 text-muted-foreground hover:bg-muted cursor-pointer lg:hidden"

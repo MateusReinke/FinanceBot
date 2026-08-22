@@ -7,7 +7,8 @@ para importar automaticamente contas e transações do seu banco.
 ## Stack
 
 - [Next.js 16](https://nextjs.org) (App Router, Server Actions, Turbopack)
-- TypeScript + Tailwind CSS v4
+- TypeScript + Tailwind CSS v4 (tokens de design em `src/app/globals.css`)
+- Tipografia Inter, auto-hospedada no build por `next/font` — nenhuma requisição sai do navegador
 - [Prisma](https://www.prisma.io) + PostgreSQL
 - Autenticação própria: sessão em cookie httpOnly assinado com [`jose`](https://github.com/panva/jose), senhas com `bcryptjs`
 - Gráficos com [Recharts](https://recharts.org)
@@ -143,6 +144,12 @@ para importar automaticamente contas e transações do seu banco.
   lança e devolve a confirmação pronta para o bot responder. Também responde
   perguntas ("qual meu saldo?", "o que vence essa semana?"). Veja
   [API pública](#api-pública-whatsapp-n8n-e-outras-automações) abaixo
+- **Interface**: fundo aurora — três lavagens de cor difusas sobre uma grade
+  discreta, fixas na viewport — com painéis de vidro (translúcidos e
+  desfocados) por cima, em tema claro e escuro. Tudo sai de tokens em
+  `globals.css` e de uma única classe `.surface`, então o visual é ajustado em
+  um lugar só. A ambientação é puramente decorativa: se nada dela pintar, o
+  app continua legível
 - **Painel administrativo**: quem faz login com o e-mail definido em `ADMIN_EMAIL`
   ganha acesso a `/admin` para criar, editar, resetar senha e excluir outros
   usuários — sem nenhum acesso aos dados financeiros deles
