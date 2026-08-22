@@ -79,9 +79,26 @@
   --shadow-overlay: 0 24px 60px -12px rgb(17 24 56 / 0.28), 0 8px 20px -8px rgb(17 24 56 / 0.14);
   --shadow-brand: 0 4px 14px -4px rgb(79 70 229 / 0.45);
 
-  /* Validated income/expense pair for charts — see dataviz palette check. */
+  /* Charts.
+   *
+   * The income/expense pair is validated (categorical, adjacent): CVD ΔE 7.2
+   * sits in the 6-8 floor band, which is legal only alongside secondary
+   * encoding — so every chart using it also separates the two by mark form
+   * (columns vs line), a legend and a table view, never by hue alone.
+   *
+   * `-soft` is the second step of a one-hue ORDINAL ramp: realizado is the
+   * dark end, previsto the light one. Validated with the ordinal checks
+   * (monotone L, adjacent dL >= 0.06, light end 2.31:1 on --chart-surface).
+   *
+   * `--chart-surface` is opaque on purpose. Everything else in the app is
+   * glass over the aurora, but a plot needs a known ground: it is what the
+   * 2px gaps between stacked segments are painted in, and it is the surface
+   * every contrast figure above was measured against. */
   --chart-income: #008300;
   --chart-expense: #e34948;
+  --chart-expense-soft: #ee8f8e;
+  --chart-surface: #fdfdff;
+  --chart-future: rgb(99 102 241 / 0.07);
   --chart-grid: #e1e0d9;
   --chart-axis: #898781;
 }
@@ -130,8 +147,13 @@
     --shadow-overlay: 0 28px 64px -12px rgb(0 0 0 / 0.7), 0 8px 20px -8px rgb(0 0 0 / 0.5);
     --shadow-brand: 0 4px 18px -4px rgb(99 102 241 / 0.55);
 
+    /* The same two jobs re-stepped for the dark ground: the pair clears CVD
+     * dE 8.6 here, and the ordinal light end sits at 2.67:1. */
     --chart-income: #008300;
     --chart-expense: #e66767;
+    --chart-expense-soft: #994343;
+    --chart-surface: #141a2b;
+    --chart-future: rgb(129 140 248 / 0.10);
     --chart-grid: #2c2c2a;
     --chart-axis: #898781;
   }
@@ -272,6 +294,13 @@ textarea {
    * modals, popovers — where the extra transparency would cost legibility. */
   .surface-strong {
     background-color: var(--surface-strong);
+  }
+
+  /* A panel holding a plot. Opaque, because a chart's colours were measured
+   * against a specific ground and because the gaps between stacked segments
+   * are painted in it — over glass they would show the aurora instead. */
+  .surface-chart {
+    background-color: var(--chart-surface);
   }
 
   /* Chrome that frames the app rather than holding content: the sidebar and

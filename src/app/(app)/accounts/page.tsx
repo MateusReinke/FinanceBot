@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession, getCurrentUser } from "@/lib/dal";
 import { isPluggyConfigured, pluggyUseSandbox } from "@/lib/pluggy";
 import { isOpenAiConfigured } from "@/lib/openai";
-import { getCardInvoicePlans } from "@/lib/queries/card-invoices";
+import { getCardInvoiceData } from "@/lib/queries/card-invoices";
 import { AccountManager } from "./account-manager";
 import { CardInvoiceSummary } from "./card-invoice-summary";
 import { OpenFinanceSection } from "@/components/openfinance/open-finance-section";
@@ -15,13 +15,13 @@ export default async function AccountsPage() {
   const { userId } = await verifySession();
   const pluggyEnabled = isPluggyConfigured();
 
-  const [accounts, user, pluggyItems, invoicePlans] = await Promise.all([
+  const [accounts, user, pluggyItems, invoices] = await Promise.all([
     prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
     getCurrentUser(),
     pluggyEnabled
       ? prisma.pluggyItem.findMany({ where: { userId }, orderBy: { createdAt: "asc" } })
       : Promise.resolve([]),
-    getCardInvoicePlans(userId),
+    getCardInvoiceData(userId),
   ]);
 
   return (
@@ -39,11 +39,11 @@ export default async function AccountsPage() {
         />
       ) : null}
 
-      <CardInvoiceSummary accounts={accounts} plans={invoicePlans} />
+      <CardInvoiceSummary accounts={accounts} series={invoices.series} />
 
       <div className="space-y-3">
         {pluggyEnabled ? <h2 className="text-base font-semibold text-foreground">Contas manuais</h2> : null}
-        <AccountManager accounts={accounts} aiEnabled={isOpenAiConfigured()} plans={invoicePlans} />
+        <AccountManager accounts={accounts} aiEnabled={isOpenAiConfigured()} plans={invoices.plans} />
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { transactionStatus } from "@/lib/transaction-status";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { TrendChart } from "@/components/charts/trend-chart";
+import { CashflowChart } from "@/components/charts/cashflow-chart";
 import { CategoryBarChart } from "@/components/charts/category-bar-chart";
 import { MonthSelector } from "@/components/ui/month-selector";
 import { Alert } from "@/components/ui/alert";
@@ -65,9 +65,18 @@ export default async function DashboardPage({
   const isCurrentMonth = month === current.month && year === current.year;
   const monthLabel = formatMonthYear(month, year);
   const hasBills = bills.overdue.length > 0 || bills.upcoming.length > 0;
-  const previous = data.trend[data.trend.length - 2];
-  const incomeDelta = previous ? percentChange(data.income, previous.income) : undefined;
-  const expenseDelta = previous ? percentChange(data.expense, previous.expense) : undefined;
+  const hasCashflow = data.cashflow.some(
+    (point) =>
+      point.expenseRealized > 0 ||
+      point.expenseScheduled > 0 ||
+      point.incomeRealized > 0 ||
+      point.incomeScheduled > 0
+  );
+  // The month just before the one being viewed, which the cashflow window
+  // already contains — no extra read to compare against it.
+  const previous = data.cashflow.find((point) => point.offset === -1);
+  const incomeDelta = previous ? percentChange(data.income, previous.incomeRealized) : undefined;
+  const expenseDelta = previous ? percentChange(data.expense, previous.expenseRealized) : undefined;
 
   return (
     <div className="space-y-6">
@@ -185,20 +194,24 @@ export default async function DashboardPage({
           {isCurrentMonth ? (hasBills ? <UpcomingBills bills={bills} /> : <UpcomingBillsEmpty />) : null}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-            <Card className="lg:col-span-3">
-              <CardHeader>
-                <CardTitle>Receitas x despesas — últimos 6 meses</CardTitle>
+            <Card className="surface-chart lg:col-span-3">
+              <CardHeader className="flex-col items-start gap-0.5">
+                <CardTitle>Gastos — 6 meses atrás, 6 à frente</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  A barra cheia é o que já saiu da conta; a clara é o que está agendado e ainda
+                  vai sair.
+                </p>
               </CardHeader>
               <CardContent>
-                {data.trend.every((t) => t.income === 0 && t.expense === 0) ? (
-                  <EmptyChart message="Sem histórico ainda. Assim que houver lançamentos, a comparação dos últimos 6 meses aparece aqui." />
+                {hasCashflow ? (
+                  <CashflowChart data={data.cashflow} />
                 ) : (
-                  <TrendChart data={data.trend} />
+                  <EmptyChart message="Sem histórico ainda. Assim que houver lançamentos — ou faturas programadas —, os 13 meses aparecem aqui." />
                 )}
               </CardContent>
             </Card>
 
-            <Card className="lg:col-span-2">
+            <Card className="surface-chart lg:col-span-2">
               <CardHeader>
                 <CardTitle>Gastos por categoria</CardTitle>
               </CardHeader>
@@ -261,7 +274,8 @@ export default async function DashboardPage({
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {formatDate(t.date)} · {t.account.name}
+                              {formatDate(t.date)}
+                              {t.account ? ` · ${t.account.name}` : null}
                             </p>
                           </div>
                           <span

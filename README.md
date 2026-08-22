@@ -144,6 +144,16 @@ para importar automaticamente contas e transações do seu banco.
   lança e devolve a confirmação pronta para o bot responder. Também responde
   perguntas ("qual meu saldo?", "o que vence essa semana?"). Veja
   [API pública](#api-pública-whatsapp-n8n-e-outras-automações) abaixo
+- **Gastos de 6 meses atrás a 6 meses à frente**: o painel abre com treze
+  colunas — meio ano de gasto realizado, o mês atual, e meio ano do que já
+  está agendado. A barra cheia é o que saiu da conta, a clara é o que ainda
+  vai sair, e a metade da frente fica sobre uma faixa marcada **previsto**,
+  então dá para ver de relance onde o histórico acaba e o plano começa. O mês
+  mais pesado à frente vem rotulado; o resto está no tooltip e na tabela **Ver
+  os números**, embaixo de todo gráfico
+- **Faturas dos cartões por mês**: em Contas, o mesmo recorte de treze meses,
+  empilhado por cartão e na cor de cada um — dá para ver qual cartão pesa em
+  qual mês. Clicar numa coluna leva o detalhamento abaixo para aquele mês
 - **Interface**: fundo aurora — três lavagens de cor difusas sobre uma grade
   discreta, fixas na viewport — com painéis de vidro (translúcidos e
   desfocados) por cima, em tema claro e escuro. Tudo sai de tokens em
@@ -577,7 +587,8 @@ src/
     google.ts                       # OAuth do Google + People API (contatos)
     phone.ts                         # normalização de telefone, incl. número local -> E.164
     queries/receivables.ts          # "quem me deve", agrupado por pessoa
-    queries/card-invoices.ts         # faturas já preenchidas de cada cartão, por mês
+    queries/card-invoices.ts         # faturas de cada cartão: plano e série de 13 meses
+    queries/cashflow.ts               # 13 meses de entradas/saídas, realizado e previsto
     user-provisioning.ts             # criação de usuário + categorias padrão (signup e admin)
 prisma/
   schema.prisma           # modelos (User, Account, Category, Transaction, Budget,
