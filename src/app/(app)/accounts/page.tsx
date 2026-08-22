@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession, getCurrentUser } from "@/lib/dal";
 import { isPluggyConfigured, pluggyUseSandbox } from "@/lib/pluggy";
 import { isOpenAiConfigured } from "@/lib/openai";
+import { getCardInvoicePlans } from "@/lib/queries/card-invoices";
 import { AccountManager } from "./account-manager";
 import { CardInvoiceSummary } from "./card-invoice-summary";
 import { OpenFinanceSection } from "@/components/openfinance/open-finance-section";
@@ -14,12 +15,13 @@ export default async function AccountsPage() {
   const { userId } = await verifySession();
   const pluggyEnabled = isPluggyConfigured();
 
-  const [accounts, user, pluggyItems] = await Promise.all([
+  const [accounts, user, pluggyItems, invoicePlans] = await Promise.all([
     prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
     getCurrentUser(),
     pluggyEnabled
       ? prisma.pluggyItem.findMany({ where: { userId }, orderBy: { createdAt: "asc" } })
       : Promise.resolve([]),
+    getCardInvoicePlans(userId),
   ]);
 
   return (
@@ -37,11 +39,11 @@ export default async function AccountsPage() {
         />
       ) : null}
 
-      <CardInvoiceSummary accounts={accounts} />
+      <CardInvoiceSummary accounts={accounts} plans={invoicePlans} />
 
       <div className="space-y-3">
         {pluggyEnabled ? <h2 className="text-base font-semibold text-foreground">Contas manuais</h2> : null}
-        <AccountManager accounts={accounts} aiEnabled={isOpenAiConfigured()} />
+        <AccountManager accounts={accounts} aiEnabled={isOpenAiConfigured()} plans={invoicePlans} />
       </div>
     </div>
   );

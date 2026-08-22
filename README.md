@@ -117,14 +117,22 @@ para importar automaticamente contas e transações do seu banco.
   passar pela verificação deles, só contas cadastradas como *usuários de
   teste* conseguem autorizar a importação (o login em si funciona normal).
   Veja `.env.example` para o passo a passo no Google Cloud
-- **Faturas futuras de cartão**: no cartão, **Programar faturas futuras** lança
-  as próximas faturas (1, 2, 3, 6 ou 12) como previstas, usando o dia de
-  vencimento do cartão, com prévia das datas antes de confirmar. Elas entram em
-  Próximos vencimentos e no saldo previsto, e só mexem no saldo quando você
-  confirmar. A fatura é lançada na **conta que vai pagar**, nunca no cartão (uma
-  fatura não é uma compra — lançá-la no cartão aumentaria a própria dívida que
-  ela quita), e fica ligada ao cartão: quando você usa "Marcar fatura como paga",
-  o app **quita a fatura programada** em vez de criar um pagamento duplicado
+- **Faturas futuras de cartão, mês a mês**: no cartão, **Faturas futuras** abre
+  os próximos 12 meses e você **preenche o valor esperado de cada um** — mês com
+  parcela grande fica com o valor dele, mês tranquilo fica com o dele. Uma seta
+  em cada linha **repete aquele valor nos meses seguintes** quando a fatura é
+  sempre parecida. Reabrir mostra o que já foi preenchido: mudar um valor
+  atualiza aquele mês, apagar remove só aquela fatura, e o **dia do vencimento**
+  editado ali vale para as faturas e para o cartão. Meses já pagos aparecem
+  bloqueados — um plano não reescreve um pagamento que já aconteceu. Os valores
+  entram como **previstos** em Próximos vencimentos e no saldo previsto, e só
+  mexem no saldo quando você confirmar. A fatura é lançada na **conta que vai
+  pagar**, nunca no cartão (uma fatura não é uma compra — lançá-la no cartão
+  aumentaria a própria dívida que ela quita), e fica ligada ao cartão: quando
+  você usa "Marcar fatura como paga", o app **quita a fatura programada** em vez
+  de criar um pagamento duplicado. O **Resumo das faturas** tem um seletor de
+  mês, então dá para ver quanto os cartões somam em qualquer mês do plano, não
+  só na fatura atual
 - **Previsto x realizado em qualquer lançamento**: todo lançamento (não só os
   fixos) pode ser criado como "já paguei" ou "ainda vou pagar". O que está
   agendado não entra no saldo nem no orçamento até ser confirmado, aparece como
@@ -557,11 +565,12 @@ src/
     financing.ts               # cronograma de parcelas + reconciliação de saldo
     transaction-status.ts       # realizado/previsto/atrasado — o que um lançamento É
     due-dates.ts                 # "vence hoje", "venceu há 3 dias" — quão urgente ele é
-    card-invoices.ts              # projeção das próximas faturas de um cartão (puro)
+    card-invoices.ts              # meses/vencimentos das faturas de um cartão (puro)
     charge.ts                      # mensagem de cobrança + link do WhatsApp (puro)
     google.ts                       # OAuth do Google + People API (contatos)
     phone.ts                         # normalização de telefone, incl. número local -> E.164
     queries/receivables.ts          # "quem me deve", agrupado por pessoa
+    queries/card-invoices.ts         # faturas já preenchidas de cada cartão, por mês
     user-provisioning.ts             # criação de usuário + categorias padrão (signup e admin)
 prisma/
   schema.prisma           # modelos (User, Account, Category, Transaction, Budget,

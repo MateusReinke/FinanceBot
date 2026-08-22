@@ -8,19 +8,23 @@ import { Button } from "@/components/ui/button";
 import { AccountForm } from "./account-form";
 import { InvoiceImportButton } from "./invoice-import-button";
 import { PayInvoiceButton } from "./pay-invoice-button";
-import { ScheduleInvoiceButton } from "./schedule-invoice-button";
+import { InvoicePlannerButton } from "./invoice-planner-button";
 import { toggleArchiveAccount, deleteAccount } from "@/app/actions/accounts";
 import { getAccountTypeMeta } from "@/lib/account-types";
-import { formatCurrency, cn } from "@/lib/utils";
+import { startOfTodayUTC } from "@/lib/transaction-status";
+import type { CardInvoicePlans, PlannedInvoice } from "@/lib/queries/card-invoices";
+import { formatCurrency, formatMonthShort, cn } from "@/lib/utils";
 
 function AccountCard({
   account,
   aiEnabled,
   sourceAccounts,
+  plan,
 }: {
   account: Account;
   aiEnabled: boolean;
   sourceAccounts: Account[];
+  plan: PlannedInvoice[];
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const meta = getAccountTypeMeta(account.type);
@@ -100,10 +104,12 @@ function AccountCard({
 
       {isCard ? <CreditCardDetails account={account} /> : null}
 
+      {isCard ? <PlannedInvoices plan={plan} /> : null}
+
       {isCard && !isSynced ? (
         <div className="space-y-1.5">
           <PayInvoiceButton account={account} sourceAccounts={sourceAccounts} />
-          <ScheduleInvoiceButton account={account} sourceAccounts={sourceAccounts} />
+          <InvoicePlannerButton account={account} sourceAccounts={sourceAccounts} plan={plan} />
           {aiEnabled ? <InvoiceImportButton accountId={account.id} /> : null}
         </div>
       ) : null}
@@ -111,6 +117,41 @@ function AccountCard({
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar conta">
         <AccountForm account={account} onSuccess={() => setEditOpen(false)} />
       </Modal>
+    </div>
+  );
+}
+
+// What the user has already filled in for this card, on the card itself —
+// otherwise the planner would be the only place the numbers exist, and a
+// forecast you have to open a modal to read is one nobody reads.
+function PlannedInvoices({ plan }: { plan: PlannedInvoice[] }) {
+  const today = startOfTodayUTC();
+  const pending = plan.filter((invoice) => !invoice.paid);
+  if (pending.length === 0) return null;
+
+  const shown = pending.slice(0, 3);
+  const rest = pending.length - shown.length;
+  const total = pending.reduce((sum, invoice) => sum + invoice.amount, 0);
+
+  return (
+    <div className="space-y-1 border-t border-border pt-3">
+      <p className="text-xs font-medium text-muted-foreground">Faturas previstas</p>
+      {shown.map((invoice) => (
+        <div key={invoice.id} className="flex items-center justify-between text-xs">
+          <span className={cn("text-muted-foreground", invoice.date < today && "text-danger")}>
+            {formatMonthShort(invoice.date.getUTCMonth() + 1, invoice.date.getUTCFullYear())}{" "}
+            {invoice.date.getUTCFullYear()}
+          </span>
+          <span className="font-medium tabular-nums text-foreground">
+            {formatCurrency(invoice.amount)}
+          </span>
+        </div>
+      ))}
+      {rest > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          +{rest} {rest === 1 ? "mês" : "meses"} · {formatCurrency(total)} no total
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -153,23 +194,39 @@ function AccountGrid({
   accounts,
   aiEnabled,
   sourceAccounts,
+  plans,
   muted,
 }: {
   accounts: Account[];
   aiEnabled: boolean;
   sourceAccounts: Account[];
+  plans: CardInvoicePlans;
   muted?: boolean;
 }) {
   return (
     <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3", muted && "opacity-70")}>
       {accounts.map((a) => (
-        <AccountCard key={a.id} account={a} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} />
+        <AccountCard
+          key={a.id}
+          account={a}
+          aiEnabled={aiEnabled}
+          sourceAccounts={sourceAccounts}
+          plan={plans[a.id] ?? []}
+        />
       ))}
     </div>
   );
 }
 
-export function AccountManager({ accounts, aiEnabled }: { accounts: Account[]; aiEnabled: boolean }) {
+export function AccountManager({
+  accounts,
+  aiEnabled,
+  plans,
+}: {
+  accounts: Account[];
+  aiEnabled: boolean;
+  plans: CardInvoicePlans;
+}) {
   const [createOpen, setCreateOpen] = useState(false);
   const active = accounts.filter((a) => !a.archived);
   const archived = accounts.filter((a) => a.archived);
@@ -203,7 +260,7 @@ export function AccountManager({ accounts, aiEnabled }: { accounts: Account[]; a
               <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                 <CreditCard className="h-4 w-4" /> Cartões de crédito
               </h2>
-              <AccountGrid accounts={activeCards} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} />
+              <AccountGrid accounts={activeCards} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} plans={plans} />
             </div>
           ) : null}
 
@@ -214,7 +271,7 @@ export function AccountManager({ accounts, aiEnabled }: { accounts: Account[]; a
                   <Landmark className="h-4 w-4" /> Contas
                 </h2>
               ) : null}
-              <AccountGrid accounts={activeAccounts} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} />
+              <AccountGrid accounts={activeAccounts} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} plans={plans} />
             </div>
           ) : null}
         </>
@@ -226,7 +283,7 @@ export function AccountManager({ accounts, aiEnabled }: { accounts: Account[]; a
             Contas arquivadas ({archived.length})
           </summary>
           <div className="mt-3">
-            <AccountGrid accounts={archived} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} muted />
+            <AccountGrid accounts={archived} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} plans={plans} muted />
           </div>
         </details>
       ) : null}

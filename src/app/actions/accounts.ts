@@ -3,8 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
-import { AccountSchema, PayInvoiceSchema, ScheduleInvoiceSchema } from "@/lib/validation/accounts";
-import { invoiceLabel, nextInvoiceDueDates } from "@/lib/card-invoices";
+import { Prisma } from "@prisma/client";
+import { AccountSchema, InvoicePlanSchema, PayInvoiceSchema } from "@/lib/validation/accounts";
+import {
+  invoiceDateFor,
+  invoiceLabel,
+  monthBounds,
+  monthKeyOf,
+  parseMonthKey,
+} from "@/lib/card-invoices";
 import type { FormState } from "@/lib/form-state";
 
 function revalidateAccountPages() {
@@ -156,15 +163,29 @@ export async function payCardInvoice(_state: FormState, formData: FormData): Pro
   return { success: true };
 }
 
-// Puts a card's next invoices on the calendar as previsto, so the month's
-// biggest bill stops being the one thing the forecast doesn't know about.
+// One field per month the planner is showing. Named rather than indexed so
+// the action can pick them out of a FormData that also carries React's own
+// $ACTION_ entries, and so a month keeps its identity even if the list the
+// form rendered was a different length.
+const MONTH_FIELD = /^amount-(\d{4}-\d{2})$/;
+
+// Fills in a card's future invoices, month by month, as previsto — so the
+// month's biggest bill stops being the one thing the forecast doesn't know
+// about.
+//
+// The planner submits every month it is showing, the empty ones included,
+// which is what makes this a *plan* rather than an append: a month with a
+// value is created or updated, and a month the user cleared has its
+// scheduled invoice deleted. A month whose invoice is already paid is left
+// completely alone — that money moved, and a plan does not get to rewrite
+// history.
 //
 // The rows are expenses on the account that will PAY the invoice, never on
 // the card: a card's invoice is not a purchase, and booking it against the
 // card would inflate the exact debt it settles. They carry
 // invoiceForAccountId so payCardInvoice can recognise and settle them
 // instead of writing a duplicate.
-export async function scheduleCardInvoices(_state: FormState, formData: FormData): Promise<FormState> {
+export async function saveCardInvoicePlan(_state: FormState, formData: FormData): Promise<FormState> {
   const { userId } = await verifySession();
   const accountId = formData.get("accountId");
   if (typeof accountId !== "string") return { message: "Cartão inválido." };
@@ -174,14 +195,21 @@ export async function scheduleCardInvoices(_state: FormState, formData: FormData
   });
   if (!card) return { message: "Cartão não encontrado." };
 
-  const validated = ScheduleInvoiceSchema.safeParse({
-    amount: formData.get("amount"),
-    months: formData.get("months"),
+  const months: { key: string; amount: FormDataEntryValue | number }[] = [];
+  for (const [field, value] of formData.entries()) {
+    const match = MONTH_FIELD.exec(field);
+    // An emptied field means zero here, not "not provided": a blank month is
+    // how the user says that month carries no invoice.
+    if (match) months.push({ key: match[1], amount: value === "" ? 0 : value });
+  }
+
+  const validated = InvoicePlanSchema.safeParse({
     sourceAccountId: formData.get("sourceAccountId"),
     dueDay: formData.get("dueDay"),
+    months,
   });
   if (!validated.success) return { errors: validated.error.flatten().fieldErrors };
-  const { amount, months, sourceAccountId, dueDay } = validated.data;
+  const { sourceAccountId, dueDay, months: planned } = validated.data;
 
   const sourceAccount = await prisma.account.findFirst({
     where: { id: sourceAccountId, userId, type: { not: "credit_card" } },
@@ -191,55 +219,102 @@ export async function scheduleCardInvoices(_state: FormState, formData: FormData
     return { errors: { sourceAccountId: ["Contas conectadas via Open Finance são somente leitura."] } };
   }
 
-  const dueDates = nextInvoiceDueDates(dueDay, months);
+  // What each month should end up being worth. A Map so a month arriving
+  // twice settles on one value instead of racing itself in the writes below.
+  const wanted = new Map<string, { year: number; month: number; amount: number; date: Date }>();
+  for (const entry of planned) {
+    const parsed = parseMonthKey(entry.key);
+    if (!parsed) continue;
+    wanted.set(entry.key, {
+      ...parsed,
+      // Money, so centavos and not floating-point dust.
+      amount: Math.round(entry.amount * 100) / 100,
+      date: invoiceDateFor(parsed.year, parsed.month - 1, dueDay),
+    });
+  }
+  if (wanted.size === 0) return { message: "Nenhum mês para salvar." };
 
-  // Scheduling the same months twice is a double-click or a second visit to
-  // a form the user forgot they had filled — not an instruction to bill
-  // themselves twice. Existing pending invoices for these dates are updated
-  // to the new estimate; only the genuinely new months are created.
+  // One read spanning every month on screen, rather than one per month.
+  const keys = [...wanted.keys()].sort();
+  const first = wanted.get(keys[0])!;
+  const last = wanted.get(keys[keys.length - 1])!;
   const existing = await prisma.transaction.findMany({
     where: {
       userId,
       invoiceForAccountId: accountId,
-      balanceApplied: false,
-      date: { in: dueDates },
+      date: {
+        gte: monthBounds(first.year, first.month).start,
+        lt: monthBounds(last.year, last.month).end,
+      },
     },
-    select: { id: true, date: true },
+    select: { id: true, date: true, balanceApplied: true },
+    orderBy: { date: "asc" },
   });
-  const existingByTime = new Map(existing.map((t) => [t.date.getTime(), t.id]));
 
-  const toCreate = dueDates.filter((d) => !existingByTime.has(d.getTime()));
-  const toUpdate = [...existingByTime.values()];
+  const existingByMonth = new Map<string, typeof existing>();
+  for (const row of existing) {
+    const key = monthKeyOf(row.date);
+    const rows = existingByMonth.get(key);
+    if (rows) rows.push(row);
+    else existingByMonth.set(key, [row]);
+  }
 
-  await prisma.$transaction([
-    ...(toUpdate.length > 0
-      ? [
-          prisma.transaction.updateMany({
-            where: { id: { in: toUpdate }, userId },
-            data: { amount, accountId: sourceAccount.id },
-          }),
-        ]
-      : []),
-    ...(toCreate.length > 0
-      ? [
-          prisma.transaction.createMany({
-            data: toCreate.map((date) => ({
+  const operations: Prisma.PrismaPromise<unknown>[] = [];
+
+  // The vencimento the user just typed is the card's vencimento, not a
+  // one-off override: leaving the two to disagree would show "Vence dia 10"
+  // on a card whose invoices all land on the 20th, and reopening the planner
+  // would quietly offer to drag them back. Synced cards are read-only, so
+  // theirs stays whatever the bank says.
+  if (!card.pluggyItemId && card.dueDay !== dueDay) {
+    operations.push(prisma.account.update({ where: { id: card.id }, data: { dueDay } }));
+  }
+
+  for (const [key, target] of wanted) {
+    const rows = existingByMonth.get(key) ?? [];
+    // Already settled: skipped whole, including any pending row sitting
+    // beside it, which could just as easily be a real second bill as a
+    // leftover. Deleting on a guess is the one thing that would lose data.
+    if (rows.some((row) => row.balanceApplied)) continue;
+
+    const [current, ...duplicates] = rows;
+    // Two pending invoices in the same month are leftovers from an earlier
+    // run with a different vencimento. One invoice per month is the whole
+    // premise here, so the extras go.
+    for (const duplicate of duplicates) {
+      operations.push(prisma.transaction.delete({ where: { id: duplicate.id } }));
+    }
+
+    if (target.amount <= 0) {
+      if (current) operations.push(prisma.transaction.delete({ where: { id: current.id } }));
+      continue;
+    }
+
+    const data = {
+      amount: target.amount,
+      date: target.date,
+      accountId: sourceAccount.id,
+      description: invoiceLabel(card.name, target.date),
+    };
+    operations.push(
+      current
+        ? prisma.transaction.update({ where: { id: current.id }, data })
+        : prisma.transaction.create({
+            data: {
+              ...data,
               userId,
-              accountId: sourceAccount.id,
-              description: invoiceLabel(card.name, date),
-              amount,
-              date,
               type: "expense",
               // Previsto by definition: the whole point is a bill that has
               // not been paid yet. It only touches the balance when the user
               // confirms it, exactly like every other scheduled entry.
               balanceApplied: false,
               invoiceForAccountId: accountId,
-            })),
-          }),
-        ]
-      : []),
-  ]);
+            },
+          })
+    );
+  }
+
+  if (operations.length > 0) await prisma.$transaction(operations);
 
   revalidateAccountPages();
   revalidatePath("/budgets");
