@@ -37,10 +37,10 @@ export function Modal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
         className={cn(
-          "surface surface-strong relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl p-5 shadow-overlay",
+          "surface surface-strong relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl p-5",
           className
         )}
       >

@@ -20,7 +20,7 @@ export function ChartTooltip({
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-lg">
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-overlay">
       {label ? <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p> : null}
       <div className="space-y-1">
         {payload.map((entry, i) => (

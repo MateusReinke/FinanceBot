@@ -2,15 +2,21 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { decrypt } from "@/lib/session";
 
+// Every signed-in route. The pages themselves also call verifySession, so
+// this is defence in depth rather than the only check — but it is what makes
+// an unauthenticated hit land on /login with a ?next back to where it was
+// going, instead of bouncing through a render first.
 const PROTECTED_PREFIXES = [
   "/dashboard",
   "/transactions",
+  "/receivables",
   "/accounts",
   "/financings",
   "/categories",
   "/budgets",
   "/events",
   "/settings",
+  "/bem-vindo",
   "/admin",
 ];
 const AUTH_ROUTES = ["/login", "/register"];

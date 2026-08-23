@@ -22,20 +22,12 @@ export function BalanceHero({
   const rest = accounts.length - visible.length;
 
   return (
-    // The brightest panel on the page, and the only one that glows: this is
-    // the number people opened the app for, so it gets the top of the
-    // hierarchy. The two washes are decoration and nothing else — the block
-    // still reads if neither of them paints.
-    <div className="surface relative overflow-hidden rounded-2xl p-6 shadow-raised">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-accent/15 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-28 -left-16 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
-      />
-      <div className="relative flex flex-wrap items-end justify-between gap-4">
+    // Top of the hierarchy, earned by type size rather than decoration: the
+    // balance is set larger than anything else on the page and nothing sits
+    // beside it competing for the first look. The glow that used to do this
+    // job made a panel of plain figures look like a promo banner.
+    <div className="surface rounded-2xl p-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Wallet2 className="h-4 w-4 text-accent" /> Saldo total
@@ -75,7 +67,7 @@ export function BalanceHero({
       </div>
 
       {visible.length > 0 ? (
-        <div className="relative mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+        <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
           {visible.map((a) => (
             <Link
               key={a.id}

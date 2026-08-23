@@ -72,7 +72,7 @@ export function StatCard({
         href={href}
         className={cn(
           base,
-          "group block transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-raised"
+          "group block transition-colors duration-150 hover:border-border-strong hover:bg-muted/40"
         )}
       >
         {body}

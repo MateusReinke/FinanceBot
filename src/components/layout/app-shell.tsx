@@ -33,8 +33,8 @@ export function AppShell({
           href="/dashboard"
           className="flex items-center gap-2.5 px-2 py-3 text-lg font-semibold tracking-tight text-foreground"
         >
-          <span className="bg-brand-gradient flex h-9 w-9 items-center justify-center rounded-xl text-primary-foreground shadow-brand">
-            <Wallet2 className="h-5 w-5" />
+          <span className="bg-brand flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground">
+            <Wallet2 className="h-[18px] w-[18px]" />
           </span>
           FinanceBot
         </Link>
@@ -46,14 +46,14 @@ export function AppShell({
       {mobileOpen ? (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40"
             onClick={() => setMobileOpen(false)}
           />
           <aside className="surface-shell absolute inset-y-0 left-0 flex w-72 flex-col border-r border-border p-4 shadow-overlay">
             <div className="flex items-center justify-between px-2 py-3">
               <span className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground">
-                <span className="bg-brand-gradient flex h-9 w-9 items-center justify-center rounded-xl text-primary-foreground shadow-brand">
-                  <Wallet2 className="h-5 w-5" />
+                <span className="bg-brand flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground">
+                  <Wallet2 className="h-[18px] w-[18px]" />
                 </span>
                 FinanceBot
               </span>

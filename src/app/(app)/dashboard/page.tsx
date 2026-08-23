@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Landmark, ArrowLeftRight, BarChart3 } from "lucide-react";
-import { verifySession } from "@/lib/dal";
+import { verifySession, getCurrentUser } from "@/lib/dal";
 import { getDashboardData } from "@/lib/queries/dashboard";
 import { getBillsSummary } from "@/lib/queries/bills";
+import { getGuideProgress } from "@/lib/queries/onboarding";
 import { formatCurrency, formatDate, formatMonthYear, getCurrentMonthYear, cn } from "@/lib/utils";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { StatCard } from "@/components/ui/stat-card";
@@ -18,6 +19,7 @@ import { Alert } from "@/components/ui/alert";
 import { UpcomingBills, UpcomingBillsEmpty } from "@/components/dashboard/upcoming-bills";
 import { BalanceHero } from "@/components/dashboard/balance-hero";
 import { DueAlerts } from "@/components/dashboard/due-alerts";
+import { GettingStarted } from "@/components/dashboard/getting-started";
 
 export const metadata: Metadata = { title: "Painel — FinanceBot" };
 
@@ -49,9 +51,11 @@ export default async function DashboardPage({
   const month = Number(sp.month) || current.month;
   const year = Number(sp.year) || current.year;
 
-  const [data, bills] = await Promise.all([
+  const [data, bills, guide, user] = await Promise.all([
     getDashboardData(userId, month, year),
     getBillsSummary(userId),
+    getGuideProgress(userId),
+    getCurrentUser(),
   ]);
   // Half of this page is month-scoped (the stat cards, the charts, the
   // budgets) and half is inherently about today (the balance in your
@@ -63,6 +67,9 @@ export default async function DashboardPage({
   // this becomes a report about that month, and the today-only blocks step
   // aside rather than quietly showing today's numbers under a July heading.
   const isCurrentMonth = month === current.month && year === current.year;
+  // Three ways the checklist goes away: everything done, the user hid it, or
+  // they are reading a past month (where "set this up" is beside the point).
+  const showGuide = !guide.complete && !user?.guideDismissedAt && isCurrentMonth;
   const monthLabel = formatMonthYear(month, year);
   const hasBills = bills.overdue.length > 0 || bills.upcoming.length > 0;
   const hasCashflow = data.cashflow.some(
@@ -101,16 +108,25 @@ export default async function DashboardPage({
         </Alert>
       )}
 
+      {showGuide ? <GettingStarted progress={guide} /> : null}
+
+      {/* Nothing below here has anything to plot until there is an account to
+          plot it against, and the checklist above already says so — a wall of
+          zeroed cards would just repeat it less clearly. The short version
+          below covers the case where the checklist is hidden, so the painel
+          is never a page with only a heading on it. */}
       {data.accountCount === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
-          <Landmark className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            Comece criando uma conta para acompanhar seus gastos e receitas.
-          </p>
-          <Link href="/accounts" className="text-sm font-medium text-primary hover:underline">
-            Ir para Contas →
-          </Link>
-        </div>
+        showGuide ? null : (
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
+            <Landmark className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Comece criando uma conta para acompanhar seus gastos e receitas.
+            </p>
+            <Link href="/accounts" className="text-sm font-medium text-primary hover:underline">
+              Ir para Contas →
+            </Link>
+          </div>
+        )
       ) : (
         <>
           {/* Above the balance on purpose: an overdue bill is the one thing

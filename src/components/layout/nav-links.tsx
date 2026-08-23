@@ -36,9 +36,13 @@ export function NavLinks({
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150",
+                  // A tint plus a colour change on the label, rather than a
+                  // filled pill: the sidebar is a map, not the point of the
+                  // screen, and a saturated block in it drags the eye off
+                  // the content every time the page loads.
                   active
-                    ? "bg-brand-gradient text-primary-foreground shadow-brand"
+                    ? "bg-primary-soft text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
@@ -50,13 +54,10 @@ export function NavLinks({
                     // number, which a screen reader would read as part of
                     // the link label ("A receber 3").
                     aria-label={`${badge} em atraso`}
-                    className={cn(
-                      "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold tabular-nums",
-                      // text-background so the count stays legible against
-                      // --danger, which is a deep red in the light theme and
-                      // a light rose in the dark one.
-                      active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-danger text-background"
-                    )}
+                    // text-background so the count stays legible against
+                    // --danger, which is a deep red in the light theme and a
+                    // light rose in the dark one.
+                    className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-xs font-semibold tabular-nums text-background"
                   >
                     {badge}
                   </span>
