@@ -11,7 +11,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <input
         ref={ref}
         className={cn(
-          "h-10 w-full rounded-lg border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+          "h-10 w-full rounded-lg border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-200 hover:border-muted-foreground/30 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-ring/15",
           invalid ? "border-danger" : "border-border",
           className
         )}
@@ -49,7 +49,7 @@ export const Select = forwardRef<
     <select
       ref={ref}
       className={cn(
-        "h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+        "h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition-all duration-200 hover:border-muted-foreground/30 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-ring/15",
         className
       )}
       {...props}
@@ -66,7 +66,7 @@ export const Textarea = forwardRef<
     <textarea
       ref={ref}
       className={cn(
-        "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+        "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-200 hover:border-muted-foreground/30 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-ring/15",
         className
       )}
       {...props}

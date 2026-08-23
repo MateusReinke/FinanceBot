@@ -9,6 +9,13 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+// A Transaction always stores a positive `amount`; its `type` is what says
+// which way the account balance moves. Every balance write in the app goes
+// through this so the two can never disagree.
+export function signedAmount(amount: number, type: string) {
+  return type === "expense" ? -amount : amount;
+}
+
 export function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }
@@ -68,14 +75,13 @@ export function addMonthsUTC(date: Date, months: number) {
   return firstOfTarget;
 }
 
-// Installments always land on the same day-of-month as `start` (see
-// addMonthsUTC above), so an "end date" the user picks is really just
-// pointing at a target month — the day-of-month component is ignored on
-// purpose rather than trying to reconcile it against the schedule's own.
-export function monthsBetweenUTC(start: Date, end: Date) {
-  const months =
-    (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth()) + 1;
-  return Math.max(1, months);
+// Day arithmetic for the day-based recurrences ("a cada 15 dias"). Built
+// from the UTC date parts rather than adding milliseconds so it stays
+// correct regardless of the runtime's timezone.
+export function addDaysUTC(date: Date, days: number) {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days)
+  );
 }
 
 const monthShortFormatter = new Intl.DateTimeFormat("pt-BR", {

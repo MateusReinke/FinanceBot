@@ -13,6 +13,7 @@ export async function signup(_state: FormState, formData: FormData): Promise<For
   const validatedFields = SignupSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
+    phoneNumber: formData.get("phoneNumber"),
     password: formData.get("password"),
   });
 
@@ -20,17 +21,26 @@ export async function signup(_state: FormState, formData: FormData): Promise<For
     return { errors: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { name, email, password } = validatedFields.data;
+  const { name, email, phoneNumber, password } = validatedFields.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return { errors: { email: ["Este e-mail já está cadastrado."] } };
   }
 
+  // Checked before the insert so the user gets a field-level message rather
+  // than a unique-constraint failure. The constraint is still the real
+  // guarantee — two simultaneous signups would collide there.
+  const phoneTaken = await prisma.user.findUnique({ where: { phoneNumber } });
+  if (phoneTaken) {
+    return { errors: { phoneNumber: ["Esse WhatsApp já está cadastrado em outra conta."] } };
+  }
+
   const passwordHash = await hashPassword(password);
   const user = await createUserWithDefaultCategories({
     name,
     email,
+    phoneNumber,
     passwordHash,
     role: isAdminEmail(email) ? "admin" : "user",
   });
@@ -52,7 +62,17 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
   const { email, password } = validatedFields.data;
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  // An account created through "Entrar com Google" has no password at all.
+  // Saying so is better than "senha incorreta", which would send someone off
+  // to reset a password that never existed — and it leaks nothing an
+  // attacker could not learn by pressing the Google button themselves.
+  if (user && !user.passwordHash) {
+    return {
+      message:
+        "Esta conta entra com o Google. Use o botão “Entrar com Google” — ou defina uma senha em Configurações depois de entrar.",
+    };
+  }
+  if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
     return { message: "E-mail ou senha incorretos." };
   }
 

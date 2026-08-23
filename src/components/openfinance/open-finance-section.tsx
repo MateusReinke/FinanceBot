@@ -44,7 +44,7 @@ export function OpenFinanceSection({
             const statusMeta = getPluggyStatusMeta(item.status);
             const needsReconnect = NEEDS_RECONNECT_STATUSES.has(item.status);
             return (
-              <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+              <div key={item.id} className="flex flex-col gap-3 surface p-4">
                 <div className="flex items-center gap-3">
                   {item.connectorImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element

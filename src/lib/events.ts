@@ -1,6 +1,7 @@
 export type ExpenseForBalance = {
   amount: number;
-  paidById: string;
+  isShared: boolean;
+  payments: { userId: string; amount: number }[];
   splits: { userId: string; amount: number }[];
 };
 
@@ -30,6 +31,11 @@ export function splitEqually(totalAmount: number, participantIds: string[]): Rec
 // Keyed by userId, including anyone who ever paid or owed in this event's
 // history even if they've since left — the shared ledger must stay accurate
 // for them regardless of current membership.
+//
+// Personal expenses (isShared: false) are skipped entirely. Someone buying
+// a souvenir for themselves during the trip changes what they spent, not
+// what anyone owes, so letting it through here would show them as a
+// creditor for money nobody agreed to share.
 export function computeBalances(expenses: ExpenseForBalance[]): Map<string, Balance> {
   const balances = new Map<string, { paid: number; owed: number }>();
   function ensure(id: string) {
@@ -38,7 +44,10 @@ export function computeBalances(expenses: ExpenseForBalance[]): Map<string, Bala
   }
 
   for (const expense of expenses) {
-    ensure(expense.paidById).paid += expense.amount;
+    if (!expense.isShared) continue;
+    for (const payment of expense.payments) {
+      ensure(payment.userId).paid += payment.amount;
+    }
     for (const split of expense.splits) {
       ensure(split.userId).owed += split.amount;
     }
@@ -81,4 +90,18 @@ export function suggestSettlements(balances: Balance[]): Settlement[] {
     if (creditors[j].remaining <= EPSILON) j++;
   }
   return settlements;
+}
+
+// What each person actually spent in the event, personal expenses included.
+// Separate from the balance on purpose: "quanto eu gastei nessa viagem" and
+// "quanto eu devo pro grupo" are different questions, and a personal
+// expense only answers the first.
+export function computePersonalTotals(expenses: ExpenseForBalance[]): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const expense of expenses) {
+    for (const payment of expense.payments) {
+      totals.set(payment.userId, round2((totals.get(payment.userId) ?? 0) + payment.amount));
+    }
+  }
+  return totals;
 }

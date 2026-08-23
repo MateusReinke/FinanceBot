@@ -5,22 +5,36 @@ import type { Account, Category } from "@prisma/client";
 import { createFinancing } from "@/app/actions/financing";
 import { Input, Label, FieldError, Select } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { MAX_RECURRING_MONTHS } from "@/lib/validation/financing";
-import { formatCurrency, toDateInputValue, monthsBetweenUTC, cn } from "@/lib/utils";
+import {
+  FREQUENCIES,
+  FREQUENCY_OPTION_LABEL,
+  FREQUENCY_SHORT_LABEL,
+  occurrencesBetweenUTC,
+  recurringOccurrenceCount,
+  type Frequency,
+} from "@/lib/recurrence";
+import { formatCurrency, toDateInputValue, cn } from "@/lib/utils";
 
 export function FinancingForm({
   accounts,
   categories,
   onSuccess,
   initialMode = "count",
+  initialType = "expense",
 }: {
   accounts: Account[];
   categories: Category[];
   onSuccess: () => void;
   initialMode?: "count" | "endDate" | "recurring";
+  initialType?: "expense" | "income";
 }) {
   const [state, action] = useActionState(createFinancing, undefined);
   const [countMode, setCountMode] = useState<"count" | "endDate" | "recurring">(initialMode);
+  const [frequency, setFrequency] = useState<Frequency>("monthly");
+  const [type, setType] = useState<"expense" | "income">(initialType);
+  // See the same pattern in edit-financing-form: an unchecked checkbox
+  // posts nothing, so the value rides on a hidden input instead.
+  const [autoSettleOn, setAutoSettleOn] = useState(true);
   const [count, setCount] = useState("");
   const [amount, setAmount] = useState("");
   const [firstDueDate, setFirstDueDate] = useState(toDateInputValue(new Date()));
@@ -32,10 +46,14 @@ export function FinancingForm({
 
   const computedCount = useMemo(() => {
     if (countMode === "count") return Number(count) || 0;
-    if (countMode === "recurring") return MAX_RECURRING_MONTHS;
+    if (countMode === "recurring") return recurringOccurrenceCount(frequency);
     if (!endDate) return 0;
-    return monthsBetweenUTC(new Date(`${firstDueDate}T00:00:00Z`), new Date(`${endDate}T00:00:00Z`));
-  }, [countMode, count, endDate, firstDueDate]);
+    return occurrencesBetweenUTC(
+      new Date(`${firstDueDate}T00:00:00Z`),
+      new Date(`${endDate}T00:00:00Z`),
+      frequency
+    );
+  }, [countMode, count, endDate, firstDueDate, frequency]);
 
   const total = useMemo(() => {
     const v = Number(amount) || 0;
@@ -43,15 +61,44 @@ export function FinancingForm({
   }, [computedCount, amount]);
 
   const eligibleAccounts = accounts.filter((a) => !a.archived && !a.pluggyItemId);
+  const eligibleCategories = categories.filter((c) => c.type === type);
+  const isIncome = type === "income";
 
   return (
     <form action={action} className="space-y-4">
+      <input type="hidden" name="type" value={type} />
+      <div className="grid grid-cols-2 gap-2">
+        {(["expense", "income"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setType(t)}
+            className={cn(
+              "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+              type === t
+                ? t === "income"
+                  ? "border-success bg-success-bg text-success"
+                  : "border-danger bg-danger-bg text-danger"
+                : "border-border text-muted-foreground hover:bg-muted"
+            )}
+          >
+            {t === "income" ? "Dinheiro que entra" : "Dinheiro que sai"}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-1.5">
         <Label htmlFor="description">Descrição</Label>
         <Input
           id="description"
           name="description"
-          placeholder={countMode === "recurring" ? "Ex: Aluguel" : "Ex: Financiamento do carro"}
+          placeholder={
+            isIncome
+              ? "Ex: Salário"
+              : countMode === "recurring"
+                ? "Ex: Aluguel"
+                : "Ex: Financiamento do carro"
+          }
           required
           autoFocus
         />
@@ -83,7 +130,7 @@ export function FinancingForm({
         <Label htmlFor="categoryId">Categoria (opcional)</Label>
         <Select id="categoryId" name="categoryId" defaultValue="">
           <option value="">Sem categoria</option>
-          {categories.map((c) => (
+          {eligibleCategories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -93,7 +140,7 @@ export function FinancingForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="firstDueDate">Data do primeiro pagamento</Label>
+        <Label htmlFor="firstDueDate">{isIncome ? "Data do primeiro recebimento" : "Data do primeiro pagamento"}</Label>
         <Input
           id="firstDueDate"
           name="firstDueDate"
@@ -106,7 +153,28 @@ export function FinancingForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="installmentAmount">Valor de cada parcela (R$)</Label>
+        <Label htmlFor="frequency">Repete</Label>
+        <Select
+          id="frequency"
+          name="frequency"
+          value={frequency}
+          onChange={(e) => setFrequency(e.target.value as Frequency)}
+        >
+          {FREQUENCIES.map((f) => (
+            <option key={f} value={f}>
+              {FREQUENCY_OPTION_LABEL[f]}
+            </option>
+          ))}
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Sempre a partir da data acima — quinzenal cai a cada 15 dias, mensal cai sempre no
+          mesmo dia do mês.
+        </p>
+        <FieldError messages={state?.errors?.frequency} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="installmentAmount">Valor de cada {isIncome ? "recebimento" : "cobrança"} (R$)</Label>
         <Input
           id="installmentAmount"
           name="installmentAmount"
@@ -134,7 +202,7 @@ export function FinancingForm({
                 : "border-border text-muted-foreground hover:bg-muted"
             )}
           >
-            Quantidade de parcelas
+            Quantidade de cobranças
           </button>
           <button
             type="button"
@@ -146,7 +214,7 @@ export function FinancingForm({
                 : "border-border text-muted-foreground hover:bg-muted"
             )}
           >
-            Data final (conta fixa)
+            Até uma data
           </button>
           <button
             type="button"
@@ -158,13 +226,13 @@ export function FinancingForm({
                 : "border-border text-muted-foreground hover:bg-muted"
             )}
           >
-            Gasto fixo (sem data pra acabar)
+            Sem data pra acabar
           </button>
         </div>
 
         {countMode === "count" ? (
           <div className="space-y-1.5">
-            <Label htmlFor="installmentCountInput">Quantidade de parcelas</Label>
+            <Label htmlFor="installmentCountInput">Quantas cobranças no total</Label>
             <Input
               id="installmentCountInput"
               type="number"
@@ -189,28 +257,49 @@ export function FinancingForm({
             />
             <p className="text-xs text-muted-foreground">
               {computedCount > 0
-                ? `${computedCount} cobrança${computedCount > 1 ? "s" : ""}, no mesmo dia do mês da primeira`
-                : "Para uma conta fixa (assinatura, plano, aluguel) com data de validade conhecida"}
+                ? `${FREQUENCY_SHORT_LABEL[frequency].toLowerCase()} — ${computedCount} cobrança${
+                    computedCount > 1 ? "s" : ""
+                  } no total`
+                : "Para uma conta fixa (assinatura, plano, aluguel) com data pra terminar"}
             </p>
             <FieldError messages={state?.errors?.installmentCount} />
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Lança o mesmo valor todo mês, indefinidamente — pra aluguel, mensalidade ou qualquer
-            gasto fixo sem previsão de acabar. Dá pra cancelar quando quiser na página do gasto.
+            Lança o mesmo valor {FREQUENCY_SHORT_LABEL[frequency].toLowerCase()},
+            indefinidamente — pra aluguel, mensalidade, diarista ou qualquer gasto fixo sem
+            previsão de acabar. Dá pra cancelar quando quiser na página do gasto.
           </p>
         )}
       </div>
 
+      <input type="hidden" name="autoSettle" value={autoSettleOn ? "true" : "false"} />
+      <label className="flex items-start gap-2 text-sm text-foreground">
+        <input
+          type="checkbox"
+          checked={autoSettleOn}
+          onChange={(e) => setAutoSettleOn(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-[var(--primary)]"
+        />
+        <span>
+          {isIncome ? "Cai sozinho na conta" : "Debita sozinho na conta"}
+          <span className="block text-xs text-muted-foreground">
+            {autoSettleOn
+              ? `Marcado: no dia do vencimento o valor ${isIncome ? "entra" : "sai"} do saldo automaticamente — pra débito automático, salário e afins.`
+              : `Desmarcado: cada ${isIncome ? "recebimento" : "cobrança"} espera você confirmar, e aparece em "Contas a pagar" como atrasada se passar do dia.`}
+          </span>
+        </span>
+      </label>
+
       <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm">
         {countMode === "recurring" ? (
           <>
-            <span className="text-muted-foreground">Valor por mês: </span>
+            <span className="text-muted-foreground">{FREQUENCY_SHORT_LABEL[frequency]}: </span>
             <span className="font-semibold text-foreground">{formatCurrency(Number(amount) || 0)}</span>
           </>
         ) : (
           <>
-            <span className="text-muted-foreground">Total do financiamento: </span>
+            <span className="text-muted-foreground">Total ({computedCount || 0}x): </span>
             <span className="font-semibold text-foreground">{formatCurrency(total)}</span>
           </>
         )}
@@ -222,7 +311,7 @@ export function FinancingForm({
         </p>
       ) : null}
       <SubmitButton className="w-full">
-        {countMode === "recurring" ? "Criar gasto fixo" : "Criar financiamento"}
+        {countMode === "recurring" ? (isIncome ? "Criar receita fixa" : "Criar gasto fixo") : "Criar"}
       </SubmitButton>
     </form>
   );

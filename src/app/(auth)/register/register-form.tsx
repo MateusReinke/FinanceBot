@@ -22,6 +22,22 @@ export function RegisterForm() {
         <FieldError messages={state?.errors?.email} />
       </div>
       <div className="space-y-1.5">
+        <Label htmlFor="phoneNumber">WhatsApp</Label>
+        <Input
+          id="phoneNumber"
+          name="phoneNumber"
+          type="tel"
+          inputMode="tel"
+          placeholder="(11) 99999-9999"
+          required
+        />
+        <FieldError messages={state?.errors?.phoneNumber} />
+        <p className="text-xs text-muted-foreground">
+          Usado para lançar gastos por mensagem e para te incluir no grupo quando você entrar em
+          uma divisão de contas.
+        </p>
+      </div>
+      <div className="space-y-1.5">
         <Label htmlFor="password">Senha</Label>
         <Input id="password" name="password" type="password" placeholder="Mínimo 8 caracteres" required />
         <FieldError messages={state?.errors?.password} />

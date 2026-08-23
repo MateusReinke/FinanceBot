@@ -1,20 +1,28 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { getFinancingDetail } from "@/lib/queries/financing";
+import { FREQUENCY_AMOUNT_LABEL, FREQUENCY_SHORT_LABEL } from "@/lib/recurrence";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { FinancingHeader } from "./financing-header";
 import { InstallmentTable } from "./installment-table";
 
-export const metadata: Metadata = { title: "Financiamento — FinanceBot" };
+export const metadata: Metadata = { title: "Lançamento fixo — FinanceBot" };
 
 export default async function FinancingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { userId } = await verifySession();
   const financing = await getFinancingDetail(userId, id);
   if (!financing) notFound();
+
+  const isIncome = financing.type === "income";
+  const categories = await prisma.category.findMany({
+    where: { userId, type: financing.type },
+    orderBy: { name: "asc" },
+  });
 
   const pct =
     financing.totalAmount > 0 ? Math.min(100, (financing.paidTotal / financing.totalAmount) * 100) : 0;
@@ -24,8 +32,8 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
     .reduce((sum, i) => sum + Math.max(0, financing.installmentAmount - i.amount), 0);
 
   // A recurring "gasto fixo" schedule is a long practical cap under the
-  // hood (see MAX_RECURRING_MONTHS), not a real end date — showing all of
-  // it would dump hundreds of rows, and "X of 600 paid" / a completion bar
+  // hood (see recurringOccurrenceCount), not a real end date — showing all of
+  // it would dump hundreds of rows, and "X of 360 paid" / a completion bar
   // isn't a meaningful thing to show for it. Only a window around the
   // present is rendered instead.
   const visibleInstallments = financing.isRecurring
@@ -44,19 +52,39 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
         description={financing.description}
         remainingCount={financing.remainingCount}
         isRecurring={financing.isRecurring}
+        isIncome={isIncome}
+        categories={categories}
+        categoryId={financing.categoryId}
+        installmentAmount={financing.installmentAmount}
+        frequency={financing.frequency}
+        autoSettle={financing.autoSettle}
+        nextDueDate={financing.nextDueDate}
       />
       <p className="-mt-4 text-sm text-muted-foreground">
         {financing.account.name}
         {financing.category ? ` · ${financing.category.name}` : ""} ·{" "}
-        {financing.isRecurring ? "Gasto fixo desde" : "Primeira parcela em"}{" "}
-        {formatDate(financing.firstDueDate)}
+        {FREQUENCY_SHORT_LABEL[financing.frequency]} ·{" "}
+        {financing.isRecurring ? "desde" : "primeira cobrança em"} {formatDate(financing.firstDueDate)}
+        {financing.autoSettle ? "" : " · você confirma cada pagamento"}
       </p>
+
+      {financing.overdueCount > 0 ? (
+        <div className="rounded-xl border border-danger bg-danger-bg p-3 text-sm text-danger">
+          {financing.overdueCount === 1
+            ? "1 cobrança venceu e ainda não foi confirmada."
+            : `${financing.overdueCount} cobranças venceram e ainda não foram confirmadas.`}{" "}
+          Confirme abaixo para que {financing.overdueCount === 1 ? "ela entre" : "elas entrem"} no saldo.
+        </div>
+      ) : null}
 
       {financing.isRecurring ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <StatCard label="Valor por mês" value={formatCurrency(financing.installmentAmount)} />
           <StatCard
-            label="Já pago até agora"
+            label={FREQUENCY_AMOUNT_LABEL[financing.frequency]}
+            value={formatCurrency(financing.installmentAmount)}
+          />
+          <StatCard
+            label={isIncome ? "Já recebido até agora" : "Já pago até agora"}
             value={formatCurrency(financing.paidTotal)}
             valueClassName="text-success"
           />
@@ -90,7 +118,8 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
             <CardContent className="pt-5">
               <div className="mb-1.5 flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">
-                  {financing.paidCount} de {financing.installmentCount} parcelas pagas
+                  {financing.paidCount} de {financing.installmentCount} parcelas{" "}
+                  {isIncome ? "recebidas" : "pagas"}
                 </span>
                 <span className="font-medium text-foreground">{pct.toFixed(0)}%</span>
               </div>
@@ -111,6 +140,8 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
             financingId={financing.id}
             installments={visibleInstallments}
             installmentCount={financing.installmentCount}
+            frequency={financing.frequency}
+            isIncome={isIncome}
             scheduledAmount={financing.installmentAmount}
             isRecurring={financing.isRecurring}
           />

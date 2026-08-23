@@ -21,6 +21,7 @@ export function TransactionForm({
   initial,
   accounts,
   categories,
+  counterparties = [],
   onSuccess,
 }: {
   transaction?: Transaction;
@@ -30,12 +31,27 @@ export function TransactionForm({
   initial?: InitialValues;
   accounts: Account[];
   categories: Category[];
+  // People already used as counterparties, for the datalist. Typing "João"
+  // a second time then attaches to the same person instead of creating a
+  // near-duplicate group on the a-receber screen.
+  counterparties?: { name: string; phone: string | null }[];
   onSuccess: () => void;
 }) {
   const [state, action] = useActionState(upsertTransaction, undefined);
   const [type, setType] = useState<"income" | "expense">(
     (transaction?.type as "income" | "expense") ?? initial?.type ?? "expense"
   );
+  // Realizado by default: the overwhelmingly common case is recording
+  // something that already happened. An installment of a financing is
+  // driven by its own schedule, so the switch is hidden for those.
+  const isInstallment = Boolean(transaction?.financingId);
+  const [paid, setPaid] = useState(transaction ? transaction.balanceApplied : true);
+  // Typing a name that is already known fills its number in, so the second
+  // time you lend João money you don't have to go find his contact again.
+  const [counterparty, setCounterparty] = useState(transaction?.counterparty ?? "");
+  const knownPhone =
+    counterparties.find((c) => c.name.toLowerCase() === counterparty.trim().toLowerCase())?.phone ??
+    null;
 
   useEffect(() => {
     if (state?.success) onSuccess();
@@ -146,6 +162,92 @@ export function TransactionForm({
         <FieldError messages={state?.errors?.categoryId} />
       </div>
 
+      {isInstallment ? null : (
+        <div className="space-y-2">
+          <input type="hidden" name="paid" value={paid ? "true" : "false"} />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setPaid(true)}
+              className={cn(
+                "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+                paid
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {type === "income" ? "Já recebi" : "Já paguei"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaid(false)}
+              className={cn(
+                "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+                !paid
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {type === "income" ? "Ainda vou receber" : "Ainda vou pagar"}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {paid
+              ? "Entra no saldo agora."
+              : "Fica agendado: aparece em Próximos vencimentos e só mexe no saldo quando você confirmar."}
+          </p>
+        </div>
+      )}
+
+      {/* Only offered for money that hasn't moved yet. A supermarket
+          purchase you already paid has no one to chase, and asking "de
+          quem?" on every expense would be noise on the 95% case. */}
+      {paid ? null : (
+        <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="counterparty">
+              {type === "income" ? "Quem te deve? (opcional)" : "Para quem? (opcional)"}
+            </Label>
+            <Input
+              id="counterparty"
+              name="counterparty"
+              list="counterparty-options"
+              defaultValue={transaction?.counterparty ?? ""}
+              placeholder="Ex: João"
+              onChange={(e) => setCounterparty(e.target.value)}
+            />
+            <datalist id="counterparty-options">
+              {counterparties.map((c) => (
+                <option key={c.name} value={c.name} />
+              ))}
+            </datalist>
+            <FieldError messages={state?.errors?.counterparty} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="counterpartyPhone">WhatsApp (opcional)</Label>
+            <Input
+              id="counterpartyPhone"
+              name="counterpartyPhone"
+              type="tel"
+              // Keyed so a fresh default renders when the user picks a
+              // different known person — React keeps an uncontrolled input's
+              // value on re-render, which would otherwise leave the previous
+              // person's number sitting in the field.
+              key={knownPhone ?? "none"}
+              defaultValue={knownPhone ?? transaction?.counterpartyPhone ?? ""}
+              placeholder="(11) 99999-9999"
+            />
+            <p className="text-xs text-muted-foreground">
+              {type === "income"
+                ? "Com o número, o botão Cobrar abre a conversa com a mensagem pronta."
+                : "Guardado junto do lançamento, para você saber a quem procurar."}
+            </p>
+            <FieldError messages={state?.errors?.counterpartyPhone} />
+          </div>
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <Label htmlFor="notes">Notas (opcional)</Label>
         <Textarea id="notes" name="notes" rows={2} defaultValue={transaction?.notes ?? ""} />
@@ -157,7 +259,7 @@ export function TransactionForm({
         </p>
       ) : null}
       <SubmitButton className="w-full">
-        {transaction ? "Salvar alterações" : "Adicionar transação"}
+        {transaction ? "Salvar alterações" : "Adicionar lançamento"}
       </SubmitButton>
     </form>
   );

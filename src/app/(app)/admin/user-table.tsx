@@ -84,7 +84,7 @@ function UserRow({ user, currentUserId }: { user: AdminUser; currentUserId: stri
 
 export function UserTable({ users, currentUserId }: { users: AdminUser[]; currentUserId: string }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card">
+    <div className="overflow-x-auto surface">
       <table className="w-full min-w-[520px] text-left">
         <thead>
           <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-muted-foreground">

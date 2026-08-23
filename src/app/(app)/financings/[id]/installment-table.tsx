@@ -2,13 +2,14 @@
 
 import { useActionState, useEffect, useState } from "react";
 import type { Transaction } from "@prisma/client";
-import { CheckCircle2 } from "lucide-react";
-import { payInstallmentNow } from "@/app/actions/financing";
+import { CheckCircle2, SkipForward } from "lucide-react";
+import { payInstallmentNow, skipInstallment } from "@/app/actions/financing";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Input, Label, FieldError } from "@/components/ui/input";
-import { formatCurrency, formatDate, formatMonthYear, cn } from "@/lib/utils";
+import type { Frequency } from "@/lib/recurrence";
+import { formatCurrency, formatDate, formatMonthYear, toDateInputValue, cn } from "@/lib/utils";
 
 export function InstallmentTable({
   financingId,
@@ -16,15 +17,28 @@ export function InstallmentTable({
   installmentCount,
   scheduledAmount,
   isRecurring = false,
+  frequency = "monthly",
+  isIncome = false,
 }: {
   financingId: string;
   installments: Transaction[];
   installmentCount: number;
   scheduledAmount: number;
   isRecurring?: boolean;
+  frequency?: Frequency;
+  isIncome?: boolean;
 }) {
+  // A monthly gasto fixo reads better as "Agosto de 2026" than as an exact
+  // day. Anything that repeats more than once a month (quinzenal, semanal)
+  // would collapse two different charges into the same label, so those
+  // keep the full date.
+  const byMonthLabel = isRecurring && frequency === "monthly";
   const [payingId, setPayingId] = useState<string | null>(null);
   const paying = installments.find((i) => i.id === payingId) ?? null;
+  // Compared as a calendar date in UTC, like every other date here: due
+  // today is not late.
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
   return (
     <>
@@ -52,7 +66,7 @@ export function InstallmentTable({
                     </td>
                   )}
                   <td className="px-3 py-2.5 text-muted-foreground">
-                    {isRecurring
+                    {byMonthLabel
                       ? formatMonthYear(new Date(inst.date).getUTCMonth() + 1, new Date(inst.date).getUTCFullYear())
                       : formatDate(inst.date)}
                   </td>
@@ -70,17 +84,43 @@ export function InstallmentTable({
                     <span
                       className={cn(
                         "rounded-full px-2 py-0.5 text-xs font-medium",
-                        inst.balanceApplied ? "bg-success-bg text-success" : "bg-warning-bg text-warning"
+                        inst.balanceApplied
+                          ? "bg-success-bg text-success"
+                          : new Date(inst.date) < today
+                            ? "bg-danger-bg text-danger"
+                            : "bg-warning-bg text-warning"
                       )}
                     >
-                      {inst.balanceApplied ? "Paga" : "Pendente"}
+                      {inst.balanceApplied
+                        ? isIncome
+                          ? "Recebida"
+                          : "Paga"
+                        : new Date(inst.date) < today
+                          ? "Atrasada"
+                          : "Pendente"}
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-right">
                     {!inst.balanceApplied ? (
-                      <Button variant="outline" size="sm" onClick={() => setPayingId(inst.id)}>
-                        Pagar agora
-                      </Button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button variant="outline" size="sm" onClick={() => setPayingId(inst.id)}>
+                          {isIncome ? "Recebi" : "Paguei"}
+                        </Button>
+                        {isRecurring ? (
+                          <form
+                            action={skipInstallment}
+                            onSubmit={(e) => {
+                              if (!confirm("Pular esta cobrança? Ela some do mês, e as próximas continuam normalmente."))
+                                e.preventDefault();
+                            }}
+                          >
+                            <input type="hidden" name="transactionId" value={inst.id} />
+                            <Button type="submit" variant="outline" size="sm" title="Pular esta">
+                              <SkipForward className="h-4 w-4" />
+                            </Button>
+                          </form>
+                        ) : null}
+                      </div>
                     ) : null}
                   </td>
                 </tr>
@@ -94,12 +134,17 @@ export function InstallmentTable({
         lá se precisar de um ajuste pontual.
       </p>
 
-      <Modal open={paying !== null} onClose={() => setPayingId(null)} title="Pagar parcela agora">
+      <Modal
+        open={paying !== null}
+        onClose={() => setPayingId(null)}
+        title={isIncome ? "Confirmar recebimento" : "Confirmar pagamento"}
+      >
         {paying ? (
           <PayInstallmentForm
             financingId={financingId}
             transaction={paying}
             scheduledAmount={scheduledAmount}
+            isIncome={isIncome}
             onSuccess={() => setPayingId(null)}
           />
         ) : null}
@@ -112,11 +157,13 @@ function PayInstallmentForm({
   financingId,
   transaction,
   scheduledAmount,
+  isIncome,
   onSuccess,
 }: {
   financingId: string;
   transaction: Transaction;
   scheduledAmount: number;
+  isIncome: boolean;
   onSuccess: () => void;
 }) {
   const [state, action] = useActionState(payInstallmentNow, undefined);
@@ -131,13 +178,11 @@ function PayInstallmentForm({
       <input type="hidden" name="transactionId" value={transaction.id} />
 
       <p className="text-sm text-muted-foreground">
-        Parcela {transaction.installmentNumber} · vencimento {formatDate(transaction.date)}
-        <br />
-        Valor previsto: {formatCurrency(scheduledAmount)}
+        Vencimento {formatDate(transaction.date)} · previsto {formatCurrency(scheduledAmount)}
       </p>
 
       <div className="space-y-1.5">
-        <Label htmlFor="paidAmount">Valor pago (R$)</Label>
+        <Label htmlFor="paidAmount">{isIncome ? "Valor recebido (R$)" : "Valor pago (R$)"}</Label>
         <Input
           id="paidAmount"
           name="paidAmount"
@@ -149,10 +194,25 @@ function PayInstallmentForm({
           autoFocus
         />
         <p className="text-xs text-muted-foreground">
-          Pagou menos que o previsto (ex: amortização)? Informe o valor real — a diferença fica
-          registrada como economia.
+          {isIncome
+            ? "Veio diferente do previsto? Informe o valor real que caiu na conta."
+            : "Pagou menos que o previsto (ex: amortização ou desconto)? Informe o valor real — a diferença fica registrada como economia."}
         </p>
         <FieldError messages={state?.errors?.paidAmount} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="paidDate">{isIncome ? "Recebi no dia" : "Paguei no dia"}</Label>
+        <Input
+          id="paidDate"
+          name="paidDate"
+          type="date"
+          defaultValue={toDateInputValue(transaction.date)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Pagou atrasado? Ajuste aqui para o lançamento cair no dia certo.
+        </p>
+        <FieldError messages={state?.errors?.paidDate} />
       </div>
 
       {state?.message ? (
@@ -160,7 +220,9 @@ function PayInstallmentForm({
           {state.message}
         </p>
       ) : null}
-      <SubmitButton className="w-full">Confirmar pagamento</SubmitButton>
+      <SubmitButton className="w-full">
+        {isIncome ? "Confirmar recebimento" : "Confirmar pagamento"}
+      </SubmitButton>
     </form>
   );
 }

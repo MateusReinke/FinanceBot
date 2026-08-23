@@ -3,7 +3,13 @@ import { suggestSettlements, type Balance } from "@/lib/events";
 import { displayName } from "@/lib/display-name";
 import { formatCurrency, cn } from "@/lib/utils";
 
-type BalanceRow = Balance & { user: { id: string; name: string; email: string }; active: boolean };
+type BalanceRow = Balance & {
+  user: { id: string; name: string; email: string };
+  active: boolean;
+  // Everything this person put in, personal spending included — shown apart
+  // from the balance, which only ever counts shared expenses.
+  personalTotal: number;
+};
 
 export function BalancePanel({
   balanceRows,
@@ -23,6 +29,11 @@ export function BalancePanel({
             <span className="text-foreground">
               {displayName(b.user, currentUserId)}
               {!b.active ? <span className="ml-1 text-xs text-muted-foreground">(saiu)</span> : null}
+              {b.userId === currentUserId && b.personalTotal > b.paid + 0.005 ? (
+                <span className="ml-1 text-xs text-muted-foreground">
+                  · gastou {formatCurrency(b.personalTotal)} no total
+                </span>
+              ) : null}
             </span>
             <span
               className={cn(

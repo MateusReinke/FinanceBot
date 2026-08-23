@@ -11,12 +11,21 @@ model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
-  passwordHash String
+  // Null for an account that only ever signs in with Google. Password login
+  // checks for this and says so, rather than failing as "senha incorreta"
+  // for a password that was never set. Setting one in Configurações is what
+  // gives such an account a second way in.
+  passwordHash String?
   // Plain string ("user" | "admin"), consistent with every other enum-like
   // field in this schema. The first admin is designated via the ADMIN_EMAIL
   // env var (see src/lib/admin.ts) — never trusted from the JWT session,
   // always re-read from the DB in src/lib/admin-dal.ts.
   role         String   @default("user")
+  // E.164 ("+5511999999999"). Required at signup, and the key the WhatsApp
+  // side works from: it proves an inbound message belongs to this user, and
+  // it is what an event's group is built out of. Nullable only because
+  // accounts created before it was required still exist.
+  phoneNumber  String?  @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -27,9 +36,14 @@ model User {
   pluggyItems  PluggyItem[]
   financings   Financing[]
 
+  apiTokens        ApiToken[]
+  inboundMessages  InboundMessage[]
+  googleAccount    GoogleAccount?
+  contacts         Contact[]
+
   createdEvents       Event[]             @relation("EventCreator")
   eventParticipations EventParticipant[]
-  paidEventExpenses   EventExpense[]      @relation("EventExpensePayer")
+  eventExpensePayments EventExpensePayment[] @relation("EventExpensePayer")
   eventExpenseSplits  EventExpenseSplit[]
   uploadedReceipts    EventReceipt[]
 }
@@ -44,6 +58,13 @@ model PluggyItem {
   status            String // UPDATED, UPDATING, LOGIN_ERROR, OUTDATED, WAITING_USER_INPUT, ERROR
   executionStatus   String?
   lastSyncedAt      DateTime?
+  // Last failure message, cleared on the next successful sync, so the UI can
+  // say what actually went wrong instead of a generic "erro".
+  lastSyncError     String?
+  // Set while a sync is in flight and cleared when it ends. Two syncs of the
+  // same item (a webhook landing while the user hits "sincronizar") would
+  // otherwise both walk the same pages and fight over the same rows.
+  syncStartedAt     DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -82,6 +103,9 @@ model Account {
   pluggyItem   PluggyItem?   @relation(fields: [pluggyItemId], references: [id], onDelete: SetNull)
   transactions Transaction[]
   financings   Financing[]
+  // Payments of this card's invoices, which live on whichever account the
+  // money left. Only ever populated for type: "credit_card".
+  invoicePayments Transaction[] @relation("CardInvoicePayment")
 
   @@index([userId])
 }
@@ -128,11 +152,53 @@ model Transaction {
   // balanceApplied true, so nothing about existing behavior changes.
   financingId       String?
   installmentNumber Int? // 1-based position within the financing; fixed at creation, never renumbered
-  // False only for a not-yet-due financing installment. True for every other
-  // transaction (the balance effect already applies immediately at creation,
-  // as it always has) and for a financing installment once its due date has
-  // been reconciled — see src/lib/financing.ts.
+  // The realizado/previsto flag for EVERY transaction, not just financing
+  // installments: true means the money actually moved and Account.balance
+  // already reflects it; false means it is only scheduled. A pending row
+  // past its date is what the app calls "atrasada". Defaults to true, so a
+  // plain transaction keeps behaving exactly as it always has.
   balanceApplied Boolean @default(true)
+
+  // Set when this transaction came in through the public API (WhatsApp via
+  // n8n, or any other automation) rather than the web UI.
+  source         String  @default("app") // app, whatsapp, api, openfinance
+
+  // Who the money is owed by (on an income) or to (on an expense) — "João",
+  // "Cliente ACME". Deliberately free text and not a User relation: the
+  // person you need to chase for R$200 is almost never an app user, and
+  // making them sign up first would kill the feature. Null is the normal
+  // case (a supermarket purchase has no counterparty worth naming).
+  counterparty      String?
+  // The counterparty's WhatsApp, so "Cobrar" can open a chat with the
+  // message already written instead of making the user go find the contact.
+  // Normalized through lib/phone.ts like every other number in the app.
+  counterpartyPhone String?
+  // Last time the user actually sent a charge for this entry. Only a record
+  // of "I already asked" — it never changes the amount or the due date, and
+  // is what stops the same person being pestered twice in one afternoon.
+  chargedAt         DateTime?
+
+  // Set when the user explicitly said "this has NOT been paid after all",
+  // by pressing Desfazer on a row they had confirmed. It exists for one
+  // reason: a recurring entry set to debit automatically is re-applied by
+  // reconcileDueInstallments the moment it is due, so without a marker
+  // saying the user overrode that, undoing a past-due installment would be
+  // silently redone on the very next page load. Cleared whenever the row is
+  // confirmed again.
+  unsettledAt         DateTime?
+
+  // Set when this expense is the *payment of a credit card's invoice*,
+  // pointing at the card it settles. The row itself lives on the account the
+  // money leaves (the checking account), because that is where the money
+  // actually moves — a card's own invoice is not a purchase and must never
+  // be an expense on the card, which would inflate the very debt it pays.
+  //
+  // This link is what keeps scheduling a future invoice and pressing
+  // "marcar fatura como paga" from booking the same payment twice:
+  // payCardInvoice settles the matching scheduled row when it finds one
+  // instead of writing a second expense.
+  invoiceForAccountId String?
+  invoiceForAccount   Account? @relation("CardInvoicePayment", fields: [invoiceForAccountId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -145,12 +211,21 @@ model Transaction {
   @@unique([userId, pluggyTransactionId])
   @@unique([financingId, installmentNumber])
   @@index([userId, date])
+  // Serves the "a receber" screen, which reads one narrow slice — this
+  // user's unsettled rows — and would otherwise scan every transaction they
+  // have ever had to find the handful that are still open.
+  @@index([userId, balanceApplied, date])
   @@index([accountId])
   @@index([categoryId])
   @@index([financingId])
+  @@index([invoiceForAccountId])
 }
 
-// One "N monthly installments of R$V" plan (financiamento). The Financing
+// One repeating money plan: a financiamento/parcelamento (N installments
+// of R$V), a gasto fixo (aluguel, assinatura), or a receita fixa (salário).
+// All three are the same thing mechanically — N occurrences spaced by
+// `frequency` — and differ only in `type`, `isRecurring` and how they read.
+// The Financing
 // row itself is metadata; the actual N Transaction rows (linked via
 // financingId) are what drive balances, the dashboard, and budgets — no
 // extra code was needed there, since a normal expense-type Transaction
@@ -161,16 +236,36 @@ model Financing {
   accountId         String
   categoryId        String?
   description       String
+  // "expense" (aluguel, assinatura, parcela) or "income" (salário, aluguel
+  // que você recebe). Every installment Transaction is created with this
+  // type, which is what decides the sign of its balance effect.
+  type              String   @default("expense")
   installmentAmount Float // V — always positive, one installment's value
   installmentCount  Int // N — total number of installments (a recurring expense just uses a long practical cap, see isRecurring)
   firstDueDate      DateTime // calendar date (UTC midnight) of installment #1
+  // How far apart consecutive installments fall: weekly, biweekly (every
+  // 15 days), monthly, quarterly, semiannual, annual — see
+  // src/lib/recurrence.ts. Defaults to "monthly", which is exactly what
+  // every row created before this field existed already was.
+  frequency         String   @default("monthly")
   // True for a fixed monthly expense with no real end date (rent, a
   // subscription with no planned cancellation, ...). installmentCount is
-  // still a normal finite number under the hood — MAX_RECURRING_MONTHS,
-  // see financing-form.tsx — so it reuses 100% of the same schedule/
+  // still a normal finite number under the hood — see
+  // recurringOccurrenceCount in src/lib/recurrence.ts — so it reuses the
+  // exact same schedule/
   // reconciliation machinery; this flag only changes how it's displayed
   // (no "X of Y" progress, no meaningful total).
   isRecurring       Boolean  @default(false)
+  // True (the default, and what every row created before this field
+  // existed already did) = the installment hits the balance on its own the
+  // moment it comes due, for things really debited automatically. False =
+  // it stays pending until the user confirms payment, and shows up as
+  // atrasada once the due date passes.
+  autoSettle        Boolean  @default(true)
+  // Set when an open-ended entry is ended by the user. Without it, the
+  // rolling extender would simply regenerate the occurrences that
+  // "Encerrar" had just removed.
+  canceledAt        DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -182,6 +277,78 @@ model Financing {
   @@index([userId])
   @@index([accountId])
   @@index([categoryId])
+}
+
+// A bearer token for the public API — how an automation (the n8n WhatsApp
+// agent) acts on one user's behalf. Only the hash is ever stored, exactly
+// like a password: the plaintext is shown once at creation and cannot be
+// recovered afterwards.
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  // SHA-256 of the token. Unique so a lookup is a single indexed read
+  // rather than a scan comparing every row.
+  tokenHash  String    @unique
+  // First characters of the plaintext ("fbot_a1b2"), so the UI can tell two
+  // tokens apart without being able to reconstruct either.
+  prefix     String
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// One inbound automation message. Exists for idempotency above all:
+// WhatsApp providers retry aggressively, and without a dedupe key a single
+// "gastei 50 no mercado" can post three times. externalId is whatever
+// message id the provider sent; scoped per user so one user's ids can
+// never collide with another's.
+model InboundMessage {
+  id         String   @id @default(cuid())
+  userId     String
+  externalId String
+  channel    String // whatsapp, api
+  body       String
+  // The transaction this message created, when it created one. Null for a
+  // message that was a question ("quanto gastei?") or that failed to parse.
+  resultId   String?
+  status     String // created, duplicate, failed, answered
+  reply      String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, externalId])
+  @@index([userId, createdAt])
+}
+
+// One thing that happened in the app and that an automation may want to
+// act on — an event being created, someone joining it, an expense being
+// added. Rows are the queue: written in the same breath as the change
+// itself, then delivered to N8N_WEBHOOK_URL with retries.
+//
+// A queue rather than a direct call because the two must not share a fate:
+// a webhook that is down cannot be allowed to fail the expense the user
+// just recorded, and a delivery that fails deserves another try later.
+model OutboundEvent {
+  id            String    @id @default(cuid())
+  userId        String?
+  eventId       String?
+  type          String // event.created, event.participant_joined, event.expense_created, ...
+  payload       Json
+  status        String    @default("pending") // pending, delivered, failed
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now())
+  lastError     String?
+  deliveredAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([eventId])
 }
 
 model Budget {
@@ -214,6 +381,13 @@ model Event {
   createdById String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Set by the automation after it actually creates the group, via the
+  // callback route — the app never talks to WhatsApp itself.
+  whatsappGroupId     String?
+  // none (nobody asked for a group) | pending (asked, waiting on the
+  // automation) | created | failed
+  whatsappGroupStatus String  @default("none")
 
   createdBy    User?              @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
   participants EventParticipant[]
@@ -258,7 +432,11 @@ model EventExpense {
   eventId     String
   description String
   amount      Float
-  paidById    String
+  // True: the group's expense — split between participants, visible to all,
+  // and part of the balances. False: something one person spent on
+  // themselves during the event; visible only to whoever paid it, and
+  // deliberately outside the balances, since nobody owes anybody for it.
+  isShared    Boolean  @default(true)
   date        DateTime @default(now())
   // Set when this expense came from AI-extracted receipt items — several
   // expenses can point at the same receipt (one photo, many line items).
@@ -266,18 +444,36 @@ model EventExpense {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  event   Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  // Restrict (not Cascade/SetNull): a group's shared ledger must never lose
-  // who paid what just because that member later deletes their account.
-  paidBy  User                @relation("EventExpensePayer", fields: [paidById], references: [id], onDelete: Restrict)
-  splits  EventExpenseSplit[]
+  event    Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  // Who actually put money in. A list, not a single payer: one dinner is
+  // routinely settled by two people putting in different amounts, and
+  // forcing that into one payer meant inventing a second expense.
+  payments EventExpensePayment[]
+  splits   EventExpenseSplit[]
   // SetNull, not Cascade: the receipt is supporting evidence, not the
   // source of truth — losing the photo must never delete real ledger history.
   receipt EventReceipt?       @relation(fields: [receiptId], references: [id], onDelete: SetNull)
 
   @@index([eventId])
-  @@index([paidById])
   @@index([receiptId])
+}
+
+// One person's contribution to paying an expense. Amounts across an
+// expense's payments always sum to its total — enforced by the action, and
+// what makes the balances add up.
+model EventExpensePayment {
+  id             String @id @default(cuid())
+  eventExpenseId String
+  userId         String
+  amount         Float
+
+  eventExpense EventExpense @relation(fields: [eventExpenseId], references: [id], onDelete: Cascade)
+  // Restrict, like the splits below: a group's shared ledger must never lose
+  // who paid what because that member later deleted their account.
+  user         User         @relation("EventExpensePayer", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([eventExpenseId, userId])
+  @@index([userId])
 }
 
 // A photographed nota fiscal / receipt, read by OpenAI's vision API to
@@ -313,4 +509,69 @@ model EventExpenseSplit {
 
   @@unique([eventExpenseId, userId])
   @@index([userId])
+}
+
+
+// One Google account linked to one FinanceBot user — the "Entrar com Google"
+// side, and the credentials the contacts import runs on.
+//
+// A separate model rather than columns on User for the same reason
+// PluggyItem is separate: it holds third-party tokens with their own
+// lifecycle, and deleting the link must not touch the user's own data.
+model GoogleAccount {
+  id     String @id @default(cuid())
+  userId String @unique
+  // Google's stable subject claim ("sub"). The join key, never the email:
+  // an address can be reassigned within a Workspace domain, the sub cannot.
+  googleId String @unique
+  email    String
+  // Whatever picture/name Google returned, kept only to show which account
+  // is connected in Configurações.
+  pictureUrl String?
+
+  // Tokens for the People API. accessToken is short-lived and refreshed on
+  // demand; refreshToken is only issued when the consent screen is forced
+  // (access_type=offline + prompt=consent), so it is nullable and its
+  // absence simply means the user has to reconnect to import again.
+  accessToken     String?
+  refreshToken    String?
+  accessExpiresAt DateTime?
+  // Space-separated scopes actually granted. Google lets the user untick
+  // individual scopes on the consent screen, so what was asked for and what
+  // was granted are different questions — the UI reads this one.
+  grantedScopes String @default("")
+
+  lastContactsSyncAt DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A person imported from the user's Google Contacts, used to fill in "de
+// quem" on a lançamento without retyping a name and number.
+//
+// Deliberately a thin copy — name and phone only, never emails, addresses,
+// birthdays or photos. This is somebody else's personal data sitting in a
+// finance app, so the app holds the least it can get away with, only after
+// an explicit import, and drops all of it when the user disconnects Google.
+model Contact {
+  id     String @id @default(cuid())
+  userId String
+  name   String
+  // E.164, normalized through lib/phone.ts like every other number here.
+  // Null for a contact saved without a number, which is still worth having:
+  // the name alone is enough to group what someone owes you.
+  phone  String?
+  // Google's resourceName ("people/c123..."), the dedupe key across
+  // re-imports so editing a contact in Google updates the row instead of
+  // adding a second one. Null for a contact the user typed by hand.
+  googleResourceName String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, googleResourceName])
+  @@index([userId, name])
 }

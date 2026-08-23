@@ -1,18 +1,21 @@
 "use client";
 
-import { Receipt, Trash2 } from "lucide-react";
+import { Receipt, Trash2, Lock } from "lucide-react";
 import { deleteExpense } from "@/app/actions/events";
 import { displayName } from "@/lib/display-name";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-type Split = { userId: string; amount: number; user: { id: string; name: string; email: string } };
+type Person = { id: string; name: string; email: string };
+type Split = { userId: string; amount: number; user: Person };
+type Payment = { userId: string; amount: number; user: Person };
 type Expense = {
   id: string;
   description: string;
   amount: number;
   date: Date;
+  isShared: boolean;
   receiptId: string | null;
-  paidBy: { id: string; name: string; email: string };
+  payments: Payment[];
   splits: Split[];
 };
 
@@ -25,18 +28,34 @@ export function ExpenseRow({
   expense: Expense;
   currentUserId: string;
 }) {
-  const splitSummary =
-    expense.splits.length <= 1
-      ? displayName(expense.splits[0]?.user ?? expense.paidBy, currentUserId)
-      : `dividido entre ${expense.splits.length} pessoas`;
+  // Reads naturally in the three shapes that actually occur: one payer,
+  // two payers, or a crowd.
+  const payerSummary =
+    expense.payments.length === 1
+      ? displayName(expense.payments[0].user, currentUserId)
+      : expense.payments.length === 2
+        ? expense.payments.map((p) => displayName(p.user, currentUserId)).join(" e ")
+        : `${expense.payments.length} pessoas`;
+
+  const splitSummary = !expense.isShared
+    ? "só sua"
+    : expense.splits.length <= 1
+      ? `só para ${displayName(expense.splits[0]?.user ?? expense.payments[0]?.user, currentUserId)}`
+      : `dividido entre ${expense.splits.length}`;
 
   return (
     <li className="flex items-center gap-3 py-3">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{expense.description}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="truncate text-sm font-medium text-foreground">{expense.description}</p>
+          {!expense.isShared ? (
+            <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              <Lock className="h-3 w-3" /> Pessoal
+            </span>
+          ) : null}
+        </div>
         <p className="text-xs text-muted-foreground">
-          {formatDate(expense.date)} · Pago por {displayName(expense.paidBy, currentUserId)} ·{" "}
-          {splitSummary}
+          {formatDate(expense.date)} · Pago por {payerSummary} · {splitSummary}
         </p>
       </div>
       <span className="shrink-0 text-sm font-semibold text-foreground">

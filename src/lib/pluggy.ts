@@ -54,6 +54,20 @@ async function getApiKey(): Promise<string> {
   return apiKey;
 }
 
+// The URL Pluggy should call back. When the deployment authenticates the
+// webhook by shared token instead of HMAC (see the webhook route), the
+// token has to ride along in the query string — otherwise every delivery
+// would be rejected.
+function webhookUrl() {
+  const base = process.env.PLUGGY_WEBHOOK_URL;
+  if (!base) return undefined;
+  const token = process.env.PLUGGY_WEBHOOK_TOKEN;
+  if (!token || process.env.PLUGGY_WEBHOOK_SECRET) return base;
+  const url = new URL(base);
+  url.searchParams.set("token", token);
+  return url.toString();
+}
+
 export async function createConnectToken(options?: { itemId?: string; clientUserId?: string }) {
   const apiKey = await getApiKey();
   const { accessToken } = await pluggyFetch<{ accessToken: string }>("/connect_token", {
@@ -62,7 +76,7 @@ export async function createConnectToken(options?: { itemId?: string; clientUser
     body: JSON.stringify({
       ...(options?.itemId ? { itemId: options.itemId } : {}),
       ...(options?.clientUserId ? { clientUserId: options.clientUserId } : {}),
-      ...(process.env.PLUGGY_WEBHOOK_URL ? { webhookUrl: process.env.PLUGGY_WEBHOOK_URL } : {}),
+      ...(webhookUrl() ? { webhookUrl: webhookUrl() } : {}),
     }),
   });
   return accessToken;

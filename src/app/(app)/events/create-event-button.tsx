@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { CreateEventForm } from "./create-event-form";
 
-export function CreateEventButton() {
+export function CreateEventButton({ whatsappEnabled = false }: { whatsappEnabled?: boolean }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,7 +15,7 @@ export function CreateEventButton() {
         <Plus className="h-4 w-4" /> Novo evento
       </Button>
       <Modal open={open} onClose={() => setOpen(false)} title="Novo evento">
-        <CreateEventForm />
+        <CreateEventForm whatsappEnabled={whatsappEnabled} />
       </Modal>
     </>
   );

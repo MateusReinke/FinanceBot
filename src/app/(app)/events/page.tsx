@@ -5,6 +5,8 @@ import { verifySession } from "@/lib/dal";
 import { getUserEvents } from "@/lib/queries/events";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { CreateEventButton } from "./create-event-button";
+import { isOutboundConfigured } from "@/lib/outbound";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Eventos — FinanceBot" };
 
@@ -15,13 +17,11 @@ export default async function EventsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Eventos</h1>
-          <p className="text-sm text-muted-foreground">
-            Divida contas com outras pessoas — só quem participa do evento vê os gastos dele.
-          </p>
-        </div>
-        <CreateEventButton />
+        <PageHeader
+          title="Dividir contas"
+          description="Divida contas com outras pessoas — só quem participa do evento vê os gastos dele."
+        />
+        <CreateEventButton whatsappEnabled={isOutboundConfigured()} />
       </div>
 
       {events.length === 0 ? (
@@ -31,7 +31,7 @@ export default async function EventsPage() {
             Crie um evento para dividir uma conta com amigos, ou entre em um pelo link de convite
             que alguém compartilhou com você.
           </p>
-          <CreateEventButton />
+          <CreateEventButton whatsappEnabled={isOutboundConfigured()} />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -39,7 +39,7 @@ export default async function EventsPage() {
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary"
+              className="group flex flex-col gap-3 surface p-4 transition-colors hover:border-primary"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">

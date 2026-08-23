@@ -13,12 +13,16 @@ export function BudgetRow({
   category,
   budget,
   spent,
+  scheduled = 0,
   month,
   year,
 }: {
   category: Category;
   budget: Budget | null;
   spent: number;
+  // Already scheduled for this month but not paid yet — shown apart from
+  // `spent` so an unpaid bill never looks like money already gone.
+  scheduled?: number;
   month: number;
   year: number;
 }) {
@@ -27,7 +31,7 @@ export function BudgetRow({
   const over = budget ? spent > budget.amount : false;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="surface p-4">
       <div className="flex items-center gap-3">
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
@@ -88,6 +92,11 @@ export function BudgetRow({
               style={{ width: `${pct}%` }}
             />
           </div>
+          {scheduled > 0 ? (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              + {formatCurrency(scheduled)} já agendados para este mês
+            </p>
+          ) : null}
         </div>
       ) : spent > 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">

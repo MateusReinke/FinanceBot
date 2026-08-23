@@ -10,19 +10,26 @@ import { TransactionForm } from "./transaction-form";
 export function AddTransactionButton({
   accounts,
   categories,
+  counterparties = [],
 }: {
   accounts: Account[];
   categories: Category[];
+  counterparties?: { name: string; phone: string | null }[];
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
       <Button size="sm" onClick={() => setOpen(true)} disabled={accounts.length === 0}>
-        <Plus className="h-4 w-4" /> Nova transação
+        <Plus className="h-4 w-4" /> Novo lançamento
       </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Nova transação">
-        <TransactionForm accounts={accounts} categories={categories} onSuccess={() => setOpen(false)} />
+      <Modal open={open} onClose={() => setOpen(false)} title="Novo lançamento">
+        <TransactionForm
+          accounts={accounts}
+          categories={categories}
+          counterparties={counterparties}
+          onSuccess={() => setOpen(false)}
+        />
       </Modal>
     </>
   );
