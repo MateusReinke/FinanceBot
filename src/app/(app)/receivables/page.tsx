@@ -28,18 +28,17 @@ export default async function ReceivablesPage() {
       />
 
       {data.count === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-12 text-center">
-          <HandCoins className="h-9 w-9 text-muted-foreground" />
-          <p className="max-w-md text-sm text-muted-foreground">
+        <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed p-12 text-center">
+          <HandCoins className="text-muted-foreground h-9 w-9" />
+          <p className="text-muted-foreground max-w-md text-sm">
             Nada a receber no momento. Quando alguém ficar te devendo, lance como uma receita
-            marcada como <span className="font-medium text-foreground">&ldquo;ainda vou receber&rdquo;</span> e
-            preencha o campo <span className="font-medium text-foreground">&ldquo;de quem&rdquo;</span> — ela
-            aparece aqui com a data e um botão de cobrança.
+            marcada como{" "}
+            <span className="text-foreground font-medium">&ldquo;ainda vou receber&rdquo;</span> e
+            preencha o campo{" "}
+            <span className="text-foreground font-medium">&ldquo;de quem&rdquo;</span> — ela aparece
+            aqui com a data e um botão de cobrança.
           </p>
-          <Link
-            href="/transactions"
-            className="text-sm font-medium text-primary hover:underline"
-          >
+          <Link href="/transactions" className="text-primary text-sm font-medium hover:underline">
             Ir para Lançamentos →
           </Link>
         </div>

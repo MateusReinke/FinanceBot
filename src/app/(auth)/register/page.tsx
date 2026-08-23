@@ -16,8 +16,8 @@ export default async function RegisterPage({
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h2 className="text-2xl font-semibold text-foreground">Crie sua conta</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-foreground text-2xl font-semibold">Crie sua conta</h2>
+        <p className="text-muted-foreground text-sm">
           Comece a organizar suas finanças gratuitamente.
         </p>
       </div>

@@ -1,9 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import {
-  DEFAULT_EXPENSE_CATEGORIES,
-  DEFAULT_INCOME_CATEGORIES,
-} from "@/lib/default-categories";
+import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from "@/lib/default-categories";
 
 // Shared by self-registration (src/app/actions/auth.ts) and admin-created
 // users (src/app/actions/admin.ts) so the default-category seeding never

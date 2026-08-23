@@ -13,7 +13,12 @@ import {
   YAxis,
 } from "recharts";
 import type { InvoiceMonthPoint } from "@/lib/queries/card-invoices";
-import { formatCurrency, formatCompactCurrency, formatMonthShort, formatMonthYear } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatCompactCurrency,
+  formatMonthShort,
+  formatMonthYear,
+} from "@/lib/utils";
 import { ChartTable } from "./chart-table";
 import { FutureBand } from "./future-band";
 
@@ -113,70 +118,67 @@ export function CardInvoiceChart({
           bottomInset={stacks.length > 1 ? LEGEND_HEIGHT : 0}
         />
         <ResponsiveContainer width="100%" height={240}>
-        <BarChart
-          data={rows}
-          margin={{ top: 24, right: MARGIN_RIGHT, left: 0, bottom: 0 }}
-        >
-          <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+          <BarChart data={rows} margin={{ top: 24, right: MARGIN_RIGHT, left: 0, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
 
-          <XAxis
-            dataKey="label"
-            axisLine={false}
-            tickLine={false}
-            interval={0}
-            tick={{ fill: "var(--chart-axis)", fontSize: 11 }}
-          />
-          <YAxis
-            axisLine={false}
-            tickLine={false}
-            tick={{ fill: "var(--chart-axis)", fontSize: 12 }}
-            tickFormatter={(v) => formatCompactCurrency(Number(v))}
-            width={AXIS_WIDTH}
-          />
-
-          <Tooltip
-            content={<InvoiceTooltip stacks={stacks} />}
-            cursor={{ fill: "var(--muted)", opacity: 0.5 }}
-          />
-          {stacks.length > 1 ? (
-            <Legend
-              formatter={(value) => (
-                <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>{value}</span>
-              )}
+            <XAxis
+              dataKey="label"
+              axisLine={false}
+              tickLine={false}
+              interval={0}
+              tick={{ fill: "var(--chart-axis)", fontSize: 11 }}
             />
-          ) : null}
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "var(--chart-axis)", fontSize: 12 }}
+              tickFormatter={(v) => formatCompactCurrency(Number(v))}
+              width={AXIS_WIDTH}
+            />
 
-          {stacks.map((s) => (
-            <Bar
-              key={s.name}
-              dataKey={s.name}
-              stackId="faturas"
-              fill={s.color}
-              // Painted in the chart's own surface colour: the 2px gap that
-              // separates touching segments, not an outline around them.
-              stroke="var(--chart-surface)"
-              strokeWidth={2}
-              maxBarSize={22}
-              radius={s.name === lastKey ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-              className={onSelectMonth ? "cursor-pointer" : undefined}
-            >
-              {/* Picking a month in the breakdown below dims the rest, so the
+            <Tooltip
+              content={<InvoiceTooltip stacks={stacks} />}
+              cursor={{ fill: "var(--muted)", opacity: 0.5 }}
+            />
+            {stacks.length > 1 ? (
+              <Legend
+                formatter={(value) => (
+                  <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>{value}</span>
+                )}
+              />
+            ) : null}
+
+            {stacks.map((s) => (
+              <Bar
+                key={s.name}
+                dataKey={s.name}
+                stackId="faturas"
+                fill={s.color}
+                // Painted in the chart's own surface colour: the 2px gap that
+                // separates touching segments, not an outline around them.
+                stroke="var(--chart-surface)"
+                strokeWidth={2}
+                maxBarSize={22}
+                radius={s.name === lastKey ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                className={onSelectMonth ? "cursor-pointer" : undefined}
+              >
+                {/* Picking a month in the breakdown below dims the rest, so the
                   column and the list are visibly the same month. Emphasis by
                   opacity, never by repainting: a card keeps its colour. */}
-              {rows.map((r) => (
-                <Cell
-                  key={String(r.key)}
-                  opacity={selectedMonth && selectedMonth !== r.key ? 0.35 : 1}
-                  // Bound per cell rather than on the chart: the chart-level
-                  // click event reports an index that does not track the
-                  // column actually under the pointer, while the cell already
-                  // knows which month it is.
-                  onClick={onSelectMonth ? () => onSelectMonth(String(r.key)) : undefined}
-                />
-              ))}
-            </Bar>
-          ))}
-        </BarChart>
+                {rows.map((r) => (
+                  <Cell
+                    key={String(r.key)}
+                    opacity={selectedMonth && selectedMonth !== r.key ? 0.35 : 1}
+                    // Bound per cell rather than on the chart: the chart-level
+                    // click event reports an index that does not track the
+                    // column actually under the pointer, while the cell already
+                    // knows which month it is.
+                    onClick={onSelectMonth ? () => onSelectMonth(String(r.key)) : undefined}
+                  />
+                ))}
+              </Bar>
+            ))}
+          </BarChart>
         </ResponsiveContainer>
       </div>
 
@@ -211,26 +213,29 @@ function InvoiceTooltip({
     .filter((l) => l.value > 0);
 
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-overlay">
-      <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+    <div className="border-border bg-card shadow-overlay rounded-lg border px-3 py-2">
+      <p className="text-muted-foreground mb-1.5 text-xs font-medium">
         {row.monthLabel}
         {Number(row.offset) > 0 ? " · previsto" : null}
       </p>
       {lines.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhuma fatura neste mês.</p>
+        <p className="text-muted-foreground text-sm">Nenhuma fatura neste mês.</p>
       ) : (
         <div className="space-y-1">
           {lines.map((l) => (
             <div key={l.name} className="flex items-center gap-2 text-sm">
-              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: l.color }} />
-              <span className="font-semibold tabular-nums text-foreground">
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: l.color }}
+              />
+              <span className="text-foreground font-semibold tabular-nums">
                 {formatCurrency(l.value)}
               </span>
               <span className="text-muted-foreground">{l.name}</span>
             </div>
           ))}
           {lines.length > 1 ? (
-            <p className="border-t border-border pt-1.5 text-xs text-muted-foreground">
+            <p className="border-border text-muted-foreground border-t pt-1.5 text-xs">
               Total {formatCurrency(Number(row.total))}
             </p>
           ) : null}

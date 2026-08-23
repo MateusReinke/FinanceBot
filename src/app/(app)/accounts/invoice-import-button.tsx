@@ -14,7 +14,12 @@ export function InvoiceImportButton({ accountId }: { accountId: string }) {
       <Button variant="outline" size="sm" className="w-full" onClick={() => setOpen(true)}>
         <FileText className="h-3.5 w-3.5" /> Importar fatura (PDF)
       </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Importar fatura (PDF)" className="max-w-lg">
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Importar fatura (PDF)"
+        className="max-w-lg"
+      >
         <InvoiceImportForm accountId={accountId} onSuccess={() => setOpen(false)} />
       </Modal>
     </>

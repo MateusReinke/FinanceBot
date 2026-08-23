@@ -1,6 +1,5 @@
 # API pública (WhatsApp, n8n e outras automações)
 
-
 Todo o fluxo do WhatsApp roda por uma API REST autenticada por token. A
 inteligência fica no FinanceBot: o n8n só encaminha o texto da mensagem e
 devolve a resposta ao usuário — não precisa de nó de IA no meio, nem de saber
@@ -25,15 +24,15 @@ mensagem de outra pessoa nunca cai na sua conta.
 ```jsonc
 {
   "text": "gastei 45 no mercado com o nubank",
-  "messageId": "wamid.XYZ",   // id do provedor: é o que evita lançamento duplicado
-  "from": "+5511999999999"     // opcional; conferido contra o número vinculado
+  "messageId": "wamid.XYZ", // id do provedor: é o que evita lançamento duplicado
+  "from": "+5511999999999", // opcional; conferido contra o número vinculado
 }
 ```
 
 ```jsonc
 {
   "reply": "✅ Gasto lançado: R$ 45,00 — Mercado\nConta: Nubank\n...",
-  "status": "created"   // created | answered | duplicate | failed
+  "status": "created", // created | answered | duplicate | failed
 }
 ```
 
@@ -48,8 +47,14 @@ Para quando a automação já sabe o que quer lançar. Conta e categoria vão po
 válidas, nunca um palpite silencioso.
 
 ```jsonc
-{ "description": "Almoço", "amount": 32.5, "type": "expense",
-  "account": "Nubank", "category": "Alimentação", "paid": true }
+{
+  "description": "Almoço",
+  "amount": 32.5,
+  "type": "expense",
+  "account": "Nubank",
+  "category": "Alimentação",
+  "paid": true,
+}
 ```
 
 ## `GET /api/v1/transactions?limit=20` e `GET /api/v1/summary`
@@ -62,10 +67,8 @@ resumo diário.
 
 - **Idempotência**: sempre envie o `messageId` do provedor. Gateways de
   WhatsApp reentregam a mesma mensagem, e é o índice único `(userId,
-  externalId)` que impede o gasto de ser lançado duas vezes.
+externalId)` que impede o gasto de ser lançado duas vezes.
 - **Rate limit**: 30 requisições por minuto por usuário e por rota.
 - **Interpretação de texto** exige `OPENAI_API_KEY`. Sem ela, `/api/v1/messages`
   responde perguntas normalmente, mas não cria lançamento a partir de texto
   livre — use `/api/v1/transactions` nesse caso.
-
-

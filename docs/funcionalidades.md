@@ -1,6 +1,5 @@
 # Funcionalidades
 
-
 - Cadastro/login com sessão segura (cookie httpOnly + JWT). O **WhatsApp é
   obrigatório no cadastro** — é por ele que você lança gastos por mensagem e
   é adicionado ao grupo de uma divisão de contas
@@ -100,8 +99,8 @@
   todos os contatos importados. Uma conta criada pelo Google não tem senha:
   dá para definir uma em Configurações e passar a entrar dos dois jeitos.
   ⚠️ O escopo de contatos é **restrito** no Google — enquanto o app não
-  passar pela verificação deles, só contas cadastradas como *usuários de
-  teste* conseguem autorizar a importação (o login em si funciona normal).
+  passar pela verificação deles, só contas cadastradas como _usuários de
+  teste_ conseguem autorizar a importação (o login em si funciona normal).
   Veja `.env.example` para o passo a passo no Google Cloud
 - **Faturas futuras de cartão, mês a mês**: no cartão, **Faturas futuras** abre
   os próximos 12 meses e você **preenche o valor esperado de cada um** — mês com
@@ -149,5 +148,3 @@
   ganha acesso a `/admin` para criar, editar, resetar senha e excluir outros
   usuários — sem nenhum acesso aos dados financeiros deles
 - Configurações de perfil, troca de senha e exclusão de conta
-
-

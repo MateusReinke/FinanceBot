@@ -1,6 +1,16 @@
 "use client";
 
-import { Bar, BarChart, Cell, CartesianGrid, LabelList, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
+import {
+  Bar,
+  BarChart,
+  Cell,
+  CartesianGrid,
+  LabelList,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
 import { formatCompactCurrency } from "@/lib/utils";
 import { ChartTooltip } from "./chart-tooltip";
 

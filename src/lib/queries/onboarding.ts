@@ -37,8 +37,7 @@ export const GUIDE_STEPS = [
   {
     id: "budget",
     title: "Defina um orçamento",
-    description:
-      "Um teto por categoria — o painel avisa quando o mês estiver perto de estourar.",
+    description: "Um teto por categoria — o painel avisa quando o mês estiver perto de estourar.",
     href: "/budgets",
     cta: "Definir teto",
   },

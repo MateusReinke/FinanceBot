@@ -45,7 +45,8 @@ export function buildChargeMessage(name: string | null, items: ChargeItem[], sen
   }
 
   const lines = items.map(
-    (i) => `• ${currency.format(i.amount)} — ${i.description} (${shortDate.format(new Date(i.date))})`
+    (i) =>
+      `• ${currency.format(i.amount)} — ${i.description} (${shortDate.format(new Date(i.date))})`
   );
 
   return [

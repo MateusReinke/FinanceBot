@@ -77,7 +77,14 @@ export async function syncPluggyItem(pluggyItemDbId: string) {
   }
 }
 
-async function runSync(pluggyItem: { id: string; userId: string; pluggyItemId: string; connectorName: string; connectorImageUrl: string | null; lastSyncedAt: Date | null }) {
+async function runSync(pluggyItem: {
+  id: string;
+  userId: string;
+  pluggyItemId: string;
+  connectorName: string;
+  connectorImageUrl: string | null;
+  lastSyncedAt: Date | null;
+}) {
   const [remoteItem, remoteAccounts] = await Promise.all([
     getPluggyItem(pluggyItem.pluggyItemId),
     listPluggyAccounts(pluggyItem.pluggyItemId),
@@ -132,12 +139,16 @@ async function runSync(pluggyItem: { id: string; userId: string; pluggyItemId: s
         balanceApplied: true,
         source: "openfinance",
       };
-      const categoryId = mappedName ? (categoryByNameAndType.get(`${mappedName}|${type}`) ?? null) : null;
+      const categoryId = mappedName
+        ? (categoryByNameAndType.get(`${mappedName}|${type}`) ?? null)
+        : null;
       // SQLite's createMany has no skipDuplicates support, and Pluggy can
       // amend a transaction (e.g. pending -> posted) after we first see it,
       // so an upsert per row is both necessary and the more correct choice.
       await prisma.transaction.upsert({
-        where: { userId_pluggyTransactionId: { userId: pluggyItem.userId, pluggyTransactionId: t.id } },
+        where: {
+          userId_pluggyTransactionId: { userId: pluggyItem.userId, pluggyTransactionId: t.id },
+        },
         // categoryId is only set on insert: once a row exists the user may
         // have filed it themselves, and a re-sync must never overwrite that.
         update: data,

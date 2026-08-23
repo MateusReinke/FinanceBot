@@ -146,10 +146,10 @@ export async function listPluggyTransactions(accountId: string, options?: { from
     if (options?.from) params.set("from", options.from);
     if (cursor) params.set("after", cursor);
 
-    const { results, next } = await pluggyFetch<{ results: PluggyTransaction[]; next: string | null }>(
-      `/v2/transactions?${params.toString()}`,
-      { apiKey }
-    );
+    const { results, next } = await pluggyFetch<{
+      results: PluggyTransaction[];
+      next: string | null;
+    }>(`/v2/transactions?${params.toString()}`, { apiKey });
     all.push(...results);
     if (!next) break;
     cursor = next;

@@ -14,8 +14,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "FinanceBot — Controle financeiro pessoal",
-  description:
-    "Controle seus gastos, receitas, orçamentos e conecte suas contas via Open Finance.",
+  description: "Controle seus gastos, receitas, orçamentos e conecte suas contas via Open Finance.",
 };
 
 export default function RootLayout({
@@ -25,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

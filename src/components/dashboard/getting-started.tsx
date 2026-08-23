@@ -17,18 +17,18 @@ export function GettingStarted({ progress }: { progress: GuideProgress }) {
 
   return (
     <section className="surface overflow-hidden rounded-2xl">
-      <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+      <header className="border-border flex items-start justify-between gap-4 border-b px-5 py-4">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">Primeiros passos</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {doneCount} de {steps.length} concluídos — o painel fica completo quando todos
-            estiverem marcados.
+          <h2 className="text-foreground text-sm font-semibold">Primeiros passos</h2>
+          <p className="text-muted-foreground mt-0.5 text-sm">
+            {doneCount} de {steps.length} concluídos — o painel fica completo quando todos estiverem
+            marcados.
           </p>
         </div>
         <form action={dismissGuideChecklist}>
           <button
             type="submit"
-            className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer rounded-md p-1.5 transition-colors"
             aria-label="Esconder os primeiros passos"
             title="Esconder"
           >
@@ -46,7 +46,7 @@ export function GettingStarted({ progress }: { progress: GuideProgress }) {
         ))}
       </div>
 
-      <ol className="divide-y divide-border px-5">
+      <ol className="divide-border divide-y px-5">
         {steps.map((step) => (
           <li key={step.id} className="flex items-start gap-3.5 py-4">
             <span
@@ -71,7 +71,7 @@ export function GettingStarted({ progress }: { progress: GuideProgress }) {
                 {step.title}
               </p>
               {step.done ? null : (
-                <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">
                   {step.description}
                 </p>
               )}
@@ -80,7 +80,7 @@ export function GettingStarted({ progress }: { progress: GuideProgress }) {
             {step.id === nextStep?.id ? (
               <Link
                 href={step.href}
-                className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors"
+                className="bg-brand text-primary-foreground mt-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
               >
                 {step.cta}
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -88,7 +88,7 @@ export function GettingStarted({ progress }: { progress: GuideProgress }) {
             ) : step.done ? null : (
               <Link
                 href={step.href}
-                className="mt-1 shrink-0 text-xs font-medium text-primary hover:underline"
+                className="text-primary mt-1 shrink-0 text-xs font-medium hover:underline"
               >
                 {step.cta}
               </Link>
@@ -97,9 +97,9 @@ export function GettingStarted({ progress }: { progress: GuideProgress }) {
         ))}
       </ol>
 
-      <p className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
+      <p className="border-border text-muted-foreground border-t px-5 py-3 text-xs">
         Perdido? {""}
-        <Link href="/bem-vindo" className="font-medium text-primary hover:underline">
+        <Link href="/bem-vindo" className="text-primary font-medium hover:underline">
           Rever o guia de primeiros passos
         </Link>
         .

@@ -25,7 +25,7 @@ export function PasswordForm({ hasPassword = true }: { hasPassword?: boolean }) 
           <FieldError messages={state?.errors?.currentPassword} />
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Sua conta entra com o Google. Defina uma senha para poder entrar também por e-mail.
         </p>
       )}
@@ -42,7 +42,7 @@ export function PasswordForm({ hasPassword = true }: { hasPassword?: boolean }) 
         <FieldError messages={state?.errors?.confirmPassword} />
       </div>
       {state?.message ? (
-        <p className="text-sm text-success" role="status">
+        <p className="text-success text-sm" role="status">
           {state.message}
         </p>
       ) : null}

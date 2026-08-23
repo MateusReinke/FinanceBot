@@ -47,18 +47,18 @@ export function InvitePanel({ eventId, invites }: { eventId: string; invites: In
           {invites.map((invite) => (
             <div
               key={invite.id}
-              className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-2"
+              className="border-border bg-muted/50 flex items-center gap-2 rounded-lg border p-2"
             >
-              <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
+              <span className="text-muted-foreground min-w-0 flex-1 truncate font-mono text-xs">
                 /events/join/{invite.code.slice(0, 16)}...
               </span>
               <button
                 onClick={() => handleCopy(invite.code, invite.id)}
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"
+                className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
                 aria-label="Copiar link"
               >
                 {copiedId === invite.id ? (
-                  <Check className="h-3.5 w-3.5 text-success" />
+                  <Check className="text-success h-3.5 w-3.5" />
                 ) : (
                   <Copy className="h-3.5 w-3.5" />
                 )}
@@ -66,7 +66,7 @@ export function InvitePanel({ eventId, invites }: { eventId: string; invites: In
               <button
                 onClick={() => handleRevoke(invite.id)}
                 disabled={pending}
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer"
+                className="text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer rounded-md p-1.5"
                 aria-label="Revogar convite"
               >
                 <X className="h-3.5 w-3.5" />
@@ -78,7 +78,7 @@ export function InvitePanel({ eventId, invites }: { eventId: string; invites: In
           </Button>
         </div>
       )}
-      <p className="text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-xs">
         Qualquer pessoa com o link pode entrar no evento. Válido por 7 dias.
       </p>
     </div>

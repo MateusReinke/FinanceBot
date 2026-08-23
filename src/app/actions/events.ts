@@ -169,7 +169,9 @@ export async function addExpense(_state: FormState, formData: FormData): Promise
     }
     splits = { ...payments };
   } else if (splitMode === "equal") {
-    const included = formData.getAll("participantIds").filter((v): v is string => typeof v === "string");
+    const included = formData
+      .getAll("participantIds")
+      .filter((v): v is string => typeof v === "string");
     const validIncluded = [...new Set(included.filter((id) => participantIds.has(id)))];
     if (validIncluded.length === 0) {
       return { message: "Selecione ao menos um participante para dividir a despesa." };
@@ -188,7 +190,9 @@ export async function addExpense(_state: FormState, formData: FormData): Promise
       sum += value;
     }
     if (Math.abs(sum - amount) > 0.01) {
-      return { message: `A soma das partes (${sum.toFixed(2)}) precisa bater com o valor total (${amount.toFixed(2)}).` };
+      return {
+        message: `A soma das partes (${sum.toFixed(2)}) precisa bater com o valor total (${amount.toFixed(2)}).`,
+      };
     }
     if (Object.keys(splits).length === 0) {
       return { message: "Informe ao menos uma parte maior que zero." };
@@ -254,8 +258,7 @@ export async function deleteExpense(formData: FormData) {
 }
 
 export type ExtractReceiptResult =
-  | { error: string }
-  | { receiptId: string; items: { description: string; amount: number }[] };
+  { error: string } | { receiptId: string; items: { description: string; amount: number }[] };
 
 // Not FormState/useActionState-shaped on purpose: the caller needs the
 // extracted items back to drive an editable review step, not just a
@@ -275,7 +278,9 @@ export async function extractReceiptExpenses(
   if (!(file instanceof File) || file.size === 0) {
     return { error: "Selecione uma foto da nota fiscal." };
   }
-  if (!ALLOWED_RECEIPT_MIME_TYPES.includes(file.type as (typeof ALLOWED_RECEIPT_MIME_TYPES)[number])) {
+  if (
+    !ALLOWED_RECEIPT_MIME_TYPES.includes(file.type as (typeof ALLOWED_RECEIPT_MIME_TYPES)[number])
+  ) {
     return { error: "Formato não suportado. Envie uma foto em JPEG, PNG ou WEBP." };
   }
   if (file.size > MAX_RECEIPT_BYTES) {
@@ -289,11 +294,16 @@ export async function extractReceiptExpenses(
     items = await extractReceiptItems(buffer.toString("base64"), file.type);
   } catch (error) {
     console.error("Falha ao ler nota fiscal via OpenAI", error);
-    return { error: "Não foi possível ler a nota fiscal agora. Tente novamente ou lance manualmente." };
+    return {
+      error: "Não foi possível ler a nota fiscal agora. Tente novamente ou lance manualmente.",
+    };
   }
 
   if (items.length === 0) {
-    return { error: "Não consegui identificar itens nessa foto. Tente uma foto mais nítida ou lance manualmente." };
+    return {
+      error:
+        "Não consegui identificar itens nessa foto. Tente uma foto mais nítida ou lance manualmente.",
+    };
   }
 
   const receipt = await prisma.eventReceipt.create({
@@ -303,7 +313,10 @@ export async function extractReceiptExpenses(
   return { receiptId: receipt.id, items };
 }
 
-export async function confirmReceiptExpenses(_state: FormState, formData: FormData): Promise<FormState> {
+export async function confirmReceiptExpenses(
+  _state: FormState,
+  formData: FormData
+): Promise<FormState> {
   const eventId = formData.get("eventId");
   if (typeof eventId !== "string") return { message: "Evento inválido." };
   await verifyEventAccess(eventId);
@@ -335,7 +348,9 @@ export async function confirmReceiptExpenses(_state: FormState, formData: FormDa
     return { errors: { paidById: ["Quem pagou precisa ser um participante do evento."] } };
   }
 
-  const included = formData.getAll("participantIds").filter((v): v is string => typeof v === "string");
+  const included = formData
+    .getAll("participantIds")
+    .filter((v): v is string => typeof v === "string");
   const validIncluded = [...new Set(included.filter((id) => participantIds.has(id)))];
   if (validIncluded.length === 0) {
     return { message: "Selecione ao menos um participante para dividir as despesas." };

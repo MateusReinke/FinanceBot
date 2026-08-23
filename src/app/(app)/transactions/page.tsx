@@ -4,11 +4,7 @@ import { ArrowLeftRight, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { TransactionFiltersSchema } from "@/lib/validation/transactions";
-import {
-  getTransactionsPageData,
-  isSearchingAllTime,
-  PAGE_SIZE,
-} from "@/lib/queries/transactions";
+import { getTransactionsPageData, isSearchingAllTime, PAGE_SIZE } from "@/lib/queries/transactions";
 import { getCounterpartySuggestions } from "@/lib/queries/receivables";
 import { formatCurrency, formatMonthYear, getCurrentMonthYear, cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
@@ -88,14 +84,14 @@ export default async function TransactionsPage({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         {allTime ? (
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+          <div className="border-border bg-card text-muted-foreground flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
             <Search className="h-4 w-4" />
             Buscando em todos os meses
           </div>
         ) : (
           <MonthSelector month={month} year={year} basePath={monthBasePath} />
         )}
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {total} {total === 1 ? "lançamento" : "lançamentos"}
           {allTime ? "" : ` em ${formatMonthYear(month, year).toLowerCase()}`}
         </p>
@@ -112,9 +108,9 @@ export default async function TransactionsPage({
       />
 
       {transactions.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-12 text-center">
-          <ArrowLeftRight className="h-8 w-8 text-muted-foreground" />
-          <p className="max-w-sm text-sm text-muted-foreground">
+        <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed p-12 text-center">
+          <ArrowLeftRight className="text-muted-foreground h-8 w-8" />
+          <p className="text-muted-foreground max-w-sm text-sm">
             {accounts.length === 0
               ? "Crie uma conta antes de registrar lançamentos."
               : allTime
@@ -169,8 +165,20 @@ function SummaryStrip({
   };
 }) {
   const items = [
-    { label: "Entradas", value: summary.income, tone: "text-success", extra: summary.scheduledIncome, extraLabel: "a receber" },
-    { label: "Saídas", value: summary.expense, tone: "text-danger", extra: summary.scheduledExpense, extraLabel: "a pagar" },
+    {
+      label: "Entradas",
+      value: summary.income,
+      tone: "text-success",
+      extra: summary.scheduledIncome,
+      extraLabel: "a receber",
+    },
+    {
+      label: "Saídas",
+      value: summary.expense,
+      tone: "text-danger",
+      extra: summary.scheduledExpense,
+      extraLabel: "a pagar",
+    },
     {
       label: "Saldo do período",
       value: summary.net,
@@ -181,15 +189,15 @@ function SummaryStrip({
   ];
 
   return (
-    <div className="grid grid-cols-1 divide-y divide-border overflow-hidden surface sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+    <div className="divide-border surface grid grid-cols-1 divide-y overflow-hidden sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       {items.map((item) => (
         <div key={item.label} className="px-4 py-3">
-          <p className="text-xs text-muted-foreground">{item.label}</p>
+          <p className="text-muted-foreground text-xs">{item.label}</p>
           <p className={cn("text-lg font-semibold tabular-nums", item.tone)}>
             {formatCurrency(item.value)}
           </p>
           {item.extra > 0 ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               + {formatCurrency(item.extra)} {item.extraLabel}
             </p>
           ) : null}

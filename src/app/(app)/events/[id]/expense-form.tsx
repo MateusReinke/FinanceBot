@@ -53,9 +53,7 @@ export function ExpenseForm({
   const total = Number(amount) || 0;
   const paidSum = useMemo(
     () =>
-      multiPayer
-        ? Object.values(paidAmounts).reduce((sum, v) => sum + (Number(v) || 0), 0)
-        : total,
+      multiPayer ? Object.values(paidAmounts).reduce((sum, v) => sum + (Number(v) || 0), 0) : total,
     [multiPayer, paidAmounts, total]
   );
   const paidRemaining = Math.round((total - paidSum) * 100) / 100;
@@ -109,18 +107,18 @@ export function ExpenseForm({
       <input type="hidden" name="isShared" value={isShared ? "true" : "false"} />
       {/* The payer step always posts as amounts, single payer included, so
           the server has exactly one shape to read. */}
-      {multiPayer
-        ? participants.map((p) => (
-            <input
-              key={p.userId}
-              type="hidden"
-              name={`paidAmount_${p.userId}`}
-              value={paidAmounts[p.userId] ?? ""}
-            />
-          ))
-        : (
-            <input type="hidden" name={`paidAmount_${singlePayer}`} value={amount} />
-          )}
+      {multiPayer ? (
+        participants.map((p) => (
+          <input
+            key={p.userId}
+            type="hidden"
+            name={`paidAmount_${p.userId}`}
+            value={paidAmounts[p.userId] ?? ""}
+          />
+        ))
+      ) : (
+        <input type="hidden" name={`paidAmount_${singlePayer}`} value={amount} />
+      )}
       {isShared && splitMode === "equal"
         ? [...included].map((id) => (
             <input key={id} type="hidden" name="participantIds" value={id} />
@@ -149,7 +147,7 @@ export function ExpenseForm({
                 i === step
                   ? "border-primary bg-primary/10 text-primary"
                   : i < step
-                    ? "cursor-pointer border-border text-muted-foreground hover:bg-muted"
+                    ? "border-border text-muted-foreground hover:bg-muted cursor-pointer"
                     : "border-border text-muted-foreground/60"
               )}
             >
@@ -209,11 +207,11 @@ export function ExpenseForm({
             <>
               <div className="space-y-1.5">
                 <Label>Quem pagou os {formatCurrency(total)}</Label>
-                <div className="space-y-1 rounded-lg border border-border p-2">
+                <div className="border-border space-y-1 rounded-lg border p-2">
                   {participants.map((p) => (
                     <label
                       key={p.userId}
-                      className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-muted"
+                      className="text-foreground hover:bg-muted flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm"
                     >
                       <input
                         type="radio"
@@ -227,7 +225,12 @@ export function ExpenseForm({
                 </div>
               </div>
               {isShared ? (
-                <Button type="button" variant="outline" size="sm" onClick={() => setMultiPayer(true)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMultiPayer(true)}
+                >
                   Mais de uma pessoa pagou
                 </Button>
               ) : null}
@@ -235,10 +238,10 @@ export function ExpenseForm({
           ) : (
             <div className="space-y-2">
               <Label>Quanto cada um pôs</Label>
-              <div className="space-y-2 rounded-lg border border-border p-3">
+              <div className="border-border space-y-2 rounded-lg border p-3">
                 {participants.map((p) => (
                   <div key={p.userId} className="flex items-center gap-2">
-                    <span className="flex-1 text-sm text-foreground">{nameOf(p)}</span>
+                    <span className="text-foreground flex-1 text-sm">{nameOf(p)}</span>
                     <Input
                       type="number"
                       step="0.01"
@@ -263,7 +266,12 @@ export function ExpenseForm({
                     : `Faltam ${formatCurrency(paidRemaining)} para fechar os ${formatCurrency(total)}.`}
                 </p>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setMultiPayer(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setMultiPayer(false)}
+              >
                 Foi uma pessoa só
               </Button>
             </div>
@@ -305,7 +313,7 @@ export function ExpenseForm({
           </div>
 
           {!isShared ? (
-            <p className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <p className="border-border bg-muted/40 text-muted-foreground rounded-lg border p-3 text-xs">
               Fica registrada só para quem pagou, não entra na divisão e ninguém fica devendo nada
               por ela. Serve para o que você gastou por conta própria durante o evento.
             </p>
@@ -339,43 +347,43 @@ export function ExpenseForm({
               </div>
 
               {splitMode === "equal" ? (
-                <div className="space-y-1 rounded-lg border border-border p-3">
-                  <p className="pb-1 text-xs text-muted-foreground">
+                <div className="border-border space-y-1 rounded-lg border p-3">
+                  <p className="text-muted-foreground pb-1 text-xs">
                     Desmarque quem não entra nesta despesa.
                   </p>
                   {participants.map((p) => (
                     <label
                       key={p.userId}
-                      className="flex cursor-pointer items-center justify-between gap-2 rounded-md px-1 py-1.5 text-sm text-foreground hover:bg-muted"
+                      className="text-foreground hover:bg-muted flex cursor-pointer items-center justify-between gap-2 rounded-md px-1 py-1.5 text-sm"
                     >
                       <span className="flex items-center gap-2">
                         <input
                           type="checkbox"
                           checked={included.has(p.userId)}
                           onChange={() => toggleParticipant(p.userId)}
-                          className="h-4 w-4 rounded border-border accent-[var(--primary)]"
+                          className="border-border h-4 w-4 rounded accent-[var(--primary)]"
                         />
                         {nameOf(p)}
                       </span>
                       {included.has(p.userId) && included.size > 0 ? (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                           {formatCurrency(total / included.size)}
                         </span>
                       ) : null}
                     </label>
                   ))}
                   {included.size === 0 ? (
-                    <p className="text-xs text-danger">Selecione ao menos uma pessoa.</p>
+                    <p className="text-danger text-xs">Selecione ao menos uma pessoa.</p>
                   ) : null}
                 </div>
               ) : (
-                <div className="space-y-2 rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">
+                <div className="border-border space-y-2 rounded-lg border p-3">
+                  <p className="text-muted-foreground text-xs">
                     Deixe em branco ou zero quem não entra nesta despesa.
                   </p>
                   {participants.map((p) => (
                     <div key={p.userId} className="flex items-center gap-2">
-                      <span className="flex-1 text-sm text-foreground">{nameOf(p)}</span>
+                      <span className="text-foreground flex-1 text-sm">{nameOf(p)}</span>
                       <Input
                         type="number"
                         step="0.01"
@@ -407,7 +415,7 @@ export function ExpenseForm({
       ) : null}
 
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

@@ -1,6 +1,5 @@
 # Deploy
 
-
 Duas formas de fazer o deploy. A diferença prática entre elas é só uma: se o
 Coolify preenche os campos de variável de ambiente sozinho, ou se você
 preenche tudo na mão.
@@ -17,19 +16,19 @@ container sobe e encerra na hora com uma mensagem clara nos logs (via
 `docker-entrypoint.sh`), em vez de ficar tentando servir requisições sem
 banco configurado.
 
-| Variável | Obrigatória | Valor |
-|---|---|---|
-| `POSTGRES_PASSWORD` | sim | senha do Postgres (gerada uma vez, usada internamente) |
-| `SESSION_SECRET` | sim | `openssl rand -base64 32` |
-| `POSTGRES_USER` / `POSTGRES_DB` | não | default `financebot` para os dois |
-| `APP_PORT` | não | porta pública de acesso — default `3000`, mude aqui pelo painel se quiser outra |
-| `ADMIN_EMAIL` | não | e-mail que vira admin ao se cadastrar/logar |
-| `COOKIE_SECURE` | não | deixe em branco (exige HTTPS, o correto). `false` só se ainda não configurou domínio/TLS — veja aviso abaixo |
-| `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | credenciais de produção do Pluggy, se for usar Open Finance |
-| `PLUGGY_USE_SANDBOX` | não | já vem `false` por padrão nesse arquivo |
-| `PLUGGY_WEBHOOK_URL` | não | URL pública do serviço + `/api/openfinance/webhook` |
-| `OPENAI_API_KEY` | não | chave da OpenAI — liga o Assistente de IA (topbar) e a leitura de nota fiscal (Eventos); sem ela, os dois ficam ocultos |
-| `OPENAI_MODEL` | não | sobrescreve o modelo usado pelas duas features de IA (padrão: `gpt-4o`) |
+| Variável                                    | Obrigatória | Valor                                                                                                                   |
+| ------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`                         | sim         | senha do Postgres (gerada uma vez, usada internamente)                                                                  |
+| `SESSION_SECRET`                            | sim         | `openssl rand -base64 32`                                                                                               |
+| `POSTGRES_USER` / `POSTGRES_DB`             | não         | default `financebot` para os dois                                                                                       |
+| `APP_PORT`                                  | não         | porta pública de acesso — default `3000`, mude aqui pelo painel se quiser outra                                         |
+| `ADMIN_EMAIL`                               | não         | e-mail que vira admin ao se cadastrar/logar                                                                             |
+| `COOKIE_SECURE`                             | não         | deixe em branco (exige HTTPS, o correto). `false` só se ainda não configurou domínio/TLS — veja aviso abaixo            |
+| `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não         | credenciais de produção do Pluggy, se for usar Open Finance                                                             |
+| `PLUGGY_USE_SANDBOX`                        | não         | já vem `false` por padrão nesse arquivo                                                                                 |
+| `PLUGGY_WEBHOOK_URL`                        | não         | URL pública do serviço + `/api/openfinance/webhook`                                                                     |
+| `OPENAI_API_KEY`                            | não         | chave da OpenAI — liga o Assistente de IA (topbar) e a leitura de nota fiscal (Eventos); sem ela, os dois ficam ocultos |
+| `OPENAI_MODEL`                              | não         | sobrescreve o modelo usado pelas duas features de IA (padrão: `gpt-4o`)                                                 |
 
 Não precisa criar um recurso Postgres separado nem copiar connection string
 nenhuma — o `docker-compose.prod.yml` já monta o `DATABASE_URL` internamente
@@ -50,17 +49,17 @@ Variables" começa vazia e cada uma abaixo precisa ser adicionada na mão:
 2. Crie o recurso da aplicação apontando para este repositório/branch, tipo
    Dockerfile, e preencha manualmente:
 
-   | Variável | Obrigatória | Valor |
-   |---|---|---|
-   | `DATABASE_URL` | sim | connection string do Postgres do passo 1 |
-   | `SESSION_SECRET` | sim | `openssl rand -base64 32` |
-   | `ADMIN_EMAIL` | não | e-mail que vira admin ao se cadastrar/logar |
-   | `COOKIE_SECURE` | não | deixe em branco (exige HTTPS, o correto). `false` só se ainda não configurou domínio/TLS — veja aviso abaixo |
-   | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não | credenciais de produção do Pluggy |
-   | `PLUGGY_USE_SANDBOX` | não | `false` em produção |
-   | `PLUGGY_WEBHOOK_URL` | não | URL pública do serviço + `/api/openfinance/webhook` |
-   | `OPENAI_API_KEY` | não | chave da OpenAI — liga o Assistente de IA (topbar) e a leitura de nota fiscal (Eventos) |
-   | `OPENAI_MODEL` | não | sobrescreve o modelo usado pelas duas features de IA (padrão: `gpt-4o`) |
+   | Variável                                    | Obrigatória | Valor                                                                                                        |
+   | ------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------ |
+   | `DATABASE_URL`                              | sim         | connection string do Postgres do passo 1                                                                     |
+   | `SESSION_SECRET`                            | sim         | `openssl rand -base64 32`                                                                                    |
+   | `ADMIN_EMAIL`                               | não         | e-mail que vira admin ao se cadastrar/logar                                                                  |
+   | `COOKIE_SECURE`                             | não         | deixe em branco (exige HTTPS, o correto). `false` só se ainda não configurou domínio/TLS — veja aviso abaixo |
+   | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não         | credenciais de produção do Pluggy                                                                            |
+   | `PLUGGY_USE_SANDBOX`                        | não         | `false` em produção                                                                                          |
+   | `PLUGGY_WEBHOOK_URL`                        | não         | URL pública do serviço + `/api/openfinance/webhook`                                                          |
+   | `OPENAI_API_KEY`                            | não         | chave da OpenAI — liga o Assistente de IA (topbar) e a leitura de nota fiscal (Eventos)                      |
+   | `OPENAI_MODEL`                              | não         | sobrescreve o modelo usado pelas duas features de IA (padrão: `gpt-4o`)                                      |
 
 3. Confira o campo **"Ports Exposes"**: precisa ser `3000` (é o que o
    Dockerfile expõe e o que `server.js` escuta por padrão via `PORT`/

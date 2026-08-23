@@ -31,9 +31,7 @@ export function ReceiptScanForm({
 
   const [receiptId, setReceiptId] = useState<string | null>(null);
   const [items, setItems] = useState<DraftItem[]>([]);
-  const [included, setIncluded] = useState<Set<string>>(
-    new Set(participants.map((p) => p.userId))
-  );
+  const [included, setIncluded] = useState<Set<string>>(new Set(participants.map((p) => p.userId)));
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [confirmState, confirmAction] = useActionState(confirmReceiptExpenses, undefined);
@@ -109,9 +107,9 @@ export function ReceiptScanForm({
   if (step === "upload") {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Envie uma foto da nota fiscal — a IA lê os itens e sugere uma despesa para cada um, pra você
-          revisar antes de salvar.
+        <p className="text-muted-foreground text-sm">
+          Envie uma foto da nota fiscal — a IA lê os itens e sugere uma despesa para cada um, pra
+          você revisar antes de salvar.
         </p>
 
         <div className="space-y-1.5">
@@ -122,7 +120,7 @@ export function ReceiptScanForm({
             type="file"
             accept="image/jpeg,image/png,image/webp"
             onChange={handleFileChange}
-            className="block w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:opacity-80"
+            className="text-foreground file:bg-muted file:text-foreground block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:opacity-80"
           />
         </div>
 
@@ -131,17 +129,22 @@ export function ReceiptScanForm({
           <img
             src={previewUrl}
             alt="Pré-visualização da nota fiscal"
-            className="max-h-64 w-full rounded-lg border border-border object-contain"
+            className="border-border max-h-64 w-full rounded-lg border object-contain"
           />
         ) : null}
 
         {analyzeError ? (
-          <p className="text-sm text-danger" role="alert">
+          <p className="text-danger text-sm" role="alert">
             {analyzeError}
           </p>
         ) : null}
 
-        <Button type="button" className="w-full" disabled={!file || isAnalyzing} onClick={handleAnalyze}>
+        <Button
+          type="button"
+          className="w-full"
+          disabled={!file || isAnalyzing}
+          onClick={handleAnalyze}
+        >
           {isAnalyzing ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Lendo nota...
@@ -163,7 +166,7 @@ export function ReceiptScanForm({
       <button
         type="button"
         onClick={() => setStep("upload")}
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+        className="text-muted-foreground hover:text-foreground inline-flex cursor-pointer items-center gap-1 text-sm"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Trocar foto
       </button>
@@ -193,7 +196,7 @@ export function ReceiptScanForm({
               <button
                 type="button"
                 onClick={() => removeItem(index)}
-                className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer"
+                className="text-muted-foreground hover:bg-danger-bg hover:text-danger shrink-0 cursor-pointer rounded-md p-1.5"
                 aria-label={`Remover item ${index + 1}`}
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -204,11 +207,13 @@ export function ReceiptScanForm({
         <button
           type="button"
           onClick={addItem}
-          className="inline-flex items-center gap-1 text-sm text-primary hover:underline cursor-pointer"
+          className="text-primary inline-flex cursor-pointer items-center gap-1 text-sm hover:underline"
         >
           <Plus className="h-3.5 w-3.5" /> Adicionar item
         </button>
-        <p className="text-right text-sm font-medium text-foreground">Total: {formatCurrency(total)}</p>
+        <p className="text-foreground text-right text-sm font-medium">
+          Total: {formatCurrency(total)}
+        </p>
         {confirmState?.errors?.items ? <FieldError messages={confirmState.errors.items} /> : null}
       </div>
 
@@ -226,22 +231,28 @@ export function ReceiptScanForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="date">Data</Label>
-          <Input id="date" name="date" type="date" defaultValue={toDateInputValue(new Date())} required />
+          <Input
+            id="date"
+            name="date"
+            type="date"
+            defaultValue={toDateInputValue(new Date())}
+            required
+          />
           <FieldError messages={confirmState?.errors?.date} />
         </div>
       </div>
 
-      <div className="space-y-1.5 rounded-lg border border-border p-3">
+      <div className="border-border space-y-1.5 rounded-lg border p-3">
         <Label>Dividir igualmente entre</Label>
         {participants.map((p) => (
-          <label key={p.userId} className="flex items-center gap-2 text-sm text-foreground">
+          <label key={p.userId} className="text-foreground flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               name="participantIds"
               value={p.userId}
               checked={included.has(p.userId)}
               onChange={() => toggleParticipant(p.userId)}
-              className="h-4 w-4 rounded border-border accent-primary"
+              className="border-border accent-primary h-4 w-4 rounded"
             />
             {displayName(p.user, currentUserId)}
           </label>
@@ -249,7 +260,7 @@ export function ReceiptScanForm({
       </div>
 
       {confirmState?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {confirmState.message}
         </p>
       ) : null}

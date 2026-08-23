@@ -11,7 +11,7 @@ export function JoinEventForm({ code }: { code: string }) {
     <form action={action} className="space-y-3">
       <input type="hidden" name="code" value={code} />
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

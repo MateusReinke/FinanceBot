@@ -35,20 +35,20 @@ export function GooglePanel({
       <CardHeader>
         <CardTitle>Google</CardTitle>
         {connected && email ? (
-          <span className="truncate text-xs text-muted-foreground">{email}</span>
+          <span className="text-muted-foreground truncate text-xs">{email}</span>
         ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
         {!connected ? (
           <>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Conecte sua conta do Google para entrar com um clique e importar seus contatos —
-              assim, ao lançar algo que alguém te deve, você escolhe a pessoa em vez de digitar
-              nome e telefone.
+              assim, ao lançar algo que alguém te deve, você escolhe a pessoa em vez de digitar nome
+              e telefone.
             </p>
             <Link
               href="/api/auth/google?scope=contacts"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
+              className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors"
             >
               <Contact2 className="h-4 w-4" /> Conectar Google e contatos
             </Link>
@@ -56,20 +56,20 @@ export function GooglePanel({
         ) : (
           <>
             {!hasContactsScope ? (
-              <div className="space-y-3 rounded-lg bg-warning-bg p-3">
-                <p className="text-sm text-warning">
+              <div className="bg-warning-bg space-y-3 rounded-lg p-3">
+                <p className="text-warning text-sm">
                   Sua conta está conectada, mas o acesso aos contatos não foi autorizado.
                 </p>
                 <Link
                   href="/api/auth/google?scope=contacts"
-                  className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+                  className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium"
                 >
                   <Contact2 className="h-4 w-4" /> Conectar contatos
                 </Link>
               </div>
             ) : (
               <>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {contactCount === 0
                     ? "Nenhum contato importado ainda."
                     : `${contactCount} ${contactCount === 1 ? "contato importado" : "contatos importados"}.`}
@@ -85,7 +85,7 @@ export function GooglePanel({
                 </form>
                 {state?.message ? (
                   <p
-                    className={state.success ? "text-sm text-success" : "text-sm text-danger"}
+                    className={state.success ? "text-success text-sm" : "text-danger text-sm"}
                     role={state.success ? "status" : "alert"}
                   >
                     {state.message}
@@ -104,12 +104,12 @@ export function GooglePanel({
                 )
                   e.preventDefault();
               }}
-              className="border-t border-border pt-4"
+              className="border-border border-t pt-4"
             >
               <Button type="submit" variant="ghost" size="sm" className="text-muted-foreground">
                 <Unlink className="h-4 w-4" /> Desconectar
               </Button>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-xs">
                 Apaga os contatos importados. Seus lançamentos não são afetados.
               </p>
             </form>

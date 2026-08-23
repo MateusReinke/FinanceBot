@@ -56,7 +56,7 @@ export function CategoryForm({
               type="button"
               onClick={() => setColor(c)}
               className={cn(
-                "h-7 w-7 rounded-full border-2 cursor-pointer",
+                "h-7 w-7 cursor-pointer rounded-full border-2",
                 color === c ? "border-foreground" : "border-transparent"
               )}
               style={{ backgroundColor: c }}
@@ -68,14 +68,14 @@ export function CategoryForm({
 
       <div className="space-y-1.5">
         <Label>Ícone</Label>
-        <div className="grid max-h-40 grid-cols-8 gap-1 overflow-y-auto rounded-lg border border-border p-2">
+        <div className="border-border grid max-h-40 grid-cols-8 gap-1 overflow-y-auto rounded-lg border p-2">
           {ICON_OPTIONS.map((key) => (
             <button
               key={key}
               type="button"
               onClick={() => setIcon(key)}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-md cursor-pointer",
+                "flex h-8 w-8 cursor-pointer items-center justify-center rounded-md",
                 icon === key
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground hover:bg-muted"
@@ -89,7 +89,7 @@ export function CategoryForm({
       </div>
 
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

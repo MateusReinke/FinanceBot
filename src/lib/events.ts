@@ -14,7 +14,10 @@ function round2(value: number) {
 // Splits a total into per-participant cent amounts that always sum exactly
 // back to the total (the remainder cents go to the first N participants),
 // avoiding the classic "33.33 x 3 = 99.99" floating point drift.
-export function splitEqually(totalAmount: number, participantIds: string[]): Record<string, number> {
+export function splitEqually(
+  totalAmount: number,
+  participantIds: string[]
+): Record<string, number> {
   const totalCents = Math.round(totalAmount * 100);
   const n = participantIds.length;
   const baseCents = Math.floor(totalCents / n);
@@ -55,7 +58,12 @@ export function computeBalances(expenses: ExpenseForBalance[]): Map<string, Bala
 
   const result = new Map<string, Balance>();
   for (const [userId, { paid, owed }] of balances) {
-    result.set(userId, { userId, paid: round2(paid), owed: round2(owed), net: round2(paid - owed) });
+    result.set(userId, {
+      userId,
+      paid: round2(paid),
+      owed: round2(owed),
+      net: round2(paid - owed),
+    });
   }
   return result;
 }
@@ -82,7 +90,11 @@ export function suggestSettlements(balances: Balance[]): Settlement[] {
   while (i < debtors.length && j < creditors.length) {
     const amount = Math.min(debtors[i].remaining, creditors[j].remaining);
     if (amount > EPSILON) {
-      settlements.push({ from: debtors[i].userId, to: creditors[j].userId, amount: round2(amount) });
+      settlements.push({
+        from: debtors[i].userId,
+        to: creditors[j].userId,
+        amount: round2(amount),
+      });
     }
     debtors[i].remaining -= amount;
     creditors[j].remaining -= amount;

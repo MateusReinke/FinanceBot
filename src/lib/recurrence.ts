@@ -113,7 +113,11 @@ export function recurringOccurrenceCount(frequency: Frequency) {
 // The far edge of the rolling window, as a UTC calendar date.
 export function recurringHorizon(from = new Date()) {
   return new Date(
-    Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + RECURRING_HORIZON_MONTHS, from.getUTCDate())
+    Date.UTC(
+      from.getUTCFullYear(),
+      from.getUTCMonth() + RECURRING_HORIZON_MONTHS,
+      from.getUTCDate()
+    )
   );
 }
 

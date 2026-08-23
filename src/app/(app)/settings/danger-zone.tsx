@@ -12,7 +12,7 @@ function DeleteAccountForm({ email }: { email: string }) {
 
   return (
     <form action={action} className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Essa ação é permanente e apaga todas as suas contas, transações, categorias e orçamentos.
         Digite <strong className="text-foreground">{email}</strong> para confirmar.
       </p>
@@ -32,9 +32,9 @@ export function DangerZone({ email }: { email: string }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-xl border border-danger/30 bg-danger-bg/40 p-5">
-      <h3 className="text-sm font-semibold text-danger">Zona de risco</h3>
-      <p className="mt-1 text-sm text-muted-foreground">
+    <div className="border-danger/30 bg-danger-bg/40 rounded-xl border p-5">
+      <h3 className="text-danger text-sm font-semibold">Zona de risco</h3>
+      <p className="text-muted-foreground mt-1 text-sm">
         Excluir sua conta remove permanentemente todos os seus dados financeiros.
       </p>
       <Button variant="danger" size="sm" className="mt-3" onClick={() => setOpen(true)}>

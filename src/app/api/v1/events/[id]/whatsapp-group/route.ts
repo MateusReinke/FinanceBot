@@ -35,7 +35,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { groupId, status, error } = parsed.data;
 
   if (status === "created" && !groupId) {
-    return NextResponse.json({ error: "groupId é obrigatório quando status é created." }, { status: 400 });
+    return NextResponse.json(
+      { error: "groupId é obrigatório quando status é created." },
+      { status: 400 }
+    );
   }
 
   // The token's owner must be a participant. Without this check any valid
@@ -60,7 +63,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   });
 
   if (status === "failed") {
-    console.warn(`Automação não conseguiu criar o grupo do evento ${id}: ${error ?? "sem detalhe"}`);
+    console.warn(
+      `Automação não conseguiu criar o grupo do evento ${id}: ${error ?? "sem detalhe"}`
+    );
   }
 
   return NextResponse.json(updated);

@@ -13,7 +13,9 @@ function summarize(
 ) {
   const today = startOfTodayUTC();
   const paidCount = installments.filter((i) => i.balanceApplied).length;
-  const paidTotal = installments.filter((i) => i.balanceApplied).reduce((sum, i) => sum + i.amount, 0);
+  const paidTotal = installments
+    .filter((i) => i.balanceApplied)
+    .reduce((sum, i) => sum + i.amount, 0);
   const remainingCount = installments.filter((i) => !i.balanceApplied).length;
   const remainingTotal = installments
     .filter((i) => !i.balanceApplied)

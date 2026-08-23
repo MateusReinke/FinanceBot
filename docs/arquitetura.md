@@ -76,25 +76,25 @@ prisma/
 Estas são funções puras (sem I/O), o que as torna o lugar certo para entender
 o comportamento do app sem seguir queries:
 
-| Arquivo | O que decide |
-|---|---|
-| `lib/transaction-status.ts` | se um lançamento é realizado, previsto ou atrasado |
-| `lib/due-dates.ts` | quão urgente é um vencimento ("vence hoje", "venceu há 3 dias") |
-| `lib/recurrence.ts` | o espaçamento entre parcelas (semanal, mensal, anual...) |
-| `lib/financing.ts` | o cronograma de parcelas e a reconciliação de saldo |
-| `lib/card-invoices.ts` | meses e vencimentos das faturas de um cartão |
-| `lib/events.ts` | divisão de despesas, saldos e quitação entre participantes |
-| `lib/charge.ts` | a mensagem de cobrança e o link de WhatsApp |
-| `lib/phone.ts` | normalização de telefone para E.164 |
+| Arquivo                     | O que decide                                                    |
+| --------------------------- | --------------------------------------------------------------- |
+| `lib/transaction-status.ts` | se um lançamento é realizado, previsto ou atrasado              |
+| `lib/due-dates.ts`          | quão urgente é um vencimento ("vence hoje", "venceu há 3 dias") |
+| `lib/recurrence.ts`         | o espaçamento entre parcelas (semanal, mensal, anual...)        |
+| `lib/financing.ts`          | o cronograma de parcelas e a reconciliação de saldo             |
+| `lib/card-invoices.ts`      | meses e vencimentos das faturas de um cartão                    |
+| `lib/events.ts`             | divisão de despesas, saldos e quitação entre participantes      |
+| `lib/charge.ts`             | a mensagem de cobrança e o link de WhatsApp                     |
+| `lib/phone.ts`              | normalização de telefone para E.164                             |
 
 E os portões de acesso, que centralizam autorização em um lugar só:
 
-| Arquivo | Protege |
-|---|---|
-| `lib/dal.ts` | toda tela autenticada (`verifySession`) |
-| `lib/events-dal.ts` | acesso a um evento de divisão de contas (`verifyEventAccess`) |
-| `lib/admin-dal.ts` | `/admin` (`verifyAdminSession` — o papel é relido do banco, nunca do JWT) |
-| `lib/api-auth.ts` | a API pública por token |
+| Arquivo             | Protege                                                                   |
+| ------------------- | ------------------------------------------------------------------------- |
+| `lib/dal.ts`        | toda tela autenticada (`verifySession`)                                   |
+| `lib/events-dal.ts` | acesso a um evento de divisão de contas (`verifyEventAccess`)             |
+| `lib/admin-dal.ts`  | `/admin` (`verifyAdminSession` — o papel é relido do banco, nunca do JWT) |
+| `lib/api-auth.ts`   | a API pública por token                                                   |
 
 ## Design
 
@@ -128,11 +128,11 @@ escuro redefine os mesmos nomes, e é por isso que um componente escreve
 
 ## Onde mexer para...
 
-| Tarefa | Comece por |
-|---|---|
-| adicionar um campo a um lançamento | `prisma/schema.prisma` → migration → `lib/validation/transactions.ts` → `app/actions/transactions.ts` → o formulário |
-| mudar o que o painel mostra | `lib/queries/dashboard.ts` e `app/(app)/dashboard/page.tsx` |
-| adicionar uma tela ao menu | `components/layout/nav-config.ts` (e a pasta da rota) |
-| mudar cores, sombras ou raio | `src/app/globals.css` — não os componentes |
-| mudar o guia de primeiros passos | `app/(guide)/bem-vindo/welcome-guide.tsx` (as telas) e `lib/queries/onboarding.ts` (a checklist do painel) |
-| adicionar um endpoint para automação | `app/api/v1/` + `lib/api-auth.ts` |
+| Tarefa                               | Comece por                                                                                                           |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| adicionar um campo a um lançamento   | `prisma/schema.prisma` → migration → `lib/validation/transactions.ts` → `app/actions/transactions.ts` → o formulário |
+| mudar o que o painel mostra          | `lib/queries/dashboard.ts` e `app/(app)/dashboard/page.tsx`                                                          |
+| adicionar uma tela ao menu           | `components/layout/nav-config.ts` (e a pasta da rota)                                                                |
+| mudar cores, sombras ou raio         | `src/app/globals.css` — não os componentes                                                                           |
+| mudar o guia de primeiros passos     | `app/(guide)/bem-vindo/welcome-guide.tsx` (as telas) e `lib/queries/onboarding.ts` (a checklist do painel)           |
+| adicionar um endpoint para automação | `app/api/v1/` + `lib/api-auth.ts`                                                                                    |

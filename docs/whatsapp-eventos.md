@@ -1,6 +1,5 @@
 # Grupo de WhatsApp por evento
 
-
 > **O app não fala com o WhatsApp.** A API oficial (Meta Cloud API) **não cria
 > grupos nem adiciona membros** — só gateways não oficiais (Evolution API,
 > Baileys, WPPConnect) fazem isso, e eles operam fora dos termos do WhatsApp,
@@ -13,11 +12,11 @@
 Ao criar um evento você marca "Criar um grupo no WhatsApp". A partir daí o app
 publica eventos assinados em `N8N_WEBHOOK_URL`:
 
-| Evento | Quando | O que o fluxo deve fazer |
-|---|---|---|
-| `event.created` | evento criado com a opção marcada | criar o grupo com `data.members[].phone` e devolver o id |
-| `event.participant_joined` | alguém entra pelo convite | adicionar `data.joined.phone` ao grupo |
-| `event.expense_created` | despesa **compartilhada** registrada | mandar a mensagem no grupo `data.event.whatsappGroupId` |
+| Evento                     | Quando                               | O que o fluxo deve fazer                                 |
+| -------------------------- | ------------------------------------ | -------------------------------------------------------- |
+| `event.created`            | evento criado com a opção marcada    | criar o grupo com `data.members[].phone` e devolver o id |
+| `event.participant_joined` | alguém entra pelo convite            | adicionar `data.joined.phone` ao grupo                   |
+| `event.expense_created`    | despesa **compartilhada** registrada | mandar a mensagem no grupo `data.event.whatsappGroupId`  |
 
 Despesas pessoais não são publicadas: só quem pagou as vê, então o grupo não é
 avisado delas.
@@ -26,20 +25,29 @@ Corpo entregue:
 
 ```jsonc
 {
-  "id": "cms...",              // repita no header X-FinanceBot-Event-Id
+  "id": "cms...", // repita no header X-FinanceBot-Event-Id
   "type": "event.expense_created",
   "eventId": "cms...",
   "data": {
-    "event": { "id": "...", "name": "Churrasco", "whatsappGroupId": "1203...@g.us", "whatsappGroupStatus": "created" },
+    "event": {
+      "id": "...",
+      "name": "Churrasco",
+      "whatsappGroupId": "1203...@g.us",
+      "whatsappGroupStatus": "created",
+    },
     "members": [{ "userId": "...", "name": "Ana", "phone": "+5511999999999" }],
     "membersWithoutPhone": [{ "userId": "...", "name": "Carla" }],
     "expense": {
-      "description": "Carne", "amount": 200,
-      "paidBy": [{ "name": "Ana", "amount": 150 }, { "name": "Bruno", "amount": 50 }],
-      "splits": [{ "userId": "...", "amount": 100 }]
-    }
+      "description": "Carne",
+      "amount": 200,
+      "paidBy": [
+        { "name": "Ana", "amount": 150 },
+        { "name": "Bruno", "amount": 50 },
+      ],
+      "splits": [{ "userId": "...", "amount": 100 }],
+    },
   },
-  "sentAt": "2026-08-10T14:00:00.000Z"
+  "sentAt": "2026-08-10T14:00:00.000Z",
 }
 ```
 
@@ -79,4 +87,3 @@ enfileirados e saem quando você configurar.
 Os telefones dos participantes saem do app nesses eventos — é o que permite
 montar o grupo. Só vão membros daquele evento, só nome e número, e só para o
 n8n que você configurou.
-

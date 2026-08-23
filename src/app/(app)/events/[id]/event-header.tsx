@@ -31,7 +31,11 @@ export function EventHeader({
   }
 
   async function handleDelete() {
-    if (!confirm(`Excluir o evento "${name}" para todos os participantes? Essa ação não pode ser desfeita.`))
+    if (
+      !confirm(
+        `Excluir o evento "${name}" para todos os participantes? Essa ação não pode ser desfeita.`
+      )
+    )
       return;
     const formData = new FormData();
     formData.set("eventId", eventId);
@@ -42,8 +46,8 @@ export function EventHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">{name}</h1>
-        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+        <h1 className="text-foreground text-2xl font-semibold">{name}</h1>
+        {description ? <p className="text-muted-foreground text-sm">{description}</p> : null}
       </div>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>

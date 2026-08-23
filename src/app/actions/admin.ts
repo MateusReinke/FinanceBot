@@ -76,12 +76,17 @@ export async function updateUserByAdmin(_state: FormState, formData: FormData): 
   return { success: true };
 }
 
-export async function resetUserPasswordByAdmin(_state: FormState, formData: FormData): Promise<FormState> {
+export async function resetUserPasswordByAdmin(
+  _state: FormState,
+  formData: FormData
+): Promise<FormState> {
   await verifyAdminSession();
   const targetId = formData.get("id");
   if (typeof targetId !== "string") return { message: "Usuário inválido." };
 
-  const validatedFields = AdminResetPasswordSchema.safeParse({ password: formData.get("password") });
+  const validatedFields = AdminResetPasswordSchema.safeParse({
+    password: formData.get("password"),
+  });
   if (!validatedFields.success) {
     return { errors: validatedFields.error.flatten().fieldErrors };
   }

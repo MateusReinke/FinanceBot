@@ -77,9 +77,9 @@ export async function getDashboardData(userId: string, month: number, year: numb
       const category = categoryId ? categoryMap.get(categoryId) : undefined;
       return {
         categoryId,
-        name: categoryId ? category?.name ?? "Categoria removida" : "Sem categoria",
-        color: categoryId ? category?.color ?? "#78716c" : "#94a3b8",
-        icon: categoryId ? category?.icon ?? null : null,
+        name: categoryId ? (category?.name ?? "Categoria removida") : "Sem categoria",
+        color: categoryId ? (category?.color ?? "#78716c") : "#94a3b8",
+        icon: categoryId ? (category?.icon ?? null) : null,
         amount,
       };
     })
@@ -105,12 +105,14 @@ export async function getDashboardData(userId: string, month: number, year: numb
     }))
     // A budget whose category was deleted has nothing to name it; the
     // relation is optional in memory the same way it is in the database.
-    .filter((b): b is typeof b & { category: NonNullable<typeof b.category> } => b.category !== null);
+    .filter(
+      (b): b is typeof b & { category: NonNullable<typeof b.category> } => b.category !== null
+    );
 
   const recentTransactions = recent.map((t) => ({
     ...t,
     account: accountMap.get(t.accountId) ?? null,
-    category: t.categoryId ? categoryMap.get(t.categoryId) ?? null : null,
+    category: t.categoryId ? (categoryMap.get(t.categoryId) ?? null) : null,
   }));
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);

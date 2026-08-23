@@ -44,7 +44,9 @@ export function CardInvoiceSummary({
   }
 
   function toggleAll() {
-    setSelected((prev) => (prev.size === cards.length ? new Set() : new Set(cards.map((c) => c.id))));
+    setSelected((prev) =>
+      prev.size === cards.length ? new Set() : new Set(cards.map((c) => c.id))
+    );
   }
 
   // What a card is worth in the chosen view: its current debt, or the sum of
@@ -67,8 +69,8 @@ export function CardInvoiceSummary({
     <div className="surface surface-chart space-y-4 p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">Faturas dos cartões</h2>
-          <p className="text-xs text-muted-foreground">
+          <h2 className="text-foreground text-sm font-semibold">Faturas dos cartões</h2>
+          <p className="text-muted-foreground text-xs">
             Seis meses de faturas pagas e seis do que você já programou.
           </p>
         </div>
@@ -76,7 +78,7 @@ export function CardInvoiceSummary({
           <button
             type="button"
             onClick={toggleAll}
-            className="shrink-0 text-xs text-primary hover:underline cursor-pointer"
+            className="text-primary shrink-0 cursor-pointer text-xs hover:underline"
           >
             {selected.size === cards.length ? "Desmarcar todos" : "Selecionar todos"}
           </button>
@@ -93,7 +95,7 @@ export function CardInvoiceSummary({
       ) : null}
 
       {comparable ? (
-        <div className="space-y-3 border-t border-border pt-4">
+        <div className="border-border space-y-3 border-t pt-4">
           <Select
             aria-label="Mês da fatura"
             value={month}
@@ -112,14 +114,14 @@ export function CardInvoiceSummary({
               return (
                 <label
                   key={c.id}
-                  className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-1.5 hover:bg-muted"
+                  className="hover:bg-muted flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-1.5"
                 >
-                  <span className="flex items-center gap-2 text-sm text-foreground">
+                  <span className="text-foreground flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
                       checked={selected.has(c.id)}
                       onChange={() => toggle(c.id)}
-                      className="h-4 w-4 rounded border-border accent-primary"
+                      className="border-border accent-primary h-4 w-4 rounded"
                     />
                     <span
                       aria-hidden
@@ -131,8 +133,8 @@ export function CardInvoiceSummary({
                   <span
                     className={
                       invoiceAmount === null
-                        ? "text-sm text-muted-foreground"
-                        : "text-sm font-medium tabular-nums text-foreground"
+                        ? "text-muted-foreground text-sm"
+                        : "text-foreground text-sm font-medium tabular-nums"
                     }
                   >
                     {invoiceAmount === null ? "não preenchida" : formatCurrency(invoiceAmount)}
@@ -141,11 +143,11 @@ export function CardInvoiceSummary({
               );
             })}
           </div>
-          <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
+          <div className="border-border flex items-center justify-between border-t pt-3 text-sm">
             <span className="text-muted-foreground">
               Total selecionado ({selected.size} {selected.size === 1 ? "cartão" : "cartões"})
             </span>
-            <span className="text-base font-semibold tabular-nums text-foreground">
+            <span className="text-foreground text-base font-semibold tabular-nums">
               {formatCurrency(total)}
             </span>
           </div>

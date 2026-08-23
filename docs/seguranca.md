@@ -1,6 +1,5 @@
 # Segurança e isolamento de dados
 
-
 Toda a conta de um usuário — contas bancárias, transações, categorias e
 orçamentos — só é visível para o próprio usuário; toda leitura e escrita passa
 por uma verificação de posse (`userId` da sessão) antes de tocar o banco. A
@@ -17,8 +16,8 @@ servida via `/api/events/[id]/receipts/[receiptId]` depois de passar pelo
 mesmo `verifyEventAccess`, nunca por um caminho público direto.
 
 O painel administrativo (`/admin`) segue a mesma lógica de menor privilégio:
-dá para gerenciar *identidade* de outros usuários (nome, e-mail, senha, papel,
-exclusão de conta), nunca *dados financeiros* — nenhuma Server Action do admin
+dá para gerenciar _identidade_ de outros usuários (nome, e-mail, senha, papel,
+exclusão de conta), nunca _dados financeiros_ — nenhuma Server Action do admin
 toca em `Account`, `Transaction`, `Category`, `Budget`, `Financing` ou `Event`
 de terceiros. O acesso é gated por `verifyAdminSession()` em
 `src/lib/admin-dal.ts`, chamado diretamente por toda página e Server Action de
@@ -27,4 +26,3 @@ Router, sem essa checagem duplicada uma rota poderia escapar da verificação).
 O papel de admin só é concedido a quem loga com o e-mail exato de
 `ADMIN_EMAIL`, sempre reconferido no banco a cada requisição — nunca confiado
 a partir do JWT da sessão.
-

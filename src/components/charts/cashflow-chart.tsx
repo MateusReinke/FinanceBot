@@ -13,7 +13,12 @@ import {
   YAxis,
 } from "recharts";
 import type { CashflowPoint } from "@/lib/queries/cashflow";
-import { formatCurrency, formatCompactCurrency, formatMonthShort, formatMonthYear } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatCompactCurrency,
+  formatMonthShort,
+  formatMonthYear,
+} from "@/lib/utils";
 import { ChartTable } from "./chart-table";
 import { FutureBand } from "./future-band";
 
@@ -84,7 +89,6 @@ export function CashflowChart({ data }: { data: CashflowPoint[] }) {
     return built;
   }, [data]);
 
-
   return (
     <div className="space-y-3">
       <div className="relative">
@@ -96,65 +100,68 @@ export function CashflowChart({ data }: { data: CashflowPoint[] }) {
           bottomInset={LEGEND_HEIGHT}
         />
         <ResponsiveContainer width="100%" height={300}>
-        <ComposedChart data={rows} margin={{ top: 24, right: MARGIN_RIGHT, left: 0, bottom: 0 }}>
-          <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+          <ComposedChart data={rows} margin={{ top: 24, right: MARGIN_RIGHT, left: 0, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
 
-          <XAxis
-            dataKey="label"
-            axisLine={false}
-            tickLine={false}
-            interval={0}
-            tick={{ fill: "var(--chart-axis)", fontSize: 11 }}
-          />
-          <YAxis
-            axisLine={false}
-            tickLine={false}
-            tick={{ fill: "var(--chart-axis)", fontSize: 12 }}
-            tickFormatter={(v) => formatCompactCurrency(Number(v))}
-            width={AXIS_WIDTH}
-          />
+            <XAxis
+              dataKey="label"
+              axisLine={false}
+              tickLine={false}
+              interval={0}
+              tick={{ fill: "var(--chart-axis)", fontSize: 11 }}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "var(--chart-axis)", fontSize: 12 }}
+              tickFormatter={(v) => formatCompactCurrency(Number(v))}
+              width={AXIS_WIDTH}
+            />
 
-          <Tooltip content={<CashflowTooltip />} cursor={{ fill: "var(--muted)", opacity: 0.5 }} />
-          {/* Written out rather than derived, so it reads bottom-up in the
+            <Tooltip
+              content={<CashflowTooltip />}
+              cursor={{ fill: "var(--muted)", opacity: 0.5 }}
+            />
+            {/* Written out rather than derived, so it reads bottom-up in the
               order the stack is built and never flips with the series. */}
-          <Legend content={<CashflowLegend />} />
+            <Legend content={<CashflowLegend />} />
 
-          {/* The 2px stroke is painted in the chart's own surface colour: it
+            {/* The 2px stroke is painted in the chart's own surface colour: it
               is the gap that separates the two stacked fills, not an outline
               drawn around them. */}
-          <Bar
-            dataKey="Realizado"
-            stackId="gastos"
-            fill="var(--chart-expense)"
-            stroke="var(--chart-surface)"
-            strokeWidth={2}
-            maxBarSize={22}
-            radius={[4, 4, 0, 0]}
-          />
-          <Bar
-            dataKey="Previsto"
-            stackId="gastos"
-            fill="var(--chart-expense-soft)"
-            stroke="var(--chart-surface)"
-            strokeWidth={2}
-            maxBarSize={22}
-            radius={[4, 4, 0, 0]}
-          >
-            {/* Exactly one direct label — the heaviest month still ahead,
+            <Bar
+              dataKey="Realizado"
+              stackId="gastos"
+              fill="var(--chart-expense)"
+              stroke="var(--chart-surface)"
+              strokeWidth={2}
+              maxBarSize={22}
+              radius={[4, 4, 0, 0]}
+            />
+            <Bar
+              dataKey="Previsto"
+              stackId="gastos"
+              fill="var(--chart-expense-soft)"
+              stroke="var(--chart-surface)"
+              strokeWidth={2}
+              maxBarSize={22}
+              radius={[4, 4, 0, 0]}
+            >
+              {/* Exactly one direct label — the heaviest month still ahead,
                 which is the thing this chart exists to surface. It rides a
                 data key that is empty on every other row, because a number
                 over all thirteen columns is noise and goes unread; the rest
                 of the values live in the tooltip and the table below. */}
-            <LabelList
-              dataKey="peakLabel"
-              position="top"
-              offset={8}
-              fill="var(--muted-foreground)"
-              fontSize={11}
-              fontWeight={600}
-            />
-          </Bar>
-        </ComposedChart>
+              <LabelList
+                dataKey="peakLabel"
+                position="top"
+                offset={8}
+                fill="var(--muted-foreground)"
+                fontSize={11}
+                fontWeight={600}
+              />
+            </Bar>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
 
@@ -181,7 +188,7 @@ function CashflowLegend() {
   return (
     <ul className="flex items-center justify-center gap-4 pt-1">
       {keys.map((k) => (
-        <li key={k.label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <li key={k.label} className="text-muted-foreground flex items-center gap-1.5 text-xs">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: k.color }} />
           {k.label}
         </li>
@@ -192,26 +199,22 @@ function CashflowLegend() {
 
 type TooltipEntry = { name?: string; value?: number; payload?: Row };
 
-function CashflowTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: TooltipEntry[];
-}) {
+function CashflowTooltip({ active, payload }: { active?: boolean; payload?: TooltipEntry[] }) {
   if (!active || !payload?.length) return null;
   const row = payload[0]?.payload;
   if (!row) return null;
 
   const lines: { label: string; value: number; color: string }[] = [];
-  if (row.Realizado > 0) lines.push({ label: "Realizado", value: row.Realizado, color: "var(--chart-expense)" });
-  if (row.Previsto > 0) lines.push({ label: "Previsto", value: row.Previsto, color: "var(--chart-expense-soft)" });
+  if (row.Realizado > 0)
+    lines.push({ label: "Realizado", value: row.Realizado, color: "var(--chart-expense)" });
+  if (row.Previsto > 0)
+    lines.push({ label: "Previsto", value: row.Previsto, color: "var(--chart-expense-soft)" });
 
   const balance = row.Receitas - row.total;
 
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-overlay">
-      <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+    <div className="border-border bg-card shadow-overlay rounded-lg border px-3 py-2">
+      <p className="text-muted-foreground mb-1.5 text-xs font-medium">
         {row.monthLabel}
         {row.offset > 0 ? " · previsto" : null}
       </p>
@@ -219,14 +222,18 @@ function CashflowTooltip({
         {lines.map((l) => (
           <div key={l.label} className="flex items-center gap-2 text-sm">
             <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: l.color }} />
-            <span className="font-semibold tabular-nums text-foreground">{formatCurrency(l.value)}</span>
+            <span className="text-foreground font-semibold tabular-nums">
+              {formatCurrency(l.value)}
+            </span>
             <span className="text-muted-foreground">{l.label}</span>
           </div>
         ))}
-        {lines.length === 0 ? <p className="text-sm text-muted-foreground">Nada neste mês.</p> : null}
+        {lines.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Nada neste mês.</p>
+        ) : null}
       </div>
       {row.total > 0 || row.Receitas > 0 ? (
-        <div className="mt-1.5 space-y-0.5 border-t border-border pt-1.5 text-xs text-muted-foreground">
+        <div className="border-border text-muted-foreground mt-1.5 space-y-0.5 border-t pt-1.5 text-xs">
           <p>Total de gastos {formatCurrency(row.total)}</p>
           <p>
             Receitas {formatCurrency(row.Receitas)} · sobra{" "}

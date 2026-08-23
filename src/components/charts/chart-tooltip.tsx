@@ -20,8 +20,8 @@ export function ChartTooltip({
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-overlay">
-      {label ? <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p> : null}
+    <div className="border-border bg-card shadow-overlay rounded-lg border px-3 py-2">
+      {label ? <p className="text-muted-foreground mb-1 text-xs font-medium">{label}</p> : null}
       <div className="space-y-1">
         {payload.map((entry, i) => (
           <div key={i} className="flex items-center gap-2 text-sm">
@@ -29,7 +29,7 @@ export function ChartTooltip({
               className="h-0.5 w-3 shrink-0 rounded-full"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="font-semibold text-foreground">
+            <span className="text-foreground font-semibold">
               {formatCurrency(Number(entry.value ?? 0))}
             </span>
             {entry.name ? <span className="text-muted-foreground">{entry.name}</span> : null}

@@ -53,7 +53,9 @@ export function installmentDescription(
   installmentNumber: number,
   installmentCount: number
 ) {
-  return isRecurring ? description : `Parcela ${installmentNumber}/${installmentCount} — ${description}`;
+  return isRecurring
+    ? description
+    : `Parcela ${installmentNumber}/${installmentCount} — ${description}`;
 }
 
 // Applies the balance effect of any installment that has become due since it
@@ -92,7 +94,10 @@ export async function reconcileDueInstallments(userId: string) {
   // fixo debits it, through the exact same path.
   const deltaByAccount = new Map<string, number>();
   for (const t of due) {
-    deltaByAccount.set(t.accountId, (deltaByAccount.get(t.accountId) ?? 0) + signedAmount(t.amount, t.type));
+    deltaByAccount.set(
+      t.accountId,
+      (deltaByAccount.get(t.accountId) ?? 0) + signedAmount(t.amount, t.type)
+    );
   }
 
   await prisma.$transaction([
@@ -126,8 +131,14 @@ export async function maintainRecurringSchedules(userId: string) {
   const financings = await prisma.financing.findMany({
     where: { userId, isRecurring: true, canceledAt: null },
     select: {
-      id: true, accountId: true, categoryId: true, description: true, type: true,
-      installmentAmount: true, frequency: true, firstDueDate: true,
+      id: true,
+      accountId: true,
+      categoryId: true,
+      description: true,
+      type: true,
+      installmentAmount: true,
+      frequency: true,
+      firstDueDate: true,
     },
   });
   if (financings.length === 0) return;
@@ -192,7 +203,9 @@ export async function maintainRecurringSchedules(userId: string) {
   }
 
   if (trimmed.count > 0) {
-    console.info(`Removidas ${trimmed.count} ocorrências além do horizonte de ${RECURRING_HORIZON_MONTHS} meses`);
+    console.info(
+      `Removidas ${trimmed.count} ocorrências além do horizonte de ${RECURRING_HORIZON_MONTHS} meses`
+    );
   }
 }
 

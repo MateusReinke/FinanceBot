@@ -45,7 +45,7 @@ export function InstallmentTable({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[520px] text-left text-sm">
           <thead>
-            <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <tr className="border-border text-muted-foreground border-b text-xs font-medium tracking-wide uppercase">
               {isRecurring ? null : <th className="px-3 py-2">Parcela</th>}
               <th className="px-3 py-2">Vencimento</th>
               <th className="px-3 py-2 text-right">Valor</th>
@@ -59,22 +59,25 @@ export function InstallmentTable({
             {installments.map((inst) => {
               const savings = inst.balanceApplied ? scheduledAmount - inst.amount : 0;
               return (
-                <tr key={inst.id} className="border-b border-border last:border-0">
+                <tr key={inst.id} className="border-border border-b last:border-0">
                   {isRecurring ? null : (
-                    <td className="px-3 py-2.5 text-foreground">
+                    <td className="text-foreground px-3 py-2.5">
                       {inst.installmentNumber}/{installmentCount}
                     </td>
                   )}
-                  <td className="px-3 py-2.5 text-muted-foreground">
+                  <td className="text-muted-foreground px-3 py-2.5">
                     {byMonthLabel
-                      ? formatMonthYear(new Date(inst.date).getUTCMonth() + 1, new Date(inst.date).getUTCFullYear())
+                      ? formatMonthYear(
+                          new Date(inst.date).getUTCMonth() + 1,
+                          new Date(inst.date).getUTCFullYear()
+                        )
                       : formatDate(inst.date)}
                   </td>
-                  <td className="px-3 py-2.5 text-right text-foreground">
+                  <td className="text-foreground px-3 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       {formatCurrency(inst.amount)}
                       {savings > 0.01 ? (
-                        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-success-bg px-2 py-0.5 text-xs font-medium text-success">
+                        <span className="bg-success-bg text-success inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap">
                           <CheckCircle2 className="h-3 w-3" /> economizou {formatCurrency(savings)}
                         </span>
                       ) : null}
@@ -110,7 +113,11 @@ export function InstallmentTable({
                           <form
                             action={skipInstallment}
                             onSubmit={(e) => {
-                              if (!confirm("Pular esta cobrança? Ela some do mês, e as próximas continuam normalmente."))
+                              if (
+                                !confirm(
+                                  "Pular esta cobrança? Ela some do mês, e as próximas continuam normalmente."
+                                )
+                              )
                                 e.preventDefault();
                             }}
                           >
@@ -129,9 +136,9 @@ export function InstallmentTable({
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        Cada parcela também aparece na sua lista de Transações e pode ser editada ou excluída por
-        lá se precisar de um ajuste pontual.
+      <p className="text-muted-foreground mt-3 text-xs">
+        Cada parcela também aparece na sua lista de Transações e pode ser editada ou excluída por lá
+        se precisar de um ajuste pontual.
       </p>
 
       <Modal
@@ -177,7 +184,7 @@ function PayInstallmentForm({
       <input type="hidden" name="financingId" value={financingId} />
       <input type="hidden" name="transactionId" value={transaction.id} />
 
-      <p className="text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Vencimento {formatDate(transaction.date)} · previsto {formatCurrency(scheduledAmount)}
       </p>
 
@@ -193,7 +200,7 @@ function PayInstallmentForm({
           required
           autoFocus
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {isIncome
             ? "Veio diferente do previsto? Informe o valor real que caiu na conta."
             : "Pagou menos que o previsto (ex: amortização ou desconto)? Informe o valor real — a diferença fica registrada como economia."}
@@ -209,14 +216,14 @@ function PayInstallmentForm({
           type="date"
           defaultValue={toDateInputValue(transaction.date)}
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Pagou atrasado? Ajuste aqui para o lançamento cair no dia certo.
         </p>
         <FieldError messages={state?.errors?.paidDate} />
       </div>
 
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

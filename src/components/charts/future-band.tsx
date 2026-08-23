@@ -53,7 +53,7 @@ export function FutureBand({
         backgroundColor: "var(--chart-future)",
       }}
     >
-      <span className="absolute right-1.5 top-1 text-[11px] text-[var(--chart-axis)]">{label}</span>
+      <span className="absolute top-1 right-1.5 text-[11px] text-[var(--chart-axis)]">{label}</span>
     </div>
   );
 }

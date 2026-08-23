@@ -26,9 +26,9 @@ export function CreateEventForm({ whatsappEnabled }: { whatsappEnabled: boolean 
         <FieldError messages={state?.errors?.description} />
       </div>
       {whatsappEnabled ? (
-        <div className="space-y-2 rounded-lg border border-border bg-muted/40 p-3">
+        <div className="border-border bg-muted/40 space-y-2 rounded-lg border p-3">
           <input type="hidden" name="createWhatsappGroup" value={createGroup ? "true" : "false"} />
-          <label className="flex items-start gap-2 text-sm text-foreground">
+          <label className="text-foreground flex items-start gap-2 text-sm">
             <input
               type="checkbox"
               checked={createGroup}
@@ -37,9 +37,9 @@ export function CreateEventForm({ whatsappEnabled }: { whatsappEnabled: boolean 
             />
             <span>
               Criar um grupo no WhatsApp para este evento
-              <span className="block text-xs text-muted-foreground">
-                Quem entrar no evento é adicionado ao grupo, e cada despesa nova é avisada lá.
-                Só entra quem tiver WhatsApp cadastrado e permitir ser adicionado a grupos.
+              <span className="text-muted-foreground block text-xs">
+                Quem entrar no evento é adicionado ao grupo, e cada despesa nova é avisada lá. Só
+                entra quem tiver WhatsApp cadastrado e permitir ser adicionado a grupos.
               </span>
             </span>
           </label>
@@ -47,7 +47,7 @@ export function CreateEventForm({ whatsappEnabled }: { whatsappEnabled: boolean 
       ) : null}
 
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

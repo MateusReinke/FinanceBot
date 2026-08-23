@@ -30,8 +30,8 @@ export function OpenFinanceSection({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-foreground">Open Finance</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-foreground text-base font-semibold">Open Finance</h2>
+          <p className="text-muted-foreground text-sm">
             Conecte suas contas bancárias para importar transações automaticamente.
           </p>
         </div>
@@ -44,23 +44,27 @@ export function OpenFinanceSection({
             const statusMeta = getPluggyStatusMeta(item.status);
             const needsReconnect = NEEDS_RECONNECT_STATUSES.has(item.status);
             return (
-              <div key={item.id} className="flex flex-col gap-3 surface p-4">
+              <div key={item.id} className="surface flex flex-col gap-3 p-4">
                 <div className="flex items-center gap-3">
                   {item.connectorImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={item.connectorImageUrl}
                       alt=""
-                      className="h-9 w-9 shrink-0 rounded-full border border-border object-contain bg-white"
+                      className="border-border h-9 w-9 shrink-0 rounded-full border bg-white object-contain"
                     />
                   ) : (
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <span className="bg-muted text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
                       <Landmark className="h-4 w-4" />
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{item.connectorName}</p>
-                    <p className="text-xs text-muted-foreground">{relativeSync(item.lastSyncedAt)}</p>
+                    <p className="text-foreground truncate text-sm font-semibold">
+                      {item.connectorName}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {relativeSync(item.lastSyncedAt)}
+                    </p>
                   </div>
                 </div>
 
@@ -75,7 +79,7 @@ export function OpenFinanceSection({
                   {statusMeta.label}
                 </span>
 
-                <div className="flex items-center gap-1 border-t border-border pt-2">
+                <div className="border-border flex items-center gap-1 border-t pt-2">
                   {needsReconnect ? (
                     <ConnectBankButton
                       clientUserId={clientUserId}

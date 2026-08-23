@@ -28,12 +28,12 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen w-full">
-      <aside className="surface-shell hidden w-64 shrink-0 flex-col border-r border-border p-4 lg:flex">
+      <aside className="surface-shell border-border hidden w-64 shrink-0 flex-col border-r p-4 lg:flex">
         <Link
           href="/dashboard"
-          className="flex items-center gap-2.5 px-2 py-3 text-lg font-semibold tracking-tight text-foreground"
+          className="text-foreground flex items-center gap-2.5 px-2 py-3 text-lg font-semibold tracking-tight"
         >
-          <span className="bg-brand flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground">
+          <span className="bg-brand text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg">
             <Wallet2 className="h-[18px] w-[18px]" />
           </span>
           FinanceBot
@@ -45,21 +45,18 @@ export function AppShell({
 
       {mobileOpen ? (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="surface-shell absolute inset-y-0 left-0 flex w-72 flex-col border-r border-border p-4 shadow-overlay">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
+          <aside className="surface-shell border-border shadow-overlay absolute inset-y-0 left-0 flex w-72 flex-col border-r p-4">
             <div className="flex items-center justify-between px-2 py-3">
-              <span className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground">
-                <span className="bg-brand flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground">
+              <span className="text-foreground flex items-center gap-2.5 text-lg font-semibold tracking-tight">
+                <span className="bg-brand text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg">
                   <Wallet2 className="h-[18px] w-[18px]" />
                 </span>
                 FinanceBot
               </span>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"
+                className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
                 aria-label="Fechar menu"
               >
                 <X className="h-5 w-5" />
@@ -73,10 +70,10 @@ export function AppShell({
       ) : null}
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="surface-shell sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border px-4 sm:px-6">
+        <header className="surface-shell border-border sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b px-4 sm:px-6">
           <button
             onClick={() => setMobileOpen(true)}
-            className="rounded-md p-2 text-muted-foreground hover:bg-muted cursor-pointer lg:hidden"
+            className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-2 lg:hidden"
             aria-label="Abrir menu"
           >
             <Menu className="h-5 w-5" />

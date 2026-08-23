@@ -23,16 +23,23 @@ export function ResetPasswordForm({
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="id" value={id} />
-      <p className="text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Defina uma nova senha para <strong className="text-foreground">{name}</strong>.
       </p>
       <div className="space-y-1.5">
         <Label htmlFor="password">Nova senha</Label>
-        <Input id="password" name="password" type="password" placeholder="Mínimo 8 caracteres" required autoFocus />
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="Mínimo 8 caracteres"
+          required
+          autoFocus
+        />
         <FieldError messages={state?.errors?.password} />
       </div>
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

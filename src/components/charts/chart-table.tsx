@@ -24,7 +24,7 @@ export function ChartTable({
 
   return (
     <details className="group">
-      <summary className="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+      <summary className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-xs">
         <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
         Ver os números
       </summary>
@@ -32,15 +32,15 @@ export function ChartTable({
         <table className="w-full min-w-md border-collapse text-xs">
           <caption className="sr-only">{caption}</caption>
           <thead>
-            <tr className="border-b border-border">
+            <tr className="border-border border-b">
               {columns.map((c, i) => (
                 <th
                   key={c}
                   scope="col"
                   className={
                     i === 0
-                      ? "py-1.5 pr-3 text-left font-medium text-muted-foreground"
-                      : "py-1.5 pl-3 text-right font-medium text-muted-foreground"
+                      ? "text-muted-foreground py-1.5 pr-3 text-left font-medium"
+                      : "text-muted-foreground py-1.5 pl-3 text-right font-medium"
                   }
                 >
                   {c}
@@ -50,14 +50,14 @@ export function ChartTable({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row[0]} className="border-b border-border/60 last:border-0">
+              <tr key={row[0]} className="border-border/60 border-b last:border-0">
                 {row.map((cell, i) => (
                   <td
                     key={i}
                     className={
                       i === 0
-                        ? "py-1.5 pr-3 text-left text-foreground"
-                        : "py-1.5 pl-3 text-right tabular-nums text-muted-foreground"
+                        ? "text-foreground py-1.5 pr-3 text-left"
+                        : "text-muted-foreground py-1.5 pl-3 text-right tabular-nums"
                     }
                   >
                     {cell}

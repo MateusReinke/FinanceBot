@@ -8,7 +8,9 @@ const booleanField = (fallback: boolean) =>
   z
     .string()
     .nullish()
-    .transform((v) => (v === null || v === undefined || v === "" ? fallback : v === "true" || v === "on"));
+    .transform((v) =>
+      v === null || v === undefined || v === "" ? fallback : v === "true" || v === "on"
+    );
 
 export const FinancingSchema = z.object({
   description: z
@@ -18,7 +20,9 @@ export const FinancingSchema = z.object({
     .max(120, { error: "Descrição muito longa." }),
   // A receita fixa (salário) and a gasto fixo are the same schedule with
   // opposite signs — see Financing.type.
-  type: z.enum(["expense", "income"], { error: "Selecione se é uma entrada ou uma saída." }).default("expense"),
+  type: z
+    .enum(["expense", "income"], { error: "Selecione se é uma entrada ou uma saída." })
+    .default("expense"),
   accountId: z.string().min(1, { error: "Selecione uma conta." }),
   categoryId: z
     .string()
@@ -58,7 +62,9 @@ export const UpdateFinancingSchema = z.object({
   installmentAmount: z.coerce
     .number({ error: "Informe o valor." })
     .positive({ error: "O valor deve ser maior que zero." }),
-  frequency: z.enum(FREQUENCIES, { error: "Selecione com que frequência se repete." }).default("monthly"),
+  frequency: z
+    .enum(FREQUENCIES, { error: "Selecione com que frequência se repete." })
+    .default("monthly"),
   // The date the *next* unpaid occurrence should land on; the ones after it
   // are re-spaced from there. Optional — leaving it alone keeps the dates
   // exactly as they are, which is what editing only the amount should do.

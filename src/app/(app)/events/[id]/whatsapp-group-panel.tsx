@@ -16,7 +16,7 @@ export function WhatsAppGroupPanel({
 
   if (status === "pending") {
     return (
-      <div className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+      <div className="border-border bg-muted/40 text-muted-foreground flex items-start gap-2 rounded-xl border p-3 text-sm">
         <Loader2 className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
           Grupo do WhatsApp solicitado. Assim que a automação criar, ele aparece aqui — e todo mundo
@@ -28,7 +28,7 @@ export function WhatsAppGroupPanel({
 
   if (status === "failed") {
     return (
-      <div className="flex items-start gap-2 rounded-xl border border-danger bg-danger-bg p-3 text-sm text-danger">
+      <div className="border-danger bg-danger-bg text-danger flex items-start gap-2 rounded-xl border p-3 text-sm">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
           A automação não conseguiu criar o grupo. Isso costuma ser um participante cuja
@@ -40,7 +40,7 @@ export function WhatsAppGroupPanel({
   }
 
   return (
-    <div className="space-y-2 rounded-xl border border-success bg-success-bg p-3 text-sm text-success">
+    <div className="border-success bg-success-bg text-success space-y-2 rounded-xl border p-3 text-sm">
       <p className="flex items-center gap-2">
         <MessageCircle className="h-4 w-4 shrink-0" />
         Grupo do WhatsApp ativo — cada despesa nova é avisada lá.

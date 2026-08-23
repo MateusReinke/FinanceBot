@@ -24,7 +24,12 @@ export function ReceiptScanButton({
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
         <ScanText className="h-4 w-4" /> Ler nota fiscal
       </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Ler nota fiscal" className="max-w-lg">
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Ler nota fiscal"
+        className="max-w-lg"
+      >
         <ReceiptScanForm
           eventId={eventId}
           participants={participants}

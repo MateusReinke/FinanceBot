@@ -38,7 +38,7 @@ export function FinancingHeader({
 
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <h1 className="text-2xl font-semibold text-foreground">{description}</h1>
+      <h1 className="text-foreground text-2xl font-semibold">{description}</h1>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
           <Pencil className="h-4 w-4" /> Editar
@@ -62,7 +62,11 @@ export function FinancingHeader({
         <form
           action={deleteFinancing}
           onSubmit={(e) => {
-            if (!confirm(`Excluir "${description}"? Todas as parcelas, passadas e futuras, serão removidas.`))
+            if (
+              !confirm(
+                `Excluir "${description}"? Todas as parcelas, passadas e futuras, serão removidas.`
+              )
+            )
               e.preventDefault();
           }}
         >

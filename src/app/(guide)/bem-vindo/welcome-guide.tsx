@@ -23,7 +23,12 @@ import { cn } from "@/lib/utils";
 
 type Integrations = { whatsapp: boolean; openFinance: boolean; google: boolean };
 
-const STEP_TITLES = ["Como o app funciona", "Sua primeira conta", "Registrando gastos", "Tudo pronto"];
+const STEP_TITLES = [
+  "Como o app funciona",
+  "Sua primeira conta",
+  "Registrando gastos",
+  "Tudo pronto",
+];
 
 export function WelcomeGuide({
   firstName,
@@ -45,15 +50,18 @@ export function WelcomeGuide({
 
   return (
     <div className="surface overflow-hidden rounded-2xl">
-      <header className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
-        <div className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-foreground">
-          <span className="bg-brand flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground">
+      <header className="border-border flex items-center justify-between gap-4 border-b px-6 py-4">
+        <div className="text-foreground flex items-center gap-2.5 text-[15px] font-semibold tracking-tight">
+          <span className="bg-brand text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg">
             <Wallet2 className="h-[18px] w-[18px]" />
           </span>
           FinanceBot
         </div>
         {revisiting ? (
-          <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link
+            href="/dashboard"
+            className="text-muted-foreground hover:text-foreground text-sm font-medium"
+          >
             Voltar ao painel
           </Link>
         ) : (
@@ -63,7 +71,7 @@ export function WelcomeGuide({
           <form action={finishGuide}>
             <button
               type="submit"
-              className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground cursor-pointer text-sm font-medium"
             >
               Pular guia
             </button>
@@ -88,7 +96,7 @@ export function WelcomeGuide({
       </div>
 
       <div className="px-6 py-6 sm:px-8 sm:py-7">
-        <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+        <p className="text-muted-foreground text-xs font-medium tracking-[0.08em] uppercase">
           Passo {step + 1} de {STEP_TITLES.length} · {STEP_TITLES[step]}
         </p>
 
@@ -102,7 +110,7 @@ export function WelcomeGuide({
         </div>
       </div>
 
-      <footer className="flex items-center justify-between gap-3 border-t border-border px-6 py-4">
+      <footer className="border-border flex items-center justify-between gap-3 border-t px-6 py-4">
         <Button
           variant="ghost"
           onClick={() => setStep((s) => Math.max(0, s - 1))}
@@ -165,36 +173,38 @@ function StepConcepts({ firstName }: { firstName: string }) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-foreground text-2xl font-semibold tracking-tight">
           Bem-vindo, {firstName}.
         </h1>
-        <p className="text-[15px] leading-relaxed text-muted-foreground">
-          Em menos de dois minutos você vai saber onde fica cada coisa. São quatro ideias, e o
-          resto do app é combinação delas.
+        <p className="text-muted-foreground text-[15px] leading-relaxed">
+          Em menos de dois minutos você vai saber onde fica cada coisa. São quatro ideias, e o resto
+          do app é combinação delas.
         </p>
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2">
         {concepts.map(({ icon: Icon, title, text }) => (
-          <li key={title} className="rounded-xl border border-border bg-muted/40 p-4">
-            <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Icon className="h-4 w-4 text-primary" />
+          <li key={title} className="border-border bg-muted/40 rounded-xl border p-4">
+            <p className="text-foreground flex items-center gap-2 text-sm font-semibold">
+              <Icon className="text-primary h-4 w-4" />
               {title}
             </p>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
+            <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{text}</p>
           </li>
         ))}
       </ul>
 
       {/* The one concept that is genuinely this app's own, and the one that
           confuses everybody on day one if nobody explains it. */}
-      <div className="rounded-xl border border-border p-4">
-        <p className="text-sm font-semibold text-foreground">Previsto e realizado</p>
-        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-          Um lançamento pode já ter acontecido (<strong className="font-medium text-foreground">realizado</strong> — o
-          dinheiro saiu da conta) ou estar agendado para uma data futura
-          (<strong className="font-medium text-foreground">previsto</strong>). O saldo mostra o que você tem hoje; a
-          previsão mostra onde ele chega no fim do mês se tudo o que está agendado acontecer.
+      <div className="border-border rounded-xl border p-4">
+        <p className="text-foreground text-sm font-semibold">Previsto e realizado</p>
+        <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+          Um lançamento pode já ter acontecido (
+          <strong className="text-foreground font-medium">realizado</strong> — o dinheiro saiu da
+          conta) ou estar agendado para uma data futura (
+          <strong className="text-foreground font-medium">previsto</strong>). O saldo mostra o que
+          você tem hoje; a previsão mostra onde ele chega no fim do mês se tudo o que está agendado
+          acontecer.
         </p>
       </div>
     </div>
@@ -205,7 +215,7 @@ function StepAccount({ created, onCreated }: { created: boolean; onCreated: () =
   if (created) {
     return (
       <div className="space-y-4">
-        <div className="flex items-start gap-3 rounded-xl border border-success/25 bg-success-bg p-4 text-success">
+        <div className="border-success/25 bg-success-bg text-success flex items-start gap-3 rounded-xl border p-4">
           <Check className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
             <p className="text-sm font-semibold">Conta cadastrada.</p>
@@ -215,9 +225,9 @@ function StepAccount({ created, onCreated }: { created: boolean; onCreated: () =
             </p>
           </div>
         </div>
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        <p className="text-muted-foreground text-sm leading-relaxed">
           Dica: para um cartão de crédito, o saldo é o quanto você{" "}
-          <strong className="font-medium text-foreground">deve</strong> — um valor negativo, como
+          <strong className="text-foreground font-medium">deve</strong> — um valor negativo, como
           -1200.
         </p>
       </div>
@@ -227,15 +237,15 @@ function StepAccount({ created, onCreated }: { created: boolean; onCreated: () =
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+        <h2 className="text-foreground text-xl font-semibold tracking-tight">
           Comece pela conta que você mais usa
         </h2>
-        <p className="text-[15px] leading-relaxed text-muted-foreground">
+        <p className="text-muted-foreground text-[15px] leading-relaxed">
           Sem uma conta não há onde registrar um gasto. Cadastre a principal agora — as outras
           entram depois, em Contas.
         </p>
       </div>
-      <div className="rounded-xl border border-border p-4 sm:p-5">
+      <div className="border-border rounded-xl border p-4 sm:p-5">
         <AccountForm onSuccess={onCreated} />
       </div>
     </div>
@@ -273,10 +283,10 @@ function StepRecording({ integrations }: { integrations: Integrations }) {
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+        <h2 className="text-foreground text-xl font-semibold tracking-tight">
           {ways.length > 1 ? `${ways.length} jeitos de registrar um gasto` : "Registrando um gasto"}
         </h2>
-        <p className="text-[15px] leading-relaxed text-muted-foreground">
+        <p className="text-muted-foreground text-[15px] leading-relaxed">
           O trabalho de digitar tudo é o que faz a maioria das pessoas desistir de um app de
           finanças. Aqui dá para fugir dele.
         </p>
@@ -284,25 +294,25 @@ function StepRecording({ integrations }: { integrations: Integrations }) {
 
       <ul className="space-y-3">
         {ways.map(({ icon: Icon, title, text }) => (
-          <li key={title} className="flex gap-3.5 rounded-xl border border-border p-4">
-            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground">
+          <li key={title} className="border-border flex gap-3.5 rounded-xl border p-4">
+            <span className="border-border bg-muted text-muted-foreground mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border">
               <Icon className="h-4 w-4" />
             </span>
             <div>
-              <p className="text-sm font-semibold text-foreground">{title}</p>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{text}</p>
+              <p className="text-foreground text-sm font-semibold">{title}</p>
+              <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{text}</p>
             </div>
           </li>
         ))}
       </ul>
 
-      <div className="flex gap-3.5 rounded-xl border border-border bg-muted/40 p-4">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground">
+      <div className="border-border bg-muted/40 flex gap-3.5 rounded-xl border p-4">
+        <span className="border-border bg-card text-muted-foreground mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border">
           <CreditCard className="h-4 w-4" />
         </span>
         <div>
-          <p className="text-sm font-semibold text-foreground">Gasto no cartão de crédito</p>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+          <p className="text-foreground text-sm font-semibold">Gasto no cartão de crédito</p>
+          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
             Registre na conta do cartão, não na do banco. O saldo do cartão é a fatura em aberto;
             quando você paga, use “Pagar fatura” em Contas e o dinheiro sai da conta corrente.
           </p>
@@ -323,10 +333,10 @@ function StepDone() {
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+        <h2 className="text-foreground text-xl font-semibold tracking-tight">
           É isso. O resto você descobre usando.
         </h2>
-        <p className="text-[15px] leading-relaxed text-muted-foreground">
+        <p className="text-muted-foreground text-[15px] leading-relaxed">
           No painel há uma lista de primeiros passos que vai marcando sozinha o que você já fez.
           Quando terminar, ela some.
         </p>
@@ -334,16 +344,19 @@ function StepDone() {
 
       <ul className="space-y-2.5">
         {next.map((text) => (
-          <li key={text} className="flex items-start gap-2.5 text-sm leading-relaxed text-muted-foreground">
-            <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border">
-              <Check className="h-2.5 w-2.5 text-muted-foreground" />
+          <li
+            key={text}
+            className="text-muted-foreground flex items-start gap-2.5 text-sm leading-relaxed"
+          >
+            <span className="border-border mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border">
+              <Check className="text-muted-foreground h-2.5 w-2.5" />
             </span>
             {text}
           </li>
         ))}
       </ul>
 
-      <p className="text-sm leading-relaxed text-muted-foreground">
+      <p className="text-muted-foreground text-sm leading-relaxed">
         Para rever este guia depois, ele fica no menu do seu perfil, no canto superior direito.
       </p>
     </div>

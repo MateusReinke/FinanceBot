@@ -14,7 +14,7 @@ const FEATURES = [
   {
     icon: MessageCircle,
     title: "Registre pelo WhatsApp",
-    text: "Mande \"almoço 32\" para o bot e o lançamento aparece aqui.",
+    text: 'Mande "almoço 32" para o bot e o lançamento aparece aqui.',
   },
   {
     icon: ShieldCheck,
@@ -30,9 +30,9 @@ const FEATURES = [
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[1.05fr_1fr]">
-      <div className="relative hidden flex-col justify-between border-r border-border bg-card p-12 lg:flex">
-        <div className="flex items-center gap-2.5 text-[17px] font-semibold tracking-tight text-foreground">
-          <span className="bg-brand flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground">
+      <div className="border-border bg-card relative hidden flex-col justify-between border-r p-12 lg:flex">
+        <div className="text-foreground flex items-center gap-2.5 text-[17px] font-semibold tracking-tight">
+          <span className="bg-brand text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg">
             <Wallet2 className="h-[18px] w-[18px]" />
           </span>
           FinanceBot
@@ -40,10 +40,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <div className="max-w-md space-y-10">
           <div className="space-y-3">
-            <h1 className="text-[2rem] font-semibold leading-[1.2] tracking-tight text-balance text-foreground">
+            <h1 className="text-foreground text-[2rem] leading-[1.2] font-semibold tracking-tight text-balance">
               Saiba exatamente para onde vai o seu dinheiro.
             </h1>
-            <p className="text-[15px] leading-relaxed text-muted-foreground">
+            <p className="text-muted-foreground text-[15px] leading-relaxed">
               Controle de gastos pessoal, com previsão de saldo e divisão de contas entre amigos.
             </p>
           </div>
@@ -51,29 +51,27 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <ul className="space-y-6">
             {FEATURES.map(({ icon: Icon, title, text }) => (
               <li key={title} className="flex gap-3.5">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground">
+                <span className="border-border bg-muted text-muted-foreground mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border">
                   <Icon className="h-4 w-4" />
                 </span>
                 <div className="space-y-0.5">
-                  <p className="text-sm font-medium text-foreground">{title}</p>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>
+                  <p className="text-foreground text-sm font-medium">{title}</p>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{text}</p>
                 </div>
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          FinanceBot — controle pessoal de gastos.
-        </p>
+        <p className="text-muted-foreground text-xs">FinanceBot — controle pessoal de gastos.</p>
       </div>
 
       <div className="flex items-center justify-center p-6 sm:p-10">
         {/* The logo repeats here for the mobile layout, where the panel on
             the left is not rendered at all. */}
         <div className="w-full max-w-sm space-y-8">
-          <div className="flex items-center gap-2.5 text-[17px] font-semibold tracking-tight text-foreground lg:hidden">
-            <span className="bg-brand flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground">
+          <div className="text-foreground flex items-center gap-2.5 text-[17px] font-semibold tracking-tight lg:hidden">
+            <span className="bg-brand text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg">
               <Wallet2 className="h-[18px] w-[18px]" />
             </span>
             FinanceBot

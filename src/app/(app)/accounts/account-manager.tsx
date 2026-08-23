@@ -33,7 +33,7 @@ function AccountCard({
   const isCard = account.type === "credit_card";
 
   return (
-    <div className="flex flex-col gap-3 surface p-4">
+    <div className="surface flex flex-col gap-3 p-4">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <span
@@ -43,15 +43,15 @@ function AccountCard({
             <Icon className="h-5 w-5" />
           </span>
           <div>
-            <p className="text-sm font-semibold text-foreground">{account.name}</p>
-            <p className="text-xs text-muted-foreground">{meta.label}</p>
+            <p className="text-foreground text-sm font-semibold">{account.name}</p>
+            <p className="text-muted-foreground text-xs">{meta.label}</p>
           </div>
         </div>
         {!isSynced ? (
           <div className="flex items-center gap-1">
             <button
               onClick={() => setEditOpen(true)}
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"
+              className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
               aria-label="Editar conta"
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -60,7 +60,7 @@ function AccountCard({
               <input type="hidden" name="id" value={account.id} />
               <button
                 type="submit"
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"
+                className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
                 aria-label={account.archived ? "Reativar conta" : "Arquivar conta"}
               >
                 {account.archived ? (
@@ -73,14 +73,18 @@ function AccountCard({
             <form
               action={deleteAccount}
               onSubmit={(e) => {
-                if (!confirm(`Excluir "${account.name}"? Todas as transações desta conta também serão excluídas.`))
+                if (
+                  !confirm(
+                    `Excluir "${account.name}"? Todas as transações desta conta também serão excluídas.`
+                  )
+                )
                   e.preventDefault();
               }}
             >
               <input type="hidden" name="id" value={account.id} />
               <button
                 type="submit"
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer"
+                className="text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer rounded-md p-1.5"
                 aria-label="Excluir conta"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -88,7 +92,7 @@ function AccountCard({
             </form>
           </div>
         ) : (
-          <span className="rounded-full bg-success-bg px-2 py-0.5 text-xs font-medium text-success">
+          <span className="bg-success-bg text-success rounded-full px-2 py-0.5 text-xs font-medium">
             Open Finance
           </span>
         )}
@@ -96,7 +100,11 @@ function AccountCard({
       <p
         className={cn(
           "text-xl font-semibold",
-          account.balance > 0 ? "text-foreground" : account.balance < 0 ? "text-danger" : "text-muted-foreground"
+          account.balance > 0
+            ? "text-foreground"
+            : account.balance < 0
+              ? "text-danger"
+              : "text-muted-foreground"
         )}
       >
         {formatCurrency(account.balance)}
@@ -134,21 +142,21 @@ function PlannedInvoices({ plan }: { plan: PlannedInvoice[] }) {
   const total = pending.reduce((sum, invoice) => sum + invoice.amount, 0);
 
   return (
-    <div className="space-y-1 border-t border-border pt-3">
-      <p className="text-xs font-medium text-muted-foreground">Faturas previstas</p>
+    <div className="border-border space-y-1 border-t pt-3">
+      <p className="text-muted-foreground text-xs font-medium">Faturas previstas</p>
       {shown.map((invoice) => (
         <div key={invoice.id} className="flex items-center justify-between text-xs">
           <span className={cn("text-muted-foreground", invoice.date < today && "text-danger")}>
             {formatMonthShort(invoice.date.getUTCMonth() + 1, invoice.date.getUTCFullYear())}{" "}
             {invoice.date.getUTCFullYear()}
           </span>
-          <span className="font-medium tabular-nums text-foreground">
+          <span className="text-foreground font-medium tabular-nums">
             {formatCurrency(invoice.amount)}
           </span>
         </div>
       ))}
       {rest > 0 ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           +{rest} {rest === 1 ? "mês" : "meses"} · {formatCurrency(total)} no total
         </p>
       ) : null}
@@ -165,22 +173,25 @@ function CreditCardDetails({ account }: { account: Account }) {
   const available = creditLimit ? Math.max(0, creditLimit - used) : null;
 
   return (
-    <div className="space-y-2 border-t border-border pt-3">
+    <div className="border-border space-y-2 border-t pt-3">
       {creditLimit ? (
         <div className="space-y-1">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
             <div
-              className={cn("h-full rounded-full", pct >= 90 ? "bg-danger" : pct >= 70 ? "bg-warning" : "bg-primary")}
+              className={cn(
+                "h-full rounded-full",
+                pct >= 90 ? "bg-danger" : pct >= 70 ? "bg-warning" : "bg-primary"
+              )}
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             {formatCurrency(available ?? 0)} disponível de {formatCurrency(creditLimit)}
           </p>
         </div>
       ) : null}
       {closingDay || dueDay ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {closingDay ? `Fecha dia ${closingDay}` : null}
           {closingDay && dueDay ? " · " : null}
           {dueDay ? `Vence dia ${dueDay}` : null}
@@ -204,7 +215,9 @@ function AccountGrid({
   muted?: boolean;
 }) {
   return (
-    <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3", muted && "opacity-70")}>
+    <div
+      className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3", muted && "opacity-70")}
+    >
       {accounts.map((a) => (
         <AccountCard
           key={a.id}
@@ -244,9 +257,9 @@ export function AccountManager({
       </div>
 
       {active.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
-          <Landmark className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
+        <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed p-10 text-center">
+          <Landmark className="text-muted-foreground h-8 w-8" />
+          <p className="text-muted-foreground text-sm">
             Você ainda não tem contas cadastradas. Crie uma conta manual ou conecte seu banco.
           </p>
           <Button size="sm" onClick={() => setCreateOpen(true)}>
@@ -257,21 +270,31 @@ export function AccountManager({
         <>
           {activeCards.length > 0 ? (
             <div className="space-y-3">
-              <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <h2 className="text-foreground flex items-center gap-1.5 text-sm font-semibold">
                 <CreditCard className="h-4 w-4" /> Cartões de crédito
               </h2>
-              <AccountGrid accounts={activeCards} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} plans={plans} />
+              <AccountGrid
+                accounts={activeCards}
+                aiEnabled={aiEnabled}
+                sourceAccounts={sourceAccounts}
+                plans={plans}
+              />
             </div>
           ) : null}
 
           {activeAccounts.length > 0 ? (
             <div className="space-y-3">
               {activeCards.length > 0 ? (
-                <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <h2 className="text-foreground flex items-center gap-1.5 text-sm font-semibold">
                   <Landmark className="h-4 w-4" /> Contas
                 </h2>
               ) : null}
-              <AccountGrid accounts={activeAccounts} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} plans={plans} />
+              <AccountGrid
+                accounts={activeAccounts}
+                aiEnabled={aiEnabled}
+                sourceAccounts={sourceAccounts}
+                plans={plans}
+              />
             </div>
           ) : null}
         </>
@@ -279,11 +302,17 @@ export function AccountManager({
 
       {archived.length > 0 ? (
         <details className="group">
-          <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+          <summary className="text-muted-foreground cursor-pointer text-sm font-medium">
             Contas arquivadas ({archived.length})
           </summary>
           <div className="mt-3">
-            <AccountGrid accounts={archived} aiEnabled={aiEnabled} sourceAccounts={sourceAccounts} plans={plans} muted />
+            <AccountGrid
+              accounts={archived}
+              aiEnabled={aiEnabled}
+              sourceAccounts={sourceAccounts}
+              plans={plans}
+              muted
+            />
           </div>
         </details>
       ) : null}

@@ -67,7 +67,7 @@
    * importance; if each one floats, none of them do. */
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04);
   --shadow-raised: 0 1px 3px rgb(16 24 40 / 0.08), 0 4px 12px -4px rgb(16 24 40 / 0.06);
-  --shadow-overlay: 0 20px 48px -12px rgb(16 24 40 / 0.24), 0 4px 12px -6px rgb(16 24 40 / 0.10);
+  --shadow-overlay: 0 20px 48px -12px rgb(16 24 40 / 0.24), 0 4px 12px -6px rgb(16 24 40 / 0.1);
 
   /* Charts.
    *
@@ -176,8 +176,9 @@
 }
 
 :root {
-  --font-sans-stack: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-sans-stack:
+    var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 * {

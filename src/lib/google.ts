@@ -51,7 +51,8 @@ export function googleRedirectUri(requestHeaders: Headers) {
   if (configured) return configured;
 
   const proto = requestHeaders.get("x-forwarded-proto") ?? "http";
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
   return `${proto}://${host}/api/auth/google/callback`;
 }
 
@@ -122,7 +123,9 @@ export async function exchangeCode(code: string, redirectUri: string, codeVerifi
   });
 
   if (!response.ok) {
-    throw new Error(`Troca de código com o Google falhou (${response.status}): ${await response.text()}`);
+    throw new Error(
+      `Troca de código com o Google falhou (${response.status}): ${await response.text()}`
+    );
   }
   return tokensFrom(await response.json());
 }

@@ -29,8 +29,8 @@ export function BalanceHero({
     <div className="surface rounded-2xl p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Wallet2 className="h-4 w-4 text-accent" /> Saldo total
+          <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+            <Wallet2 className="text-accent h-4 w-4" /> Saldo total
           </p>
           <p
             className={cn(
@@ -44,7 +44,7 @@ export function BalanceHero({
 
         {Math.abs(delta) > 0.005 ? (
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Previsto no fim do mês</p>
+            <p className="text-muted-foreground text-xs">Previsto no fim do mês</p>
             <p
               className={cn(
                 "flex items-center justify-end gap-1 text-lg font-semibold tabular-nums",
@@ -52,9 +52,9 @@ export function BalanceHero({
               )}
             >
               {delta < 0 ? (
-                <TrendingDown className="h-4 w-4 text-danger" />
+                <TrendingDown className="text-danger h-4 w-4" />
               ) : (
-                <TrendingUp className="h-4 w-4 text-success" />
+                <TrendingUp className="text-success h-4 w-4" />
               )}
               {formatCurrency(forecastBalance)}
             </p>
@@ -67,15 +67,18 @@ export function BalanceHero({
       </div>
 
       {visible.length > 0 ? (
-        <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
+        <div className="border-border mt-5 flex flex-wrap gap-2 border-t pt-4">
           {visible.map((a) => (
             <Link
               key={a.id}
               href="/accounts"
-              className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-xs transition-colors hover:border-primary"
+              className="border-border hover:border-primary flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition-colors"
             >
-              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: a.color }} />
-              <span className="max-w-32 truncate text-muted-foreground">{a.name}</span>
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: a.color }}
+              />
+              <span className="text-muted-foreground max-w-32 truncate">{a.name}</span>
               <span
                 className={cn(
                   "font-medium tabular-nums",
@@ -89,7 +92,7 @@ export function BalanceHero({
           {rest > 0 ? (
             <Link
               href="/accounts"
-              className="flex items-center rounded-lg border border-dashed border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-foreground"
+              className="border-border text-muted-foreground hover:border-primary hover:text-foreground flex items-center rounded-lg border border-dashed px-2.5 py-1.5 text-xs"
             >
               +{rest} {rest === 1 ? "conta" : "contas"}
             </Link>

@@ -39,6 +39,8 @@ export async function buildEventPayload(eventId: string) {
     // created before the number was required has none, and the flow needs
     // to know it cannot add that person instead of failing on a null.
     members: members.filter((m) => m.phone),
-    membersWithoutPhone: members.filter((m) => !m.phone).map((m) => ({ userId: m.userId, name: m.name })),
+    membersWithoutPhone: members
+      .filter((m) => !m.phone)
+      .map((m) => ({ userId: m.userId, name: m.name })),
   };
 }

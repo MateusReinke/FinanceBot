@@ -26,7 +26,13 @@ export function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="password">Senha inicial</Label>
-        <Input id="password" name="password" type="password" placeholder="Mínimo 8 caracteres" required />
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="Mínimo 8 caracteres"
+          required
+        />
         <FieldError messages={state?.errors?.password} />
       </div>
       <div className="space-y-1.5">
@@ -38,7 +44,7 @@ export function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
         <FieldError messages={state?.errors?.role} />
       </div>
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

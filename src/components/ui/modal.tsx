@@ -45,10 +45,10 @@ export function Modal({
         )}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+          <h2 className="text-foreground text-lg font-semibold tracking-tight">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted cursor-pointer"
+            className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />

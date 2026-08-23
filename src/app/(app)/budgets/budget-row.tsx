@@ -39,13 +39,13 @@ export function BudgetRow({
         >
           <CategoryIcon icon={category.icon} className="h-4 w-4" />
         </span>
-        <span className="flex-1 text-sm font-medium text-foreground">{category.name}</span>
+        <span className="text-foreground flex-1 text-sm font-medium">{category.name}</span>
 
         {budget ? (
           <div className="flex items-center gap-1">
             <button
               onClick={() => setOpen(true)}
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"
+              className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
               aria-label="Editar orçamento"
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -59,7 +59,7 @@ export function BudgetRow({
               <input type="hidden" name="id" value={budget.id} />
               <button
                 type="submit"
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer"
+                className="text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer rounded-md p-1.5"
                 aria-label="Remover orçamento"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -69,7 +69,7 @@ export function BudgetRow({
         ) : (
           <button
             onClick={() => setOpen(true)}
-            className="flex items-center gap-1 text-sm font-medium text-primary hover:underline cursor-pointer"
+            className="text-primary flex cursor-pointer items-center gap-1 text-sm font-medium hover:underline"
           >
             <Plus className="h-3.5 w-3.5" /> Definir
           </button>
@@ -86,20 +86,20 @@ export function BudgetRow({
               {pct.toFixed(0)}%
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div className="bg-muted h-2 overflow-hidden rounded-full">
             <div
               className={cn("h-full rounded-full", over ? "bg-danger" : "bg-primary")}
               style={{ width: `${pct}%` }}
             />
           </div>
           {scheduled > 0 ? (
-            <p className="mt-1.5 text-xs text-muted-foreground">
+            <p className="text-muted-foreground mt-1.5 text-xs">
               + {formatCurrency(scheduled)} já agendados para este mês
             </p>
           ) : null}
         </div>
       ) : spent > 0 ? (
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="text-muted-foreground mt-2 text-xs">
           {formatCurrency(spent)} gastos neste mês, sem orçamento definido.
         </p>
       ) : null}

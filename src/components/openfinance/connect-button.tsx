@@ -11,7 +11,9 @@ function loadPluggyScript(): Promise<void> {
   if (typeof window !== "undefined" && window.PluggyConnect) return Promise.resolve();
 
   return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${PLUGGY_CONNECT_SRC}"]`);
+    const existing = document.querySelector<HTMLScriptElement>(
+      `script[src="${PLUGGY_CONNECT_SRC}"]`
+    );
     if (existing) {
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () => reject(new Error("Falha ao carregar widget.")));
@@ -113,7 +115,13 @@ export function ConnectBankButton({
 
   return (
     <div className="space-y-1.5">
-      <Button type="button" variant={variant} size={size} onClick={handleClick} disabled={status !== "idle"}>
+      <Button
+        type="button"
+        variant={variant}
+        size={size}
+        onClick={handleClick}
+        disabled={status !== "idle"}
+      >
         {status !== "idle" ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
@@ -122,7 +130,7 @@ export function ConnectBankButton({
         {status === "saving" ? "Importando dados..." : status === "opening" ? "Abrindo..." : label}
       </Button>
       {error ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {error}
         </p>
       ) : null}

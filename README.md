@@ -35,16 +35,16 @@ também ganha o painel admin em `/admin`.
 
 ## Documentação
 
-| | |
-|---|---|
-| [Arquitetura](docs/arquitetura.md) | como o código é organizado e onde mexer para cada tipo de mudança |
-| [Funcionalidades](docs/funcionalidades.md) | o que o app faz, tela por tela |
-| [Configuração](docs/configuracao.md) | variáveis de ambiente e como ligar Google, Open Finance e IA |
-| [API pública](docs/api.md) | endpoints por token, usados pelo WhatsApp/n8n |
-| [Grupo de WhatsApp por evento](docs/whatsapp-eventos.md) | como a divisão de contas conversa com um grupo |
-| [Segurança](docs/seguranca.md) | isolamento de dados entre usuários |
-| [Deploy](docs/deploy.md) | Coolify, Docker Compose e resolução de problemas |
-| [Como contribuir](CONTRIBUTING.md) | fluxo de trabalho, convenções e o que rodar antes de abrir um PR |
+|                                                          |                                                                   |
+| -------------------------------------------------------- | ----------------------------------------------------------------- |
+| [Arquitetura](docs/arquitetura.md)                       | como o código é organizado e onde mexer para cada tipo de mudança |
+| [Funcionalidades](docs/funcionalidades.md)               | o que o app faz, tela por tela                                    |
+| [Configuração](docs/configuracao.md)                     | variáveis de ambiente e como ligar Google, Open Finance e IA      |
+| [API pública](docs/api.md)                               | endpoints por token, usados pelo WhatsApp/n8n                     |
+| [Grupo de WhatsApp por evento](docs/whatsapp-eventos.md) | como a divisão de contas conversa com um grupo                    |
+| [Segurança](docs/seguranca.md)                           | isolamento de dados entre usuários                                |
+| [Deploy](docs/deploy.md)                                 | Coolify, Docker Compose e resolução de problemas                  |
+| [Como contribuir](CONTRIBUTING.md)                       | fluxo de trabalho, convenções e o que rodar antes de abrir um PR  |
 
 ## Scripts
 

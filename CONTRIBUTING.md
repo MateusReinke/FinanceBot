@@ -44,7 +44,7 @@ nova, provavelmente precisava de um token novo.
 
 **Idioma.** Interface em português, código em inglês.
 
-**Comentários.** Este repositório comenta o *porquê*, não o *quê*. O código já
+**Comentários.** Este repositório comenta o _porquê_, não o _quê_. O código já
 diz o que faz; o que se perde com o tempo é a razão de ter sido feito assim —
 especialmente quando a razão é "a alternativa óbvia quebrava X". Se você
 desfizer uma decisão, apague o comentário que a defendia.

@@ -1,10 +1,7 @@
 import { cn } from "@/lib/utils";
 
 export const Card = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn("surface", className)}
-    {...props}
-  />
+  <div className={cn("surface", className)} {...props} />
 );
 
 // Sits on the card's own border rather than floating inside its padding, so
@@ -15,7 +12,7 @@ export const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDiv
 );
 
 export const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h3 className={cn("text-sm font-semibold text-foreground", className)} {...props} />
+  <h3 className={cn("text-foreground text-sm font-semibold", className)} {...props} />
 );
 
 export const CardContent = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

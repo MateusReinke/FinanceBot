@@ -57,9 +57,7 @@ export function TransactionForm({
     if (state?.success) onSuccess();
   }, [state?.success, onSuccess]);
 
-  const availableAccounts = accounts.filter(
-    (a) => !a.archived || a.id === transaction?.accountId
-  );
+  const availableAccounts = accounts.filter((a) => !a.archived || a.id === transaction?.accountId);
   const availableCategories = categories.filter((c) => c.type === type);
 
   return (
@@ -72,7 +70,7 @@ export function TransactionForm({
           type="button"
           onClick={() => setType("expense")}
           className={cn(
-            "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+            "cursor-pointer rounded-lg border py-2 text-sm font-medium transition-colors",
             type === "expense"
               ? "border-danger bg-danger-bg text-danger"
               : "border-border text-muted-foreground hover:bg-muted"
@@ -84,7 +82,7 @@ export function TransactionForm({
           type="button"
           onClick={() => setType("income")}
           className={cn(
-            "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+            "cursor-pointer rounded-lg border py-2 text-sm font-medium transition-colors",
             type === "income"
               ? "border-success bg-success-bg text-success"
               : "border-border text-muted-foreground hover:bg-muted"
@@ -136,7 +134,12 @@ export function TransactionForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="accountId">Conta</Label>
-        <Select id="accountId" name="accountId" defaultValue={transaction?.accountId ?? initial?.accountId ?? ""} required>
+        <Select
+          id="accountId"
+          name="accountId"
+          defaultValue={transaction?.accountId ?? initial?.accountId ?? ""}
+          required
+        >
           <option value="" disabled>
             Selecione uma conta
           </option>
@@ -151,7 +154,11 @@ export function TransactionForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="categoryId">Categoria</Label>
-        <Select id="categoryId" name="categoryId" defaultValue={transaction?.categoryId ?? initial?.categoryId ?? ""}>
+        <Select
+          id="categoryId"
+          name="categoryId"
+          defaultValue={transaction?.categoryId ?? initial?.categoryId ?? ""}
+        >
           <option value="">Sem categoria</option>
           {availableCategories.map((c) => (
             <option key={c.id} value={c.id}>
@@ -170,7 +177,7 @@ export function TransactionForm({
               type="button"
               onClick={() => setPaid(true)}
               className={cn(
-                "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+                "cursor-pointer rounded-lg border py-2 text-sm font-medium transition-colors",
                 paid
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border text-muted-foreground hover:bg-muted"
@@ -182,7 +189,7 @@ export function TransactionForm({
               type="button"
               onClick={() => setPaid(false)}
               className={cn(
-                "rounded-lg border py-2 text-sm font-medium cursor-pointer transition-colors",
+                "cursor-pointer rounded-lg border py-2 text-sm font-medium transition-colors",
                 !paid
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border text-muted-foreground hover:bg-muted"
@@ -191,7 +198,7 @@ export function TransactionForm({
               {type === "income" ? "Ainda vou receber" : "Ainda vou pagar"}
             </button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             {paid
               ? "Entra no saldo agora."
               : "Fica agendado: aparece em Próximos vencimentos e só mexe no saldo quando você confirmar."}
@@ -203,7 +210,7 @@ export function TransactionForm({
           purchase you already paid has no one to chase, and asking "de
           quem?" on every expense would be noise on the 95% case. */}
       {paid ? null : (
-        <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
+        <div className="border-border bg-muted/40 space-y-3 rounded-lg border p-3">
           <div className="space-y-1.5">
             <Label htmlFor="counterparty">
               {type === "income" ? "Quem te deve? (opcional)" : "Para quem? (opcional)"}
@@ -238,7 +245,7 @@ export function TransactionForm({
               defaultValue={knownPhone ?? transaction?.counterpartyPhone ?? ""}
               placeholder="(11) 99999-9999"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               {type === "income"
                 ? "Com o número, o botão Cobrar abre a conversa com a mensagem pronta."
                 : "Guardado junto do lançamento, para você saber a quem procurar."}
@@ -254,7 +261,7 @@ export function TransactionForm({
       </div>
 
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

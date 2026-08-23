@@ -14,7 +14,14 @@ export function LoginForm({ next }: { next?: string }) {
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <div className="space-y-1.5">
         <Label htmlFor="email">E-mail</Label>
-        <Input id="email" name="email" type="email" placeholder="voce@email.com" required autoFocus />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="voce@email.com"
+          required
+          autoFocus
+        />
         <FieldError messages={state?.errors?.email} />
       </div>
       <div className="space-y-1.5">
@@ -23,14 +30,14 @@ export function LoginForm({ next }: { next?: string }) {
         <FieldError messages={state?.errors?.password} />
       </div>
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}
       <SubmitButton className="w-full">Entrar</SubmitButton>
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-center text-sm">
         Não tem uma conta?{" "}
-        <Link href="/register" className="font-medium text-primary hover:underline">
+        <Link href="/register" className="text-primary font-medium hover:underline">
           Criar conta
         </Link>
       </p>

@@ -19,8 +19,8 @@ export default async function JoinEventPage({ params }: { params: Promise<{ code
       <div className="mx-auto max-w-md pt-10">
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <TriangleAlert className="h-8 w-8 text-danger" />
-            <p className="text-sm text-muted-foreground">
+            <TriangleAlert className="text-danger h-8 w-8" />
+            <p className="text-muted-foreground text-sm">
               Este convite não existe, expirou ou foi revogado.
             </p>
           </CardContent>
@@ -38,14 +38,14 @@ export default async function JoinEventPage({ params }: { params: Promise<{ code
     <div className="mx-auto max-w-md pt-10">
       <Card>
         <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-full">
             <Users className="h-6 w-6" />
           </span>
           <div>
-            <p className="text-sm text-muted-foreground">Você foi convidado para</p>
-            <h1 className="text-xl font-semibold text-foreground">{invite.event.name}</h1>
+            <p className="text-muted-foreground text-sm">Você foi convidado para</p>
+            <h1 className="text-foreground text-xl font-semibold">{invite.event.name}</h1>
             {invite.event.description ? (
-              <p className="mt-1 text-sm text-muted-foreground">{invite.event.description}</p>
+              <p className="text-muted-foreground mt-1 text-sm">{invite.event.description}</p>
             ) : null}
           </div>
           <div className="w-full">

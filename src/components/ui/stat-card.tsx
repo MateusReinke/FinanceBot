@@ -28,15 +28,15 @@ export function StatCard({
   const body = (
     <>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-muted-foreground text-sm">{label}</p>
         {href ? (
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
         ) : null}
       </div>
       <div className="mt-1.5 flex items-end justify-between gap-2">
         <p
           className={cn(
-            "text-2xl font-semibold tracking-tight tabular-nums text-foreground",
+            "text-foreground text-2xl font-semibold tracking-tight tabular-nums",
             valueClassName
           )}
         >
@@ -59,7 +59,7 @@ export function StatCard({
         ) : null}
       </div>
       {hint ? (
-        <p className={cn("mt-1 text-xs text-muted-foreground", hintClassName)}>{hint}</p>
+        <p className={cn("text-muted-foreground mt-1 text-xs", hintClassName)}>{hint}</p>
       ) : null}
     </>
   );
@@ -72,7 +72,7 @@ export function StatCard({
         href={href}
         className={cn(
           base,
-          "group block transition-colors duration-150 hover:border-border-strong hover:bg-muted/40"
+          "group hover:border-border-strong hover:bg-muted/40 block transition-colors duration-150"
         )}
       >
         {body}

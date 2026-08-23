@@ -21,20 +21,20 @@ export function MonthSelector({
   const href = (m: number, y: number) => `${basePath}${sep}month=${m}&year=${y}`;
 
   return (
-    <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
+    <div className="border-border bg-card flex items-center gap-1 rounded-lg border p-1">
       <Link
         href={href(prev.month, prev.year)}
-        className="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+        className="text-muted-foreground hover:bg-muted rounded-md p-1.5"
         aria-label="Mês anterior"
       >
         <ChevronLeft className="h-4 w-4" />
       </Link>
-      <span className="min-w-36 text-center text-sm font-medium text-foreground">
+      <span className="text-foreground min-w-36 text-center text-sm font-medium">
         {formatMonthYear(month, year)}
       </span>
       <Link
         href={href(next.month, next.year)}
-        className="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+        className="text-muted-foreground hover:bg-muted rounded-md p-1.5"
         aria-label="Próximo mês"
       >
         <ChevronRight className="h-4 w-4" />

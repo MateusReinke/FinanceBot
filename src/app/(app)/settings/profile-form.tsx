@@ -20,7 +20,7 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
         <Input id="email" value={email} disabled />
       </div>
       {state?.message ? (
-        <p className="text-sm text-success" role="status">
+        <p className="text-success text-sm" role="status">
           {state.message}
         </p>
       ) : null}

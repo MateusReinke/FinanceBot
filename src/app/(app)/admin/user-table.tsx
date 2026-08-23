@@ -15,13 +15,13 @@ function UserRow({ user, currentUserId }: { user: AdminUser; currentUserId: stri
   const isSelf = user.id === currentUserId;
 
   return (
-    <tr className="border-b border-border last:border-0">
+    <tr className="border-border border-b last:border-0">
       <td className="px-3 py-3">
-        <p className="text-sm font-medium text-foreground">
+        <p className="text-foreground text-sm font-medium">
           {user.name}
-          {isSelf ? <span className="ml-1.5 text-xs text-muted-foreground">(você)</span> : null}
+          {isSelf ? <span className="text-muted-foreground ml-1.5 text-xs">(você)</span> : null}
         </p>
-        <p className="text-xs text-muted-foreground">{user.email}</p>
+        <p className="text-muted-foreground text-xs">{user.email}</p>
       </td>
       <td className="px-3 py-3">
         <span
@@ -33,19 +33,19 @@ function UserRow({ user, currentUserId }: { user: AdminUser; currentUserId: stri
           {user.role === "admin" ? "Administrador" : "Usuário"}
         </span>
       </td>
-      <td className="px-3 py-3 text-sm text-muted-foreground">{formatDate(user.createdAt)}</td>
+      <td className="text-muted-foreground px-3 py-3 text-sm">{formatDate(user.createdAt)}</td>
       <td className="px-3 py-3">
         <div className="flex items-center justify-end gap-1">
           <button
             onClick={() => setModal("edit")}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"
+            className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
             aria-label="Editar usuário"
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => setModal("reset")}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"
+            className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
             aria-label="Redefinir senha"
           >
             <KeyRound className="h-3.5 w-3.5" />
@@ -53,7 +53,7 @@ function UserRow({ user, currentUserId }: { user: AdminUser; currentUserId: stri
           {!isSelf ? (
             <button
               onClick={() => setModal("delete")}
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer"
+              className="text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer rounded-md p-1.5"
               aria-label="Excluir usuário"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -84,10 +84,10 @@ function UserRow({ user, currentUserId }: { user: AdminUser; currentUserId: stri
 
 export function UserTable({ users, currentUserId }: { users: AdminUser[]; currentUserId: string }) {
   return (
-    <div className="overflow-x-auto surface">
+    <div className="surface overflow-x-auto">
       <table className="w-full min-w-[520px] text-left">
         <thead>
-          <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <tr className="border-border text-muted-foreground border-b text-xs font-medium tracking-wide uppercase">
             <th className="px-3 py-3">Usuário</th>
             <th className="px-3 py-3">Papel</th>
             <th className="px-3 py-3">Criado em</th>

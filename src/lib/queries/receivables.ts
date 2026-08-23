@@ -110,7 +110,7 @@ export async function getReceivables(userId: string) {
   // lands. The unnamed group sinks to the bottom of its own tier so it never
   // pushes a real person off the top of the screen.
   const groups = [...byKey.values()].sort((a, b) => {
-    if ((a.overdueCount > 0) !== (b.overdueCount > 0)) return a.overdueCount > 0 ? -1 : 1;
+    if (a.overdueCount > 0 !== b.overdueCount > 0) return a.overdueCount > 0 ? -1 : 1;
     if ((a.counterparty === null) !== (b.counterparty === null)) {
       return a.counterparty === null ? 1 : -1;
     }

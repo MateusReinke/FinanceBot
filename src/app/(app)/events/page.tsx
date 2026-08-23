@@ -25,9 +25,9 @@ export default async function EventsPage() {
       </div>
 
       {events.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
-          <Users className="h-8 w-8 text-muted-foreground" />
-          <p className="max-w-sm text-sm text-muted-foreground">
+        <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed p-10 text-center">
+          <Users className="text-muted-foreground h-8 w-8" />
+          <p className="text-muted-foreground max-w-sm text-sm">
             Crie um evento para dividir uma conta com amigos, ou entre em um pelo link de convite
             que alguém compartilhou com você.
           </p>
@@ -39,19 +39,19 @@ export default async function EventsPage() {
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group flex flex-col gap-3 surface p-4 transition-colors hover:border-primary"
+              className="group surface hover:border-primary flex flex-col gap-3 p-4 transition-colors"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">{event.name}</p>
+                  <p className="text-foreground truncate text-sm font-semibold">{event.name}</p>
                   {event.description ? (
-                    <p className="truncate text-xs text-muted-foreground">{event.description}</p>
+                    <p className="text-muted-foreground truncate text-xs">{event.description}</p>
                   ) : null}
                 </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                <ArrowRight className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
               </div>
 
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="text-muted-foreground flex items-center gap-3 text-xs">
                 <span className="flex items-center gap-1">
                   <Users className="h-3.5 w-3.5" />
                   {event.participantCount}{" "}
@@ -62,8 +62,8 @@ export default async function EventsPage() {
                 </span>
               </div>
 
-              <div className="mt-1 flex items-center justify-between border-t border-border pt-3">
-                <span className="text-xs text-muted-foreground">
+              <div className="border-border mt-1 flex items-center justify-between border-t pt-3">
+                <span className="text-muted-foreground text-xs">
                   Atualizado {formatDate(event.updatedAt)}
                 </span>
                 <span

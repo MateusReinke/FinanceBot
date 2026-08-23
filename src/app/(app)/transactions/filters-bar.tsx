@@ -45,7 +45,7 @@ export function FiltersBar({
 
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
             type="search"
             name="q"
@@ -62,7 +62,7 @@ export function FiltersBar({
           <SlidersHorizontal className="h-4 w-4" />
           Filtros
           {activeCount > 0 ? (
-            <span className="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+            <span className="bg-primary text-primary-foreground ml-1 rounded-full px-1.5 text-xs">
               {activeCount}
             </span>
           ) : null}
@@ -70,7 +70,7 @@ export function FiltersBar({
       </div>
 
       {open ? (
-        <div className="grid grid-cols-2 gap-3 surface p-4 sm:grid-cols-3">
+        <div className="surface grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">
           <Select name="type" defaultValue={filters.type ?? ""} aria-label="Tipo">
             <option value="">Todos os tipos</option>
             <option value="expense">Despesas</option>
@@ -108,12 +108,12 @@ export function FiltersBar({
             {hasAny ? (
               <Link
                 href="/transactions"
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm"
               >
                 <X className="h-3.5 w-3.5" /> Limpar
               </Link>
             ) : null}
-            <p className="ml-auto text-xs text-muted-foreground">
+            <p className="text-muted-foreground ml-auto text-xs">
               Um período preenchido aqui substitui o mês selecionado.
             </p>
           </div>

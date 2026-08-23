@@ -22,7 +22,7 @@ export function NavLinks({
       {NAV_GROUPS.map((group, i) => (
         <div key={group.label ?? `group-${i}`} className="flex flex-col gap-1">
           {group.label ? (
-            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
+            <p className="text-muted-foreground/70 px-3 pb-1 text-[11px] font-semibold tracking-[0.08em] uppercase">
               {group.label}
             </p>
           ) : null}
@@ -57,7 +57,7 @@ export function NavLinks({
                     // text-background so the count stays legible against
                     // --danger, which is a deep red in the light theme and a
                     // light rose in the dark one.
-                    className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-xs font-semibold tabular-nums text-background"
+                    className="bg-danger text-background flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold tabular-nums"
                   >
                     {badge}
                   </span>

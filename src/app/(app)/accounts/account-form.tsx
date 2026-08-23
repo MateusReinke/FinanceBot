@@ -9,13 +9,7 @@ import { ACCOUNT_TYPES } from "@/lib/account-types";
 import { ACCOUNT_COLORS } from "@/lib/color-palette";
 import { cn } from "@/lib/utils";
 
-export function AccountForm({
-  account,
-  onSuccess,
-}: {
-  account?: Account;
-  onSuccess: () => void;
-}) {
+export function AccountForm({ account, onSuccess }: { account?: Account; onSuccess: () => void }) {
   const [state, action] = useActionState(upsertAccount, undefined);
   const [color, setColor] = useState(account?.color ?? ACCOUNT_COLORS[10]);
   const [type, setType] = useState(account?.type ?? ACCOUNT_TYPES[0].value);
@@ -73,7 +67,7 @@ export function AccountForm({
           required
         />
         {type === "credit_card" ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Use um valor negativo (ex: -1200) pra representar o quanto está devendo. Pode atualizar
             aqui a qualquer momento pra bater com o valor real da fatura do banco.
           </p>
@@ -82,7 +76,7 @@ export function AccountForm({
       </div>
 
       {type === "credit_card" ? (
-        <div className="space-y-4 rounded-lg border border-border p-3">
+        <div className="border-border space-y-4 rounded-lg border p-3">
           <div className="space-y-1.5">
             <Label htmlFor="creditLimit">Limite (R$)</Label>
             <Input
@@ -136,7 +130,7 @@ export function AccountForm({
               type="button"
               onClick={() => setColor(c)}
               className={cn(
-                "h-7 w-7 rounded-full border-2 cursor-pointer",
+                "h-7 w-7 cursor-pointer rounded-full border-2",
                 color === c ? "border-foreground" : "border-transparent"
               )}
               style={{ backgroundColor: c }}
@@ -147,11 +141,13 @@ export function AccountForm({
       </div>
 
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}
-      <SubmitButton className="w-full">{account ? "Salvar alterações" : "Criar conta"}</SubmitButton>
+      <SubmitButton className="w-full">
+        {account ? "Salvar alterações" : "Criar conta"}
+      </SubmitButton>
     </form>
   );
 }

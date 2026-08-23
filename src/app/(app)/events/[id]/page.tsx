@@ -62,11 +62,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             <CardContent>
               {event.expenses.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-8 text-center">
-                  <ArrowLeftRight className="h-6 w-6 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Nenhuma despesa registrada ainda.</p>
+                  <ArrowLeftRight className="text-muted-foreground h-6 w-6" />
+                  <p className="text-muted-foreground text-sm">Nenhuma despesa registrada ainda.</p>
                 </div>
               ) : (
-                <ul className="divide-y divide-border">
+                <ul className="divide-border divide-y">
                   {event.expenses.map((expense) => (
                     <ExpenseRow
                       key={expense.id}

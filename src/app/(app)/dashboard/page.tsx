@@ -29,8 +29,8 @@ export const metadata: Metadata = { title: "Painel — FinanceBot" };
 function EmptyChart({ message }: { message: string }) {
   return (
     <div className="flex h-56 flex-col items-center justify-center gap-2 text-center">
-      <BarChart3 className="h-7 w-7 text-muted-foreground" />
-      <p className="max-w-xs text-sm text-muted-foreground">{message}</p>
+      <BarChart3 className="text-muted-foreground h-7 w-7" />
+      <p className="text-muted-foreground max-w-xs text-sm">{message}</p>
     </div>
   );
 }
@@ -101,7 +101,10 @@ export default async function DashboardPage({
         <Alert
           tone="info"
           title={`Você está vendo ${monthLabel}`}
-          action={{ href: "/dashboard", label: `Voltar para ${formatMonthYear(current.month, current.year)}` }}
+          action={{
+            href: "/dashboard",
+            label: `Voltar para ${formatMonthYear(current.month, current.year)}`,
+          }}
         >
           Os números abaixo são desse mês. Saldo das contas, próximos vencimentos e cobranças
           continuam valendo para hoje, por isso não aparecem aqui.
@@ -117,12 +120,12 @@ export default async function DashboardPage({
           is never a page with only a heading on it. */}
       {data.accountCount === 0 ? (
         showGuide ? null : (
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
-            <Landmark className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
+          <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed p-10 text-center">
+            <Landmark className="text-muted-foreground h-8 w-8" />
+            <p className="text-muted-foreground text-sm">
               Comece criando uma conta para acompanhar seus gastos e receitas.
             </p>
-            <Link href="/accounts" className="text-sm font-medium text-primary hover:underline">
+            <Link href="/accounts" className="text-primary text-sm font-medium hover:underline">
               Ir para Contas →
             </Link>
           </div>
@@ -146,7 +149,11 @@ export default async function DashboardPage({
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              label={isCurrentMonth ? "Entradas no mês" : `Entradas em ${monthLabel.split(" de ")[0].toLowerCase()}`}
+              label={
+                isCurrentMonth
+                  ? "Entradas no mês"
+                  : `Entradas em ${monthLabel.split(" de ")[0].toLowerCase()}`
+              }
               value={formatCurrency(data.income)}
               hint={
                 data.scheduledIncome > 0
@@ -161,7 +168,11 @@ export default async function DashboardPage({
               }
             />
             <StatCard
-              label={isCurrentMonth ? "Saídas no mês" : `Saídas em ${monthLabel.split(" de ")[0].toLowerCase()}`}
+              label={
+                isCurrentMonth
+                  ? "Saídas no mês"
+                  : `Saídas em ${monthLabel.split(" de ")[0].toLowerCase()}`
+              }
               value={formatCurrency(data.expense)}
               valueClassName="text-danger"
               hint={
@@ -176,7 +187,11 @@ export default async function DashboardPage({
               }
             />
             <StatCard
-              label={isCurrentMonth ? "Sobrou no mês" : `Sobrou em ${monthLabel.split(" de ")[0].toLowerCase()}`}
+              label={
+                isCurrentMonth
+                  ? "Sobrou no mês"
+                  : `Sobrou em ${monthLabel.split(" de ")[0].toLowerCase()}`
+              }
               value={formatCurrency(data.net)}
               valueClassName={data.net >= 0 ? "text-success" : "text-danger"}
               hint={
@@ -190,32 +205,38 @@ export default async function DashboardPage({
                 reminds you of it. Today-scoped like the hero, so it sits out
                 on other months. */}
             {isCurrentMonth ? (
-            <StatCard
-              label="A receber"
-              value={formatCurrency(bills.toReceiveTotal)}
-              valueClassName={bills.toReceiveTotal > 0 ? "text-success" : undefined}
-              href="/receivables"
-              hint={
-                bills.overdueReceiveTotal > 0
-                  ? `${formatCurrency(bills.overdueReceiveTotal)} atrasado — cobrar`
-                  : bills.toReceiveTotal > 0
-                    ? "Ver quem deve"
-                    : "Ninguém te devendo"
-              }
-              hintClassName={bills.overdueReceiveTotal > 0 ? "text-danger" : undefined}
-            />
+              <StatCard
+                label="A receber"
+                value={formatCurrency(bills.toReceiveTotal)}
+                valueClassName={bills.toReceiveTotal > 0 ? "text-success" : undefined}
+                href="/receivables"
+                hint={
+                  bills.overdueReceiveTotal > 0
+                    ? `${formatCurrency(bills.overdueReceiveTotal)} atrasado — cobrar`
+                    : bills.toReceiveTotal > 0
+                      ? "Ver quem deve"
+                      : "Ninguém te devendo"
+                }
+                hintClassName={bills.overdueReceiveTotal > 0 ? "text-danger" : undefined}
+              />
             ) : null}
           </div>
 
-          {isCurrentMonth ? (hasBills ? <UpcomingBills bills={bills} /> : <UpcomingBillsEmpty />) : null}
+          {isCurrentMonth ? (
+            hasBills ? (
+              <UpcomingBills bills={bills} />
+            ) : (
+              <UpcomingBillsEmpty />
+            )
+          ) : null}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <Card className="surface-chart lg:col-span-3">
               <CardHeader className="flex-col items-start gap-0.5">
                 <CardTitle>Gastos — 6 meses atrás, 6 à frente</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  A barra cheia é o que já saiu da conta; a clara é o que está agendado e ainda
-                  vai sair.
+                <p className="text-muted-foreground text-xs">
+                  A barra cheia é o que já saiu da conta; a clara é o que está agendado e ainda vai
+                  sair.
                 </p>
               </CardHeader>
               <CardContent>
@@ -253,7 +274,7 @@ export default async function DashboardPage({
                 <CardTitle>Lançamentos recentes</CardTitle>
                 <Link
                   href={`/transactions?month=${month}&year=${year}`}
-                  className="text-xs font-medium text-primary hover:underline"
+                  className="text-primary text-xs font-medium hover:underline"
                 >
                   Ver todos
                 </Link>
@@ -261,11 +282,11 @@ export default async function DashboardPage({
               <CardContent>
                 {data.recentTransactions.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-8 text-center">
-                    <ArrowLeftRight className="h-6 w-6 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Nenhum lançamento neste mês.</p>
+                    <ArrowLeftRight className="text-muted-foreground h-6 w-6" />
+                    <p className="text-muted-foreground text-sm">Nenhum lançamento neste mês.</p>
                   </div>
                 ) : (
-                  <ul className="divide-y divide-border">
+                  <ul className="divide-border divide-y">
                     {data.recentTransactions.map((t) => {
                       const isExpense = t.type === "expense";
                       const status = transactionStatus(t);
@@ -282,14 +303,14 @@ export default async function DashboardPage({
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-medium text-foreground">
+                              <p className="text-foreground truncate text-sm font-medium">
                                 {t.description}
                               </p>
                               {status === "paid" ? null : (
                                 <StatusBadge status={status} type={t.type} />
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-muted-foreground text-xs">
                               {formatDate(t.date)}
                               {t.account ? ` · ${t.account.name}` : null}
                             </p>
@@ -318,17 +339,20 @@ export default async function DashboardPage({
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Orçamentos do mês</CardTitle>
-                <Link href="/budgets" className="text-xs font-medium text-primary hover:underline">
+                <Link href="/budgets" className="text-primary text-xs font-medium hover:underline">
                   Gerenciar
                 </Link>
               </CardHeader>
               <CardContent>
                 {data.budgetProgress.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-8 text-center">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Você ainda não definiu orçamentos para este mês.
                     </p>
-                    <Link href="/budgets" className="text-sm font-medium text-primary hover:underline">
+                    <Link
+                      href="/budgets"
+                      className="text-primary text-sm font-medium hover:underline"
+                    >
                       Definir orçamento →
                     </Link>
                   </div>
@@ -340,14 +364,22 @@ export default async function DashboardPage({
                       return (
                         <li key={b.id}>
                           <div className="mb-1 flex items-center justify-between text-sm">
-                            <span className="font-medium text-foreground">{b.category.name}</span>
-                            <span className={cn("text-xs", over ? "text-danger" : "text-muted-foreground")}>
+                            <span className="text-foreground font-medium">{b.category.name}</span>
+                            <span
+                              className={cn(
+                                "text-xs",
+                                over ? "text-danger" : "text-muted-foreground"
+                              )}
+                            >
                               {formatCurrency(b.spent)} / {formatCurrency(b.amount)}
                             </span>
                           </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-muted">
+                          <div className="bg-muted h-2 overflow-hidden rounded-full">
                             <div
-                              className={cn("h-full rounded-full", over ? "bg-danger" : "bg-primary")}
+                              className={cn(
+                                "h-full rounded-full",
+                                over ? "bg-danger" : "bg-primary"
+                              )}
                               style={{ width: `${pct}%` }}
                             />
                           </div>

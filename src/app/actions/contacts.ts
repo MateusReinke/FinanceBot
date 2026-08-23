@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
-import { fetchContacts, refreshAccessToken, CONTACTS_SCOPE, isGoogleConfigured } from "@/lib/google";
+import {
+  fetchContacts,
+  refreshAccessToken,
+  CONTACTS_SCOPE,
+  isGoogleConfigured,
+} from "@/lib/google";
 import { toE164FromLocal } from "@/lib/phone";
 import type { FormState } from "@/lib/form-state";
 
@@ -49,17 +54,22 @@ async function usableAccessToken(userId: string) {
 // beyond "import now".
 export async function importGoogleContacts(): Promise<FormState> {
   const { userId } = await verifySession();
-  if (!isGoogleConfigured()) return { message: "Login com Google não está configurado neste servidor." };
+  if (!isGoogleConfigured())
+    return { message: "Login com Google não está configurado neste servidor." };
 
   const link = await prisma.googleAccount.findUnique({ where: { userId } });
   if (!link) return { message: "Conecte sua conta do Google primeiro." };
   if (!link.grantedScopes.split(" ").includes(CONTACTS_SCOPE)) {
-    return { message: "Você ainda não autorizou o acesso aos contatos. Clique em “Conectar contatos”." };
+    return {
+      message: "Você ainda não autorizou o acesso aos contatos. Clique em “Conectar contatos”.",
+    };
   }
 
   const accessToken = await usableAccessToken(userId);
   if (!accessToken) {
-    return { message: "A autorização do Google expirou. Clique em “Conectar contatos” para renovar." };
+    return {
+      message: "A autorização do Google expirou. Clique em “Conectar contatos” para renovar.",
+    };
   }
 
   let contacts;
@@ -71,7 +81,10 @@ export async function importGoogleContacts(): Promise<FormState> {
   }
 
   await syncContactsIntoDatabase(userId, contacts);
-  await prisma.googleAccount.update({ where: { userId }, data: { lastContactsSyncAt: new Date() } });
+  await prisma.googleAccount.update({
+    where: { userId },
+    data: { lastContactsSyncAt: new Date() },
+  });
 
   revalidatePath("/settings");
   revalidatePath("/transactions");

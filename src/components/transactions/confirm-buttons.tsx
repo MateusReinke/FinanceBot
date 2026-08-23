@@ -14,7 +14,13 @@ import { cn } from "@/lib/utils";
 // single most-used action in the app was invisible until you happened to
 // mouse over it, and unreachable on a phone.
 
-function PendingLabel({ children, pendingLabel }: { children: React.ReactNode; pendingLabel: string }) {
+function PendingLabel({
+  children,
+  pendingLabel,
+}: {
+  children: React.ReactNode;
+  pendingLabel: string;
+}) {
   const { pending } = useFormStatus();
   return <>{pending ? pendingLabel : children}</>;
 }
@@ -62,7 +68,7 @@ export function ConfirmButton({
         <input type="hidden" name="id" value={id} />
         <SubmitOnly
           title={label}
-          className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-success-bg hover:text-success"
+          className="text-muted-foreground hover:bg-success-bg hover:text-success cursor-pointer rounded-md p-1.5 transition-colors"
         >
           <Check className="h-3.5 w-3.5" />
         </SubmitOnly>
@@ -79,14 +85,12 @@ export function ConfirmButton({
         // charge-button.tsx: --success flips lightness between themes, so
         // only a token that flips with it stays legible in both.
         className={cn(
-          "inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border border-success/30 bg-success-bg px-2.5 py-1.5 text-xs font-semibold text-success transition-colors hover:bg-success hover:text-background",
+          "border-success/30 bg-success-bg text-success hover:bg-success hover:text-background inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors",
           className
         )}
       >
         <Check className="h-3.5 w-3.5 shrink-0" />
-        <PendingLabel pendingLabel="Salvando...">
-          {isIncome ? "Recebi" : "Paguei"}
-        </PendingLabel>
+        <PendingLabel pendingLabel="Salvando...">{isIncome ? "Recebi" : "Paguei"}</PendingLabel>
       </button>
     </form>
   );
@@ -112,7 +116,7 @@ export function UndoConfirmButton({
       <SubmitOnly
         title={label}
         className={cn(
-          "cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+          "text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer rounded-md p-1.5 transition-colors",
           className
         )}
       >
