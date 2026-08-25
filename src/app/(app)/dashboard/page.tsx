@@ -1,14 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Landmark, ArrowLeftRight, BarChart3 } from "lucide-react";
-import { verifySession } from "@/lib/dal";
+import {
+  Landmark,
+  ArrowLeftRight,
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Scale,
+  HandCoins,
+} from "lucide-react";
+import { verifySession, getCurrentUser } from "@/lib/dal";
 import { getDashboardData } from "@/lib/queries/dashboard";
 import { getBillsSummary } from "@/lib/queries/bills";
+import { getGuideProgress } from "@/lib/queries/onboarding";
 import { formatCurrency, formatDate, formatMonthYear, getCurrentMonthYear, cn } from "@/lib/utils";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ProgressRing } from "@/components/ui/progress-ring";
 import { transactionStatus } from "@/lib/transaction-status";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { CashflowChart } from "@/components/charts/cashflow-chart";
@@ -18,6 +28,7 @@ import { Alert } from "@/components/ui/alert";
 import { UpcomingBills, UpcomingBillsEmpty } from "@/components/dashboard/upcoming-bills";
 import { BalanceHero } from "@/components/dashboard/balance-hero";
 import { DueAlerts } from "@/components/dashboard/due-alerts";
+import { GettingStarted } from "@/components/dashboard/getting-started";
 
 export const metadata: Metadata = { title: "Painel — FinanceBot" };
 
@@ -27,8 +38,8 @@ export const metadata: Metadata = { title: "Painel — FinanceBot" };
 function EmptyChart({ message }: { message: string }) {
   return (
     <div className="flex h-56 flex-col items-center justify-center gap-2 text-center">
-      <BarChart3 className="h-7 w-7 text-muted-foreground" />
-      <p className="max-w-xs text-sm text-muted-foreground">{message}</p>
+      <BarChart3 className="text-muted-foreground h-7 w-7" />
+      <p className="text-muted-foreground max-w-xs text-sm">{message}</p>
     </div>
   );
 }
@@ -49,9 +60,11 @@ export default async function DashboardPage({
   const month = Number(sp.month) || current.month;
   const year = Number(sp.year) || current.year;
 
-  const [data, bills] = await Promise.all([
+  const [data, bills, guide, user] = await Promise.all([
     getDashboardData(userId, month, year),
     getBillsSummary(userId),
+    getGuideProgress(userId),
+    getCurrentUser(),
   ]);
   // Half of this page is month-scoped (the stat cards, the charts, the
   // budgets) and half is inherently about today (the balance in your
@@ -63,6 +76,9 @@ export default async function DashboardPage({
   // this becomes a report about that month, and the today-only blocks step
   // aside rather than quietly showing today's numbers under a July heading.
   const isCurrentMonth = month === current.month && year === current.year;
+  // Three ways the checklist goes away: everything done, the user hid it, or
+  // they are reading a past month (where "set this up" is beside the point).
+  const showGuide = !guide.complete && !user?.guideDismissedAt && isCurrentMonth;
   const monthLabel = formatMonthYear(month, year);
   const hasBills = bills.overdue.length > 0 || bills.upcoming.length > 0;
   const hasCashflow = data.cashflow.some(
@@ -78,9 +94,18 @@ export default async function DashboardPage({
   const incomeDelta = previous ? percentChange(data.income, previous.incomeRealized) : undefined;
   const expenseDelta = previous ? percentChange(data.expense, previous.expenseRealized) : undefined;
 
+  // Aggregate across every category budgeted this month, for the ring on
+  // the "Orçamentos" card — one figure for "am I on track," with the
+  // per-category breakdown still underneath for where that isn't obvious.
+  const budgetTotal = data.budgetProgress.reduce((sum, b) => sum + b.amount, 0);
+  const budgetSpent = data.budgetProgress.reduce((sum, b) => sum + b.spent, 0);
+  const budgetPercent = budgetTotal > 0 ? (budgetSpent / budgetTotal) * 100 : 0;
+  const budgetOver = budgetSpent > budgetTotal;
+
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="FinanceBot"
         title="Painel"
         description={
           isCurrentMonth
@@ -94,23 +119,35 @@ export default async function DashboardPage({
         <Alert
           tone="info"
           title={`Você está vendo ${monthLabel}`}
-          action={{ href: "/dashboard", label: `Voltar para ${formatMonthYear(current.month, current.year)}` }}
+          action={{
+            href: "/dashboard",
+            label: `Voltar para ${formatMonthYear(current.month, current.year)}`,
+          }}
         >
           Os números abaixo são desse mês. Saldo das contas, próximos vencimentos e cobranças
           continuam valendo para hoje, por isso não aparecem aqui.
         </Alert>
       )}
 
+      {showGuide ? <GettingStarted progress={guide} /> : null}
+
+      {/* Nothing below here has anything to plot until there is an account to
+          plot it against, and the checklist above already says so — a wall of
+          zeroed cards would just repeat it less clearly. The short version
+          below covers the case where the checklist is hidden, so the painel
+          is never a page with only a heading on it. */}
       {data.accountCount === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
-          <Landmark className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            Comece criando uma conta para acompanhar seus gastos e receitas.
-          </p>
-          <Link href="/accounts" className="text-sm font-medium text-primary hover:underline">
-            Ir para Contas →
-          </Link>
-        </div>
+        showGuide ? null : (
+          <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed p-10 text-center">
+            <Landmark className="text-muted-foreground h-8 w-8" />
+            <p className="text-muted-foreground text-sm">
+              Comece criando uma conta para acompanhar seus gastos e receitas.
+            </p>
+            <Link href="/accounts" className="text-primary text-sm font-medium hover:underline">
+              Ir para Contas →
+            </Link>
+          </div>
+        )
       ) : (
         <>
           {/* Above the balance on purpose: an overdue bill is the one thing
@@ -130,7 +167,11 @@ export default async function DashboardPage({
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              label={isCurrentMonth ? "Entradas no mês" : `Entradas em ${monthLabel.split(" de ")[0].toLowerCase()}`}
+              label={
+                isCurrentMonth
+                  ? "Entradas no mês"
+                  : `Entradas em ${monthLabel.split(" de ")[0].toLowerCase()}`
+              }
               value={formatCurrency(data.income)}
               hint={
                 data.scheduledIncome > 0
@@ -138,6 +179,8 @@ export default async function DashboardPage({
                   : undefined
               }
               valueClassName="text-success"
+              icon={TrendingUp}
+              iconClassName="bg-success-bg text-success"
               delta={
                 incomeDelta !== undefined
                   ? { percent: incomeDelta, tone: incomeDelta >= 0 ? "success" : "danger" }
@@ -145,9 +188,15 @@ export default async function DashboardPage({
               }
             />
             <StatCard
-              label={isCurrentMonth ? "Saídas no mês" : `Saídas em ${monthLabel.split(" de ")[0].toLowerCase()}`}
+              label={
+                isCurrentMonth
+                  ? "Saídas no mês"
+                  : `Saídas em ${monthLabel.split(" de ")[0].toLowerCase()}`
+              }
               value={formatCurrency(data.expense)}
               valueClassName="text-danger"
+              icon={TrendingDown}
+              iconClassName="bg-danger-bg text-danger"
               hint={
                 data.scheduledExpense > 0
                   ? `+ ${formatCurrency(data.scheduledExpense)} a pagar`
@@ -160,9 +209,17 @@ export default async function DashboardPage({
               }
             />
             <StatCard
-              label={isCurrentMonth ? "Sobrou no mês" : `Sobrou em ${monthLabel.split(" de ")[0].toLowerCase()}`}
+              label={
+                isCurrentMonth
+                  ? "Sobrou no mês"
+                  : `Sobrou em ${monthLabel.split(" de ")[0].toLowerCase()}`
+              }
               value={formatCurrency(data.net)}
               valueClassName={data.net >= 0 ? "text-success" : "text-danger"}
+              icon={Scale}
+              iconClassName={
+                data.net >= 0 ? "bg-success-bg text-success" : "bg-danger-bg text-danger"
+              }
               hint={
                 data.forecastNet !== data.net
                   ? `${formatCurrency(data.forecastNet)} previsto`
@@ -174,32 +231,42 @@ export default async function DashboardPage({
                 reminds you of it. Today-scoped like the hero, so it sits out
                 on other months. */}
             {isCurrentMonth ? (
-            <StatCard
-              label="A receber"
-              value={formatCurrency(bills.toReceiveTotal)}
-              valueClassName={bills.toReceiveTotal > 0 ? "text-success" : undefined}
-              href="/receivables"
-              hint={
-                bills.overdueReceiveTotal > 0
-                  ? `${formatCurrency(bills.overdueReceiveTotal)} atrasado — cobrar`
-                  : bills.toReceiveTotal > 0
-                    ? "Ver quem deve"
-                    : "Ninguém te devendo"
-              }
-              hintClassName={bills.overdueReceiveTotal > 0 ? "text-danger" : undefined}
-            />
+              <StatCard
+                label="A receber"
+                value={formatCurrency(bills.toReceiveTotal)}
+                valueClassName={bills.toReceiveTotal > 0 ? "text-success" : undefined}
+                icon={HandCoins}
+                iconClassName={
+                  bills.overdueReceiveTotal > 0 ? "bg-danger-bg text-danger" : undefined
+                }
+                href="/receivables"
+                hint={
+                  bills.overdueReceiveTotal > 0
+                    ? `${formatCurrency(bills.overdueReceiveTotal)} atrasado — cobrar`
+                    : bills.toReceiveTotal > 0
+                      ? "Ver quem deve"
+                      : "Ninguém te devendo"
+                }
+                hintClassName={bills.overdueReceiveTotal > 0 ? "text-danger" : undefined}
+              />
             ) : null}
           </div>
 
-          {isCurrentMonth ? (hasBills ? <UpcomingBills bills={bills} /> : <UpcomingBillsEmpty />) : null}
+          {isCurrentMonth ? (
+            hasBills ? (
+              <UpcomingBills bills={bills} />
+            ) : (
+              <UpcomingBillsEmpty />
+            )
+          ) : null}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <Card className="surface-chart lg:col-span-3">
               <CardHeader className="flex-col items-start gap-0.5">
                 <CardTitle>Gastos — 6 meses atrás, 6 à frente</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  A barra cheia é o que já saiu da conta; a clara é o que está agendado e ainda
-                  vai sair.
+                <p className="text-muted-foreground text-xs">
+                  A barra cheia é o que já saiu da conta; a clara é o que está agendado e ainda vai
+                  sair.
                 </p>
               </CardHeader>
               <CardContent>
@@ -237,7 +304,7 @@ export default async function DashboardPage({
                 <CardTitle>Lançamentos recentes</CardTitle>
                 <Link
                   href={`/transactions?month=${month}&year=${year}`}
-                  className="text-xs font-medium text-primary hover:underline"
+                  className="text-primary text-xs font-medium hover:underline"
                 >
                   Ver todos
                 </Link>
@@ -245,11 +312,11 @@ export default async function DashboardPage({
               <CardContent>
                 {data.recentTransactions.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-8 text-center">
-                    <ArrowLeftRight className="h-6 w-6 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Nenhum lançamento neste mês.</p>
+                    <ArrowLeftRight className="text-muted-foreground h-6 w-6" />
+                    <p className="text-muted-foreground text-sm">Nenhum lançamento neste mês.</p>
                   </div>
                 ) : (
-                  <ul className="divide-y divide-border">
+                  <ul className="divide-border divide-y">
                     {data.recentTransactions.map((t) => {
                       const isExpense = t.type === "expense";
                       const status = transactionStatus(t);
@@ -266,14 +333,14 @@ export default async function DashboardPage({
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-medium text-foreground">
+                              <p className="text-foreground truncate text-sm font-medium">
                                 {t.description}
                               </p>
                               {status === "paid" ? null : (
                                 <StatusBadge status={status} type={t.type} />
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-muted-foreground text-xs">
                               {formatDate(t.date)}
                               {t.account ? ` · ${t.account.name}` : null}
                             </p>
@@ -302,43 +369,106 @@ export default async function DashboardPage({
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Orçamentos do mês</CardTitle>
-                <Link href="/budgets" className="text-xs font-medium text-primary hover:underline">
+                <Link href="/budgets" className="text-primary text-xs font-medium hover:underline">
                   Gerenciar
                 </Link>
               </CardHeader>
               <CardContent>
                 {data.budgetProgress.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-8 text-center">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Você ainda não definiu orçamentos para este mês.
                     </p>
-                    <Link href="/budgets" className="text-sm font-medium text-primary hover:underline">
+                    <Link
+                      href="/budgets"
+                      className="text-primary text-sm font-medium hover:underline"
+                    >
                       Definir orçamento →
                     </Link>
                   </div>
                 ) : (
-                  <ul className="space-y-3">
-                    {data.budgetProgress.map((b) => {
-                      const pct = b.amount > 0 ? Math.min(100, (b.spent / b.amount) * 100) : 0;
-                      const over = b.spent > b.amount;
-                      return (
-                        <li key={b.id}>
-                          <div className="mb-1 flex items-center justify-between text-sm">
-                            <span className="font-medium text-foreground">{b.category.name}</span>
-                            <span className={cn("text-xs", over ? "text-danger" : "text-muted-foreground")}>
-                              {formatCurrency(b.spent)} / {formatCurrency(b.amount)}
-                            </span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-muted">
-                            <div
-                              className={cn("h-full rounded-full", over ? "bg-danger" : "bg-primary")}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <div className="space-y-5">
+                    <div className="flex flex-wrap items-center gap-5">
+                      <ProgressRing
+                        percent={budgetPercent}
+                        tone={budgetOver ? "danger" : "success"}
+                        size={104}
+                        strokeWidth={9}
+                      >
+                        <span
+                          className={cn(
+                            "text-xl font-semibold tabular-nums",
+                            budgetOver ? "text-danger" : "text-success"
+                          )}
+                        >
+                          {Math.round(budgetPercent)}%
+                        </span>
+                      </ProgressRing>
+                      <div className="min-w-40 flex-1 space-y-1.5 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-muted-foreground">Orçado</span>
+                          <span className="text-foreground font-medium tabular-nums">
+                            {formatCurrency(budgetTotal)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-muted-foreground">Gasto</span>
+                          <span
+                            className={cn(
+                              "font-medium tabular-nums",
+                              budgetOver ? "text-danger" : "text-foreground"
+                            )}
+                          >
+                            {formatCurrency(budgetSpent)}
+                          </span>
+                        </div>
+                        <div className="border-border flex items-center justify-between gap-2 border-t pt-1.5">
+                          <span className="text-muted-foreground">
+                            {budgetOver ? "Estourado em" : "Restante"}
+                          </span>
+                          <span
+                            className={cn(
+                              "font-semibold tabular-nums",
+                              budgetOver ? "text-danger" : "text-success"
+                            )}
+                          >
+                            {formatCurrency(Math.abs(budgetTotal - budgetSpent))}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ul className="border-border space-y-3 border-t pt-4">
+                      {data.budgetProgress.map((b) => {
+                        const pct = b.amount > 0 ? Math.min(100, (b.spent / b.amount) * 100) : 0;
+                        const over = b.spent > b.amount;
+                        return (
+                          <li key={b.id}>
+                            <div className="mb-1 flex items-center justify-between text-sm">
+                              <span className="text-foreground font-medium">{b.category.name}</span>
+                              <span
+                                className={cn(
+                                  "text-xs",
+                                  over ? "text-danger" : "text-muted-foreground"
+                                )}
+                              >
+                                {formatCurrency(b.spent)} / {formatCurrency(b.amount)}
+                              </span>
+                            </div>
+                            <div className="bg-muted h-2 overflow-hidden rounded-full">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full",
+                                  over ? "bg-danger" : "bg-primary"
+                                )}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
                 )}
               </CardContent>
             </Card>

@@ -50,12 +50,12 @@ function PhoneForm({ phoneNumber }: { phoneNumber: string | null }) {
         />
         <SubmitButton>Salvar</SubmitButton>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-xs">
         Opcional, mas recomendado: quando preenchido, a automação precisa mandar o número junto e
         ele tem que bater com este — assim uma mensagem de outra pessoa nunca cai na sua conta.
       </p>
       <FieldError messages={state?.errors?.phoneNumber} />
-      {state?.success ? <p className="text-xs text-success">Número salvo.</p> : null}
+      {state?.success ? <p className="text-success text-xs">Número salvo.</p> : null}
     </form>
   );
 }
@@ -71,7 +71,7 @@ function TokenList({ tokens }: { tokens: TokenRow[] }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-sm font-semibold text-foreground">Tokens de acesso</h4>
+        <h4 className="text-foreground text-sm font-semibold">Tokens de acesso</h4>
         {!formOpen ? (
           <Button size="sm" variant="outline" onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4" /> Novo token
@@ -90,18 +90,18 @@ function TokenList({ tokens }: { tokens: TokenRow[] }) {
       ) : null}
       <FieldError messages={state?.errors?.name} />
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}
 
       {state?.token ? (
-        <div className="space-y-2 rounded-lg border border-primary bg-primary/5 p-3">
-          <p className="text-xs font-medium text-foreground">
+        <div className="border-primary bg-primary/5 space-y-2 rounded-lg border p-3">
+          <p className="text-foreground text-xs font-medium">
             Copie agora — esse token não aparece de novo.
           </p>
           <div className="flex items-center gap-2">
-            <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1.5 text-xs">
+            <code className="bg-muted min-w-0 flex-1 truncate rounded px-2 py-1.5 text-xs">
               {state.token}
             </code>
             <Button
@@ -121,16 +121,16 @@ function TokenList({ tokens }: { tokens: TokenRow[] }) {
       ) : null}
 
       {tokens.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Nenhum token ainda. Crie um para conectar o n8n.
         </p>
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
+        <ul className="divide-border border-border divide-y rounded-lg border">
           {tokens.map((t) => (
             <li key={t.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
               <div className="min-w-0">
-                <p className="truncate text-sm text-foreground">{t.name}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-foreground truncate text-sm">{t.name}</p>
+                <p className="text-muted-foreground text-xs">
                   <code>{t.prefix}…</code> · criado em {formatDate(t.createdAt)} ·{" "}
                   {t.lastUsedAt ? `usado em ${formatDate(t.lastUsedAt)}` : "nunca usado"}
                 </p>
@@ -138,7 +138,11 @@ function TokenList({ tokens }: { tokens: TokenRow[] }) {
               <form
                 action={revokeApiToken}
                 onSubmit={(e) => {
-                  if (!confirm(`Revogar "${t.name}"? Quem estiver usando esse token para de funcionar na hora.`))
+                  if (
+                    !confirm(
+                      `Revogar "${t.name}"? Quem estiver usando esse token para de funcionar na hora.`
+                    )
+                  )
                     e.preventDefault();
                 }}
               >
@@ -167,13 +171,16 @@ Content-Type: application/json
 }`;
 
   return (
-    <details className="rounded-lg border border-border bg-muted/40 p-3">
-      <summary className="cursor-pointer text-sm font-medium text-foreground">
+    <details className="border-border bg-muted/40 rounded-lg border p-3">
+      <summary className="text-foreground cursor-pointer text-sm font-medium">
         Como ligar no n8n
       </summary>
-      <div className="mt-3 space-y-3 text-sm text-muted-foreground">
+      <div className="text-muted-foreground mt-3 space-y-3 text-sm">
         <ol className="list-decimal space-y-1.5 pl-5">
-          <li>No n8n, comece com o gatilho do seu provedor de WhatsApp (Evolution API, Twilio, Meta Cloud API…).</li>
+          <li>
+            No n8n, comece com o gatilho do seu provedor de WhatsApp (Evolution API, Twilio, Meta
+            Cloud API…).
+          </li>
           <li>
             Ligue esse gatilho direto num nó <strong>HTTP Request</strong> com a chamada abaixo. Não
             precisa de nó de IA no meio: o FinanceBot interpreta o texto.
@@ -182,7 +189,7 @@ Content-Type: application/json
             Mande o campo <code>reply</code> da resposta de volta pro usuário no WhatsApp.
           </li>
         </ol>
-        <pre className="overflow-x-auto rounded bg-card p-3 text-xs text-foreground">{snippet}</pre>
+        <pre className="bg-card text-foreground overflow-x-auto rounded p-3 text-xs">{snippet}</pre>
         <p>
           Passar o <code>messageId</code> do provedor é o que evita lançamento duplicado quando ele
           reenvia a mesma mensagem.

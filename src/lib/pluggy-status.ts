@@ -1,4 +1,7 @@
-export const PLUGGY_STATUS_LABELS: Record<string, { label: string; tone: "success" | "warning" | "danger" }> = {
+export const PLUGGY_STATUS_LABELS: Record<
+  string,
+  { label: string; tone: "success" | "warning" | "danger" }
+> = {
   UPDATED: { label: "Atualizado", tone: "success" },
   UPDATING: { label: "Atualizando...", tone: "warning" },
   LOGIN_ERROR: { label: "Requer nova autenticação", tone: "danger" },

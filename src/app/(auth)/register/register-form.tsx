@@ -32,28 +32,34 @@ export function RegisterForm() {
           required
         />
         <FieldError messages={state?.errors?.phoneNumber} />
-        <p className="text-xs text-muted-foreground">
-          Usado para lançar gastos por mensagem e para te incluir no grupo quando você entrar em
-          uma divisão de contas.
+        <p className="text-muted-foreground text-xs">
+          Usado para lançar gastos por mensagem e para te incluir no grupo quando você entrar em uma
+          divisão de contas.
         </p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="password">Senha</Label>
-        <Input id="password" name="password" type="password" placeholder="Mínimo 8 caracteres" required />
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="Mínimo 8 caracteres"
+          required
+        />
         <FieldError messages={state?.errors?.password} />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Use ao menos 8 caracteres, com letras e números.
         </p>
       </div>
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}
       <SubmitButton className="w-full">Criar conta</SubmitButton>
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-center text-sm">
         Já tem uma conta?{" "}
-        <Link href="/login" className="font-medium text-primary hover:underline">
+        <Link href="/login" className="text-primary font-medium hover:underline">
           Entrar
         </Link>
       </p>

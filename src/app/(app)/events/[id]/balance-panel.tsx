@@ -28,9 +28,11 @@ export function BalancePanel({
           <div key={b.userId} className="flex items-center justify-between text-sm">
             <span className="text-foreground">
               {displayName(b.user, currentUserId)}
-              {!b.active ? <span className="ml-1 text-xs text-muted-foreground">(saiu)</span> : null}
+              {!b.active ? (
+                <span className="text-muted-foreground ml-1 text-xs">(saiu)</span>
+              ) : null}
               {b.userId === currentUserId && b.personalTotal > b.paid + 0.005 ? (
-                <span className="ml-1 text-xs text-muted-foreground">
+                <span className="text-muted-foreground ml-1 text-xs">
                   · gastou {formatCurrency(b.personalTotal)} no total
                 </span>
               ) : null}
@@ -38,24 +40,32 @@ export function BalancePanel({
             <span
               className={cn(
                 "font-semibold",
-                b.net > 0.005 ? "text-success" : b.net < -0.005 ? "text-danger" : "text-muted-foreground"
+                b.net > 0.005
+                  ? "text-success"
+                  : b.net < -0.005
+                    ? "text-danger"
+                    : "text-muted-foreground"
               )}
             >
-              {b.net > 0.005 ? `+${formatCurrency(b.net)}` : b.net < -0.005 ? formatCurrency(b.net) : "Quitado"}
+              {b.net > 0.005
+                ? `+${formatCurrency(b.net)}`
+                : b.net < -0.005
+                  ? formatCurrency(b.net)
+                  : "Quitado"}
             </span>
           </div>
         ))}
       </div>
 
       {settlements.length > 0 ? (
-        <div className="space-y-2 border-t border-border pt-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="border-border space-y-2 border-t pt-3">
+          <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             Para quitar
           </p>
           {settlements.map((s, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-sm text-foreground">
+            <div key={i} className="text-foreground flex items-center gap-1.5 text-sm">
               <span className="truncate">{nameById.get(s.from)}</span>
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <ArrowRight className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{nameById.get(s.to)}</span>
               <span className="ml-auto shrink-0 font-semibold">{formatCurrency(s.amount)}</span>
             </div>

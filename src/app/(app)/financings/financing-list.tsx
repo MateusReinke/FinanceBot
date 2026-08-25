@@ -66,9 +66,9 @@ export function FinancingList({
       </div>
 
       {financings.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
-          <CalendarClock className="h-8 w-8 text-muted-foreground" />
-          <p className="max-w-sm text-sm text-muted-foreground">
+        <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed p-10 text-center">
+          <CalendarClock className="text-muted-foreground h-8 w-8" />
+          <p className="text-muted-foreground max-w-sm text-sm">
             Cadastre um gasto fixo (aluguel, assinatura), uma receita fixa (salário) ou uma compra
             parcelada — mensal, quinzenal, semanal ou anual. Cada cobrança aparece sozinha nos seus
             lançamentos na data em que vence.
@@ -90,12 +90,14 @@ export function FinancingList({
               <Link
                 key={f.id}
                 href={`/financings/${f.id}`}
-                className="flex flex-col gap-3 surface p-4 transition-colors hover:border-primary"
+                className="surface hover:border-primary flex flex-col gap-3 p-4 transition-colors"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-foreground">{f.description}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-foreground truncate text-sm font-semibold">
+                      {f.description}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
                       {f.account.name} · {formatDate(f.firstDueDate)}
                     </p>
                   </div>
@@ -118,15 +120,17 @@ export function FinancingList({
                 </div>
 
                 {f.overdueCount > 0 ? (
-                  <span className="inline-flex w-fit items-center gap-1 rounded-full bg-danger-bg px-2 py-0.5 text-xs font-medium text-danger">
+                  <span className="bg-danger-bg text-danger inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
                     <AlertCircle className="h-3 w-3" />
                     {f.overdueCount === 1 ? "1 atrasada" : `${f.overdueCount} atrasadas`}
                   </span>
                 ) : null}
 
                 {f.isRecurring ? (
-                  <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
-                    <span className="text-muted-foreground">{FREQUENCY_SHORT_LABEL[f.frequency]}</span>
+                  <div className="border-border flex items-center justify-between border-t pt-3 text-sm">
+                    <span className="text-muted-foreground">
+                      {FREQUENCY_SHORT_LABEL[f.frequency]}
+                    </span>
                     <span
                       className={cn(
                         "font-semibold",
@@ -140,20 +144,26 @@ export function FinancingList({
                 ) : (
                   <>
                     <div>
-                      <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="text-muted-foreground mb-1 flex items-center justify-between text-xs">
                         <span>
-                          {f.paidCount}/{f.installmentCount} pagas · {FREQUENCY_SHORT_LABEL[f.frequency].toLowerCase()}
+                          {f.paidCount}/{f.installmentCount} pagas ·{" "}
+                          {FREQUENCY_SHORT_LABEL[f.frequency].toLowerCase()}
                         </span>
                         <span>{pct.toFixed(0)}%</span>
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                      <div className="bg-muted h-2 overflow-hidden rounded-full">
+                        <div
+                          className="bg-primary h-full rounded-full"
+                          style={{ width: `${pct}%` }}
+                        />
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
-                      <span className="text-muted-foreground">Total {formatCurrency(f.totalAmount)}</span>
-                      <span className="font-semibold text-foreground">
+                    <div className="border-border flex items-center justify-between border-t pt-3 text-sm">
+                      <span className="text-muted-foreground">
+                        Total {formatCurrency(f.totalAmount)}
+                      </span>
+                      <span className="text-foreground font-semibold">
                         Falta {formatCurrency(f.remainingTotal)}
                       </span>
                     </div>

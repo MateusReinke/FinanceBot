@@ -22,17 +22,17 @@ export function ParticipantsPanel({
           .toUpperCase();
         return (
           <li key={p.userId} className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+            <span className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
               {initials}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">
+              <p className="text-foreground truncate text-sm font-medium">
                 {displayName(p.user, currentUserId)}
               </p>
-              <p className="truncate text-xs text-muted-foreground">{p.user.email}</p>
+              <p className="text-muted-foreground truncate text-xs">{p.user.email}</p>
             </div>
             {p.userId === createdById ? (
-              <span className="shrink-0 text-xs text-muted-foreground">Criador</span>
+              <span className="text-muted-foreground shrink-0 text-xs">Criador</span>
             ) : null}
           </li>
         );

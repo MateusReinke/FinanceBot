@@ -28,12 +28,15 @@ export function UpcomingBills({ bills }: { bills: BillsSummary }) {
     <Card>
       <CardHeader>
         <CardTitle>Próximos vencimentos</CardTitle>
-        <Link href="/transactions?status=pending" className="text-xs font-medium text-primary hover:underline">
+        <Link
+          href="/transactions?status=pending"
+          className="text-primary text-xs font-medium hover:underline"
+        >
           Ver todos
         </Link>
       </CardHeader>
       <CardContent className="space-y-4">
-        <ul className="overflow-hidden rounded-lg border border-border">
+        <ul className="border-border overflow-hidden rounded-lg border">
           {rows.map((t) => {
             const urgency = urgencyOf(t.date);
             const isIncome = t.type === "income";
@@ -42,7 +45,7 @@ export function UpcomingBills({ bills }: { bills: BillsSummary }) {
               <li
                 key={t.id}
                 className={cn(
-                  "flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 last:border-b-0",
+                  "border-border flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-3 py-2.5 last:border-b-0",
                   urgencyRail(urgency),
                   urgency === "overdue" && "bg-danger-bg/25"
                 )}
@@ -55,8 +58,8 @@ export function UpcomingBills({ bills }: { bills: BillsSummary }) {
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{t.description}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="text-foreground truncate text-sm font-medium">{t.description}</p>
+                  <p className="text-muted-foreground truncate text-xs">
                     {t.account.name}
                     {t.counterparty ? (
                       <span>
@@ -94,37 +97,35 @@ export function UpcomingBills({ bills }: { bills: BillsSummary }) {
         {hidden > 0 ? (
           <Link
             href="/transactions?status=pending"
-            className="block text-center text-xs font-medium text-primary hover:underline"
+            className="text-primary block text-center text-xs font-medium hover:underline"
           >
             +{hidden} {hidden === 1 ? "outro vencimento" : "outros vencimentos"}
           </Link>
         ) : null}
 
-        <div className="grid gap-3 border-t border-border pt-3 text-sm sm:grid-cols-3">
+        <div className="border-border grid gap-3 border-t pt-3 text-sm sm:grid-cols-3">
           <div>
-            <p className="text-xs text-muted-foreground">A pagar em {bills.upcomingDays} dias</p>
-            <p className="font-semibold tabular-nums text-foreground">
+            <p className="text-muted-foreground text-xs">A pagar em {bills.upcomingDays} dias</p>
+            <p className="text-foreground font-semibold tabular-nums">
               {formatCurrency(bills.upcomingPayTotal)}
             </p>
             {bills.overdueTotal > 0 ? (
-              <p className="text-xs text-danger">
-                + {formatCurrency(bills.overdueTotal)} atrasado
-              </p>
+              <p className="text-danger text-xs">+ {formatCurrency(bills.overdueTotal)} atrasado</p>
             ) : null}
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">A receber</p>
-            <p className="font-semibold tabular-nums text-success">
+            <p className="text-muted-foreground text-xs">A receber</p>
+            <p className="text-success font-semibold tabular-nums">
               {formatCurrency(bills.toReceiveTotal)}
             </p>
             {bills.overdueReceiveTotal > 0 ? (
-              <Link href="/receivables" className="text-xs text-danger hover:underline">
+              <Link href="/receivables" className="text-danger text-xs hover:underline">
                 {formatCurrency(bills.overdueReceiveTotal)} atrasado — cobrar
               </Link>
             ) : null}
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Saldo previsto no fim do mês</p>
+            <p className="text-muted-foreground text-xs">Saldo previsto no fim do mês</p>
             <p
               className={cn(
                 "font-semibold tabular-nums",
@@ -146,12 +147,12 @@ export function UpcomingBillsEmpty() {
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-        <CalendarClock className="h-7 w-7 text-muted-foreground" />
-        <p className="max-w-sm text-sm text-muted-foreground">
+        <CalendarClock className="text-muted-foreground h-7 w-7" />
+        <p className="text-muted-foreground max-w-sm text-sm">
           Cadastre seus gastos fixos (aluguel, assinaturas) e o salário para ver aqui o que vence
           nos próximos dias e como o saldo termina o mês.
         </p>
-        <Link href="/financings" className="text-sm font-medium text-primary hover:underline">
+        <Link href="/financings" className="text-primary text-sm font-medium hover:underline">
           Cadastrar lançamento fixo →
         </Link>
       </CardContent>

@@ -43,13 +43,13 @@ export function ReceivableGroupCard({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border bg-card shadow-card",
+        "bg-card shadow-card overflow-hidden rounded-xl border",
         group.overdueCount > 0 ? "border-danger/30" : "border-border"
       )}
     >
       <div
         className={cn(
-          "flex flex-wrap items-center gap-3 border-b border-border px-4 py-3",
+          "border-border flex flex-wrap items-center gap-3 border-b px-4 py-3",
           group.overdueCount > 0 && "bg-danger-bg/40"
         )}
       >
@@ -63,13 +63,13 @@ export function ReceivableGroupCard({
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">
+          <p className="text-foreground truncate text-sm font-semibold">
             {group.counterparty ?? "Sem pessoa definida"}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             {group.rows.length === 1 ? "1 lançamento" : `${group.rows.length} lançamentos`}
             {group.overdueCount > 0 ? (
-              <span className="font-medium text-danger">
+              <span className="text-danger font-medium">
                 {" "}
                 · {group.overdueCount} em atraso ({formatCurrency(group.overdueTotal)})
               </span>
@@ -108,7 +108,7 @@ export function ReceivableGroupCard({
         </div>
       </div>
 
-      <ul className="divide-y divide-border">
+      <ul className="divide-border divide-y">
         {group.rows.map((row) => {
           const urgency = urgencyOf(row.date);
           return (
@@ -131,8 +131,8 @@ export function ReceivableGroupCard({
               </span>
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">{row.description}</p>
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="text-foreground truncate text-sm font-medium">{row.description}</p>
+                <p className="text-muted-foreground truncate text-xs">
                   {formatDate(row.date)} · {row.accountName}
                 </p>
               </div>
@@ -143,7 +143,7 @@ export function ReceivableGroupCard({
               <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
                 <DueChip date={row.date} type="income" />
 
-                <span className="text-sm font-semibold tabular-nums text-foreground">
+                <span className="text-foreground text-sm font-semibold tabular-nums">
                   {formatCurrency(row.amount)}
                 </span>
 

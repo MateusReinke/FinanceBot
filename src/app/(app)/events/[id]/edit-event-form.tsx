@@ -36,7 +36,7 @@ export function EditEventForm({
         <FieldError messages={state?.errors?.description} />
       </div>
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

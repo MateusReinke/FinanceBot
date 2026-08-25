@@ -2,11 +2,23 @@ import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies, headers } from "next/headers";
 
-const secretKey = process.env.SESSION_SECRET;
-if (!secretKey) {
-  throw new Error("SESSION_SECRET environment variable is not set");
+// Read on first use rather than at import time. The check has to happen —
+// signing sessions with an absent secret is not something to paper over —
+// but throwing while the module evaluates makes `next build` fail too, and
+// a production build should not need production secrets to run (that is
+// what broke CI and every fresh clone that had not written .env yet). The
+// key is cached after the first call, so the cost is one lookup.
+let encodedKey: Uint8Array | undefined;
+
+function getKey(): Uint8Array {
+  if (encodedKey) return encodedKey;
+  const secretKey = process.env.SESSION_SECRET;
+  if (!secretKey) {
+    throw new Error("SESSION_SECRET environment variable is not set");
+  }
+  encodedKey = new TextEncoder().encode(secretKey);
+  return encodedKey;
 }
-const encodedKey = new TextEncoder().encode(secretKey);
 
 export type SessionPayload = {
   userId: string;
@@ -21,13 +33,17 @@ export async function encrypt(payload: SessionPayload) {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(SESSION_DURATION)
-    .sign(encodedKey);
+    .sign(getKey());
 }
 
 export async function decrypt(token: string | undefined): Promise<SessionPayload | null> {
   if (!token) return null;
+  // Outside the try on purpose: a missing secret has to surface as a crash,
+  // not get swallowed by the catch below and reported as "not signed in" on
+  // every request in the app.
+  const key = getKey();
   try {
-    const { payload } = await jwtVerify(token, encodedKey, {
+    const { payload } = await jwtVerify(token, key, {
       algorithms: ["HS256"],
     });
     if (typeof payload.userId !== "string") return null;

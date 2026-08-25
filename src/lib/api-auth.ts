@@ -37,8 +37,7 @@ function safeEqual(a: string, b: string) {
 }
 
 export type ApiAuthResult =
-  | { ok: true; userId: string; tokenId: string }
-  | { ok: false; response: NextResponse };
+  { ok: true; userId: string; tokenId: string } | { ok: false; response: NextResponse };
 
 function unauthorized(message: string) {
   return NextResponse.json({ error: message }, { status: 401 });

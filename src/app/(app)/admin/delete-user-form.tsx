@@ -22,13 +22,13 @@ export function DeleteUserForm({
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="id" value={id} />
-      <p className="text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Excluir <strong className="text-foreground">{name}</strong> remove permanentemente as
         contas, transações, categorias e financiamentos desse usuário. Essa ação não pode ser
         desfeita.
       </p>
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

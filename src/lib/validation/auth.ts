@@ -7,10 +7,7 @@ export const SignupSchema = z.object({
     .trim()
     .min(2, { error: "Informe seu nome completo." })
     .max(80, { error: "Nome muito longo." }),
-  email: z
-    .email({ error: "Informe um e-mail válido." })
-    .trim()
-    .toLowerCase(),
+  email: z.email({ error: "Informe um e-mail válido." }).trim().toLowerCase(),
   // Required at signup: it is what lets the WhatsApp side reach this person
   // — both for their own lançamentos and to be added to an event's group.
   phoneNumber: phoneField,

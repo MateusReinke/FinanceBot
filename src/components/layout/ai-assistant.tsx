@@ -55,7 +55,7 @@ export function AiAssistant({ enabled }: { enabled: boolean }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="rounded-md p-2 text-muted-foreground hover:bg-muted cursor-pointer"
+        className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-2"
         aria-label="Assistente de IA"
         title="Lançar transação por texto"
       >
@@ -66,14 +66,14 @@ export function AiAssistant({ enabled }: { enabled: boolean }) {
         ? createPortal(
             <div className="fixed inset-0 z-50 flex justify-end">
               <div className="absolute inset-0 bg-black/40" onClick={close} />
-              <div className="relative flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-xl">
-                <div className="flex items-center justify-between border-b border-border p-4">
-                  <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
-                    <Sparkles className="h-4 w-4 text-primary" /> Assistente de IA
+              <div className="border-border bg-card shadow-overlay relative flex h-full w-full max-w-md flex-col border-l">
+                <div className="border-border flex items-center justify-between border-b p-4">
+                  <h2 className="text-foreground flex items-center gap-2 text-base font-semibold">
+                    <Sparkles className="text-primary h-4 w-4" /> Assistente de IA
                   </h2>
                   <button
                     onClick={close}
-                    className="rounded-md p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"
+                    className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
                     aria-label="Fechar"
                   >
                     <X className="h-5 w-5" />
@@ -83,9 +83,9 @@ export function AiAssistant({ enabled }: { enabled: boolean }) {
                 <div className="flex-1 overflow-y-auto p-4">
                   {!result ? (
                     <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        Descreva um lançamento em texto livre — a IA identifica valor, conta e categoria pra
-                        você revisar antes de salvar.
+                      <p className="text-muted-foreground text-sm">
+                        Descreva um lançamento em texto livre — a IA identifica valor, conta e
+                        categoria pra você revisar antes de salvar.
                       </p>
                       <form
                         onSubmit={(e) => {
@@ -106,14 +106,18 @@ export function AiAssistant({ enabled }: { enabled: boolean }) {
                           placeholder='Ex: "gastei 45 reais no mercado com o nubank"'
                           rows={3}
                           autoFocus
-                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-ring w-full rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-2"
                         />
                         {error ? (
-                          <p className="text-sm text-danger" role="alert">
+                          <p className="text-danger text-sm" role="alert">
                             {error}
                           </p>
                         ) : null}
-                        <Button type="submit" className="w-full" disabled={!text.trim() || isPending}>
+                        <Button
+                          type="submit"
+                          className="w-full"
+                          disabled={!text.trim() || isPending}
+                        >
                           {isPending ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" /> Analisando...
@@ -129,11 +133,13 @@ export function AiAssistant({ enabled }: { enabled: boolean }) {
                       <button
                         type="button"
                         onClick={() => setResult(null)}
-                        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                        className="text-muted-foreground hover:text-foreground inline-flex cursor-pointer items-center gap-1 text-sm"
                       >
                         <ArrowLeft className="h-3.5 w-3.5" /> Editar comando
                       </button>
-                      <p className="text-sm text-muted-foreground">Confira os campos antes de confirmar:</p>
+                      <p className="text-muted-foreground text-sm">
+                        Confira os campos antes de confirmar:
+                      </p>
                       <TransactionForm
                         accounts={result.accounts}
                         categories={result.categories}

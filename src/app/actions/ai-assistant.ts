@@ -31,7 +31,7 @@ export async function parseTransactionText(text: string): Promise<ParseTransacti
     return { error: "O assistente de IA não está configurado neste servidor." };
   }
   if (!text.trim()) {
-    return { error: "Digite um comando, tipo \"gastei 50 reais no mercado\"." };
+    return { error: 'Digite um comando, tipo "gastei 50 reais no mercado".' };
   }
 
   const [accounts, categories] = await Promise.all([
@@ -48,15 +48,20 @@ export async function parseTransactionText(text: string): Promise<ParseTransacti
     );
   } catch (error) {
     console.error("Falha ao interpretar comando do assistente", error);
-    return { error: "Não consegui entender esse comando. Tente descrever de novo ou lance manualmente." };
+    return {
+      error: "Não consegui entender esse comando. Tente descrever de novo ou lance manualmente.",
+    };
   }
 
   const accountId = extracted.accountName
-    ? (accounts.find((a) => a.name.toLowerCase() === extracted.accountName!.toLowerCase())?.id ?? null)
+    ? (accounts.find((a) => a.name.toLowerCase() === extracted.accountName!.toLowerCase())?.id ??
+      null)
     : null;
   const categoryId = extracted.categoryName
     ? (categories.find(
-        (c) => c.name.toLowerCase() === extracted.categoryName!.toLowerCase() && c.type === extracted.type
+        (c) =>
+          c.name.toLowerCase() === extracted.categoryName!.toLowerCase() &&
+          c.type === extracted.type
       )?.id ?? null)
     : null;
 

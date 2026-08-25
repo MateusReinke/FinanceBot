@@ -59,9 +59,9 @@ function PayInvoiceForm({
     <form action={action} className="space-y-4">
       <input type="hidden" name="accountId" value={account.id} />
 
-      <p className="text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Fatura atual de {account.name}:{" "}
-        <span className="font-medium text-foreground">{formatCurrency(invoiceAmount)}</span>
+        <span className="text-foreground font-medium">{formatCurrency(invoiceAmount)}</span>
       </p>
 
       <div className="space-y-1.5">
@@ -90,7 +90,7 @@ function PayInvoiceForm({
               </option>
             ))}
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Se escolher uma conta, o valor sai de lá como uma despesa também.
           </p>
           <FieldError messages={state?.errors?.sourceAccountId} />
@@ -98,7 +98,7 @@ function PayInvoiceForm({
       ) : null}
 
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

@@ -47,18 +47,18 @@ export function ExpenseRow({
     <li className="flex items-center gap-3 py-3">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="truncate text-sm font-medium text-foreground">{expense.description}</p>
+          <p className="text-foreground truncate text-sm font-medium">{expense.description}</p>
           {!expense.isShared ? (
-            <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            <span className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap">
               <Lock className="h-3 w-3" /> Pessoal
             </span>
           ) : null}
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {formatDate(expense.date)} · Pago por {payerSummary} · {splitSummary}
         </p>
       </div>
-      <span className="shrink-0 text-sm font-semibold text-foreground">
+      <span className="text-foreground shrink-0 text-sm font-semibold">
         {formatCurrency(expense.amount)}
       </span>
       {expense.receiptId ? (
@@ -66,7 +66,7 @@ export function ExpenseRow({
           href={`/api/events/${eventId}/receipts/${expense.receiptId}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+          className="text-muted-foreground hover:bg-muted hover:text-foreground shrink-0 cursor-pointer rounded-md p-1.5"
           aria-label="Ver nota fiscal"
           title="Ver nota fiscal"
         >
@@ -83,7 +83,7 @@ export function ExpenseRow({
         <input type="hidden" name="expenseId" value={expense.id} />
         <button
           type="submit"
-          className="rounded-md p-1.5 text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer"
+          className="text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer rounded-md p-1.5"
           aria-label="Excluir despesa"
         >
           <Trash2 className="h-3.5 w-3.5" />

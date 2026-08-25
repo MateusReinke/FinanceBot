@@ -18,8 +18,8 @@ export default async function LoginPage({
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h2 className="text-2xl font-semibold text-foreground">Bem-vindo de volta</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-foreground text-2xl font-semibold">Bem-vindo de volta</h2>
+        <p className="text-muted-foreground text-sm">
           Entre para continuar controlando suas finanças.
         </p>
       </div>

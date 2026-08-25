@@ -53,7 +53,11 @@ export async function createFinancing(_state: FormState, formData: FormData): Pr
   if (!account) return { errors: { accountId: ["Conta inválida."] } };
   if (account.pluggyItemId) {
     return {
-      errors: { accountId: ["Contas conectadas via Open Finance têm o saldo controlado pela sincronização e não podem receber um lançamento fixo manual."] },
+      errors: {
+        accountId: [
+          "Contas conectadas via Open Finance têm o saldo controlado pela sincronização e não podem receber um lançamento fixo manual.",
+        ],
+      },
     };
   }
 

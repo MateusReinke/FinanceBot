@@ -89,7 +89,11 @@ async function callOpenAiJson(content: MessageContent, maxTokens: number): Promi
   // reason and a snippet of the actual content go into the thrown error so
   // a real failure is diagnosable from the server log instead of a bare
   // "couldn't parse" with no clue why.
-  const stripped = responseContent.trim().replace(/^```(?:json)?\n?/i, "").replace(/```$/, "").trim();
+  const stripped = responseContent
+    .trim()
+    .replace(/^```(?:json)?\n?/i, "")
+    .replace(/```$/, "")
+    .trim();
   try {
     return JSON.parse(stripped);
   } catch {
@@ -137,10 +141,14 @@ export async function extractReceiptItems(
   return items
     .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
     .map((item) => ({
-      description: String(item.description ?? "").trim().slice(0, 120),
+      description: String(item.description ?? "")
+        .trim()
+        .slice(0, 120),
       amount: parseAmount(item.amount),
     }))
-    .filter((item) => item.description.length > 0 && Number.isFinite(item.amount) && item.amount > 0);
+    .filter(
+      (item) => item.description.length > 0 && Number.isFinite(item.amount) && item.amount > 0
+    );
 }
 
 export type ParsedTransactionCommand = {
@@ -198,12 +206,16 @@ export async function parseTransactionCommand(
     throw new Error("Não consegui identificar um valor nesse comando.");
   }
 
-  const date = typeof obj.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(obj.date) ? obj.date : null;
+  const date =
+    typeof obj.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(obj.date) ? obj.date : null;
 
   return {
     type: obj.type === "income" ? "income" : "expense",
     amount,
-    description: String(obj.description ?? "").trim().slice(0, 120) || "Lançamento via assistente",
+    description:
+      String(obj.description ?? "")
+        .trim()
+        .slice(0, 120) || "Lançamento via assistente",
     date,
     accountName: typeof obj.accountName === "string" ? obj.accountName : null,
     categoryName: typeof obj.categoryName === "string" ? obj.categoryName : null,
@@ -270,7 +282,9 @@ export async function extractInvoiceData(
   const parsed = await callOpenAiJson(prompt, 8000);
   const obj = (parsed as Record<string, unknown>) ?? {};
 
-  const rawItems = Array.isArray((obj as { items?: unknown }).items) ? (obj as { items: unknown[] }).items : [];
+  const rawItems = Array.isArray((obj as { items?: unknown }).items)
+    ? (obj as { items: unknown[] }).items
+    : [];
   const items: ExtractedInvoiceItem[] = rawItems
     .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
     .map((item) => {
@@ -282,7 +296,9 @@ export async function extractInvoiceData(
         typeof item.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item.date) ? item.date : null;
 
       return {
-        description: String(item.description ?? "").trim().slice(0, 120),
+        description: String(item.description ?? "")
+          .trim()
+          .slice(0, 120),
         amount: parseAmount(item.amount),
         date,
         categoryName: typeof item.categoryName === "string" ? item.categoryName : null,
@@ -290,7 +306,9 @@ export async function extractInvoiceData(
         installmentTotal: validInstallment ? total : null,
       };
     })
-    .filter((item) => item.description.length > 0 && Number.isFinite(item.amount) && item.amount > 0);
+    .filter(
+      (item) => item.description.length > 0 && Number.isFinite(item.amount) && item.amount > 0
+    );
 
   const referenceMonth = Number(obj.referenceMonth);
   const referenceYear = Number(obj.referenceYear);
@@ -298,7 +316,9 @@ export async function extractInvoiceData(
 
   return {
     referenceMonth:
-      Number.isInteger(referenceMonth) && referenceMonth >= 1 && referenceMonth <= 12 ? referenceMonth : null,
+      Number.isInteger(referenceMonth) && referenceMonth >= 1 && referenceMonth <= 12
+        ? referenceMonth
+        : null,
     referenceYear: Number.isInteger(referenceYear) && referenceYear >= 2000 ? referenceYear : null,
     totalAmount: Number.isFinite(totalAmount) && totalAmount > 0 ? totalAmount : null,
     items,

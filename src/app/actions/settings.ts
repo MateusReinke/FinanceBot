@@ -55,7 +55,10 @@ export async function changePassword(_state: FormState, formData: FormData): Pro
   return { success: true, message: "Senha atualizada." };
 }
 
-export async function deleteAccountAction(_state: FormState, formData: FormData): Promise<FormState> {
+export async function deleteAccountAction(
+  _state: FormState,
+  formData: FormData
+): Promise<FormState> {
   const { userId } = await verifySession();
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 

@@ -42,8 +42,14 @@ export default async function AccountsPage() {
       <CardInvoiceSummary accounts={accounts} series={invoices.series} />
 
       <div className="space-y-3">
-        {pluggyEnabled ? <h2 className="text-base font-semibold text-foreground">Contas manuais</h2> : null}
-        <AccountManager accounts={accounts} aiEnabled={isOpenAiConfigured()} plans={invoices.plans} />
+        {pluggyEnabled ? (
+          <h2 className="text-foreground text-base font-semibold">Contas manuais</h2>
+        ) : null}
+        <AccountManager
+          accounts={accounts}
+          aiEnabled={isOpenAiConfigured()}
+          plans={invoices.plans}
+        />
       </div>
     </div>
   );

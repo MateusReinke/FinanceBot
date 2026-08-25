@@ -57,7 +57,9 @@ export async function getCashflowSeries(
   });
 
   const start = new Date(Date.UTC(months[0].year, months[0].month - 1, 1));
-  const end = new Date(Date.UTC(months[months.length - 1].year, months[months.length - 1].month, 1));
+  const end = new Date(
+    Date.UTC(months[months.length - 1].year, months[months.length - 1].month, 1)
+  );
 
   const rows = await prisma.$queryRaw<Bucket[]>`
     SELECT

@@ -22,23 +22,15 @@ export function BalanceHero({
   const rest = accounts.length - visible.length;
 
   return (
-    // The brightest panel on the page, and the only one that glows: this is
-    // the number people opened the app for, so it gets the top of the
-    // hierarchy. The two washes are decoration and nothing else — the block
-    // still reads if neither of them paints.
-    <div className="surface relative overflow-hidden rounded-2xl p-6 shadow-raised">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-accent/15 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-28 -left-16 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
-      />
-      <div className="relative flex flex-wrap items-end justify-between gap-4">
+    // Top of the hierarchy, earned by type size rather than decoration: the
+    // balance is set larger than anything else on the page and nothing sits
+    // beside it competing for the first look. The glow that used to do this
+    // job made a panel of plain figures look like a promo banner.
+    <div className="surface rounded-2xl p-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Wallet2 className="h-4 w-4 text-accent" /> Saldo total
+          <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+            <Wallet2 className="text-accent h-4 w-4" /> Saldo total
           </p>
           <p
             className={cn(
@@ -52,7 +44,7 @@ export function BalanceHero({
 
         {Math.abs(delta) > 0.005 ? (
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Previsto no fim do mês</p>
+            <p className="text-muted-foreground text-xs">Previsto no fim do mês</p>
             <p
               className={cn(
                 "flex items-center justify-end gap-1 text-lg font-semibold tabular-nums",
@@ -60,9 +52,9 @@ export function BalanceHero({
               )}
             >
               {delta < 0 ? (
-                <TrendingDown className="h-4 w-4 text-danger" />
+                <TrendingDown className="text-danger h-4 w-4" />
               ) : (
-                <TrendingUp className="h-4 w-4 text-success" />
+                <TrendingUp className="text-success h-4 w-4" />
               )}
               {formatCurrency(forecastBalance)}
             </p>
@@ -75,15 +67,18 @@ export function BalanceHero({
       </div>
 
       {visible.length > 0 ? (
-        <div className="relative mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+        <div className="border-border mt-5 flex flex-wrap gap-2 border-t pt-4">
           {visible.map((a) => (
             <Link
               key={a.id}
               href="/accounts"
-              className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-xs transition-colors hover:border-primary"
+              className="border-border hover:border-primary flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition-colors"
             >
-              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: a.color }} />
-              <span className="max-w-32 truncate text-muted-foreground">{a.name}</span>
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: a.color }}
+              />
+              <span className="text-muted-foreground max-w-32 truncate">{a.name}</span>
               <span
                 className={cn(
                   "font-medium tabular-nums",
@@ -97,7 +92,7 @@ export function BalanceHero({
           {rest > 0 ? (
             <Link
               href="/accounts"
-              className="flex items-center rounded-lg border border-dashed border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-foreground"
+              className="border-border text-muted-foreground hover:border-primary hover:text-foreground flex items-center rounded-lg border border-dashed px-2.5 py-1.5 text-xs"
             >
               +{rest} {rest === 1 ? "conta" : "contas"}
             </Link>

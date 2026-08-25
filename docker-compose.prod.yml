@@ -59,7 +59,8 @@ services:
     volumes:
       - financebot_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-financebot} -d ${POSTGRES_DB:-financebot}"]
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-financebot} -d ${POSTGRES_DB:-financebot}"]
       interval: 5s
       timeout: 5s
       retries: 10

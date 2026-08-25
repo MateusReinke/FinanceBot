@@ -49,7 +49,7 @@ export function EditFinancingForm({
     <form action={action} className="space-y-4">
       <input type="hidden" name="id" value={id} />
 
-      <p className="rounded-lg border border-border bg-muted/50 p-3 text-xs text-muted-foreground">
+      <p className="border-border bg-muted/50 text-muted-foreground rounded-lg border p-3 text-xs">
         As alterações valem para as {remainingCount} cobranças que ainda não foram pagas. As já
         pagas ficam como estão — é assim que um reajuste de aluguel fica certo no histórico.
       </p>
@@ -100,7 +100,7 @@ export function EditFinancingForm({
       </div>
 
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm text-foreground">
+        <label className="text-foreground flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             className="h-4 w-4 accent-[var(--primary)]"
@@ -119,7 +119,7 @@ export function EditFinancingForm({
               defaultValue={nextDueDate ? toDateInputValue(nextDueDate) : ""}
               required
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               As cobranças seguintes são recalculadas a partir dessa data.
             </p>
             <FieldError messages={state?.errors?.nextDate} />
@@ -128,7 +128,7 @@ export function EditFinancingForm({
       </div>
 
       <input type="hidden" name="autoSettle" value={autoSettleOn ? "true" : "false"} />
-      <label className="flex items-start gap-2 text-sm text-foreground">
+      <label className="text-foreground flex items-start gap-2 text-sm">
         <input
           type="checkbox"
           checked={autoSettleOn}
@@ -137,7 +137,7 @@ export function EditFinancingForm({
         />
         <span>
           Debita sozinho na conta
-          <span className="block text-xs text-muted-foreground">
+          <span className="text-muted-foreground block text-xs">
             Desmarque se você paga na mão — aí {isRecurring ? "cada cobrança" : "cada parcela"} fica
             esperando você confirmar, e aparece como atrasada se passar do vencimento.
           </span>
@@ -145,7 +145,7 @@ export function EditFinancingForm({
       </label>
 
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

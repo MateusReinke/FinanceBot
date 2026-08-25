@@ -63,7 +63,10 @@ export async function POST(request: Request) {
       where: { userId: auth.userId, name: data.category, type: data.type },
     });
     if (!category) {
-      return NextResponse.json({ error: `Categoria "${data.category}" não encontrada.` }, { status: 400 });
+      return NextResponse.json(
+        { error: `Categoria "${data.category}" não encontrada.` },
+        { status: 400 }
+      );
     }
     categoryId = category.id;
   }

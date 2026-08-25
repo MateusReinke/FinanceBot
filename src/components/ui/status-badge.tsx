@@ -15,7 +15,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium",
+        "inline-block rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
         STATUS_TONE[status],
         className
       )}

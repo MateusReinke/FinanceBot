@@ -26,6 +26,17 @@ model User {
   // it is what an event's group is built out of. Nullable only because
   // accounts created before it was required still exist.
   phoneNumber  String?  @unique
+
+  // First-run guide. Null means the user has never been through it, which
+  // is what sends them to /bem-vindo instead of straight to the painel;
+  // finishing it OR skipping it both stamp this, because "show me again"
+  // is a link in the user menu and not a state to keep re-deciding.
+  // Backfilled to createdAt for accounts that predate the guide.
+  onboardedAt      DateTime?
+  // The "Primeiros passos" checklist on the painel hides itself once every
+  // step is done; this is for the user who wants it gone before that.
+  guideDismissedAt DateTime?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

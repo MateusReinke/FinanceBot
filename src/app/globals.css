@@ -3,159 +3,156 @@
 /* Design tokens.
  *
  * Every colour the app uses is named here by ROLE, never by hue, and the
- * dark theme redefines the same names. That is what lets a component say
+ * light theme redefines the same names. That is what lets a component say
  * `text-danger` once and be legible in both themes — the alternative,
  * `dark:` variants sprinkled per component, is how the first cut ended up
  * with three different reds for "atrasado".
  *
- * Three families exist on purpose:
+ * Two families exist on purpose:
  *   - UI roles (background, card, primary, danger, ...) — chrome.
  *   - Money roles (success/danger for in/out, urgency for how late a bill
  *     is) — meaning. These never get reused for decoration, so a red on
  *     this screen always means the same thing as a red on the next one.
- *   - Ambience (aurora, grid, surface glass) — the backdrop and the depth
- *     of the panels sitting on it. Purely decorative, never load-bearing:
- *     the app has to stay readable if every one of them fails to paint.
- */
+ *     The budget ring added below follows the same rule: it is coloured by
+ *     what the number means (on track vs over), never by brand blue.
+ *
+ * Dark is the primary surface now — every screenshot of this app people
+ * actually see is the dark one, so it is what :root defines. Light mode
+ * still exists for the OS preference that asks for it, under
+ * prefers-color-scheme: light, restyled to the same brand blue rather than
+ * kept as the old indigo. The palette is still deliberately quiet: this is
+ * a tool people open to find out whether they can pay a bill, so colour is
+ * spent on brand chrome and on the one glow token below — never sprinkled
+ * across every card, which is the fastest way to make numbers harder to
+ * read. */
 :root {
-  --background: #fafbff;
-  /* The far end of the page wash. Kept close to --background so the
-   * gradient reads as light falling across the page rather than as two
-   * different greys meeting in the middle. */
-  --background-deep: #eef1fc;
-  --foreground: #0e1223;
-  --card: #ffffff;
-  --card-foreground: #0e1223;
-  --muted: #eef1f8;
-  --muted-foreground: #59627a;
-  --border: #e2e7f2;
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
+  /* Neutral ramp. A hair of blue in the greys rather than pure black, so
+   * the page feels of a piece with the primary instead of two unrelated
+   * palettes sharing a screen. */
+  --background: #0b0e14;
+  --foreground: #e7eaf0;
+  --card: #12161f;
+  --card-foreground: #e7eaf0;
+  --muted: #1a1f2b;
+  --muted-foreground: #98a2b3;
+  --border: #232936;
+  /* One step lighter than --border, for the rules that separate rows inside
+   * a panel from the panel's own edge. */
+  --border-strong: #303747;
+
+  --primary: #4f7cff;
+  --primary-hover: #77a1ff;
   --primary-foreground: #ffffff;
-  /* Secondary brand note, used for the balance hero and highlights so the
-   * app has a colour of its own that is not competing with the semantic
+  /* A tint of the primary, for the selected nav item and other "you are
+   * here" states — solid fills at full strength turn the sidebar into the
+   * loudest thing on the page. */
+  --primary-soft: #182449;
+
+  /* Secondary brand note, used for the balance hero and a few highlights so
+   * the app has a colour of its own that is not competing with the semantic
    * green/red of money moving. */
-  --accent: #0d9488;
-  --accent-soft: #ecfdfa;
-  --success: #047857;
-  --success-bg: #e7fbf2;
-  --danger: #dc2626;
-  --danger-bg: #fef1f2;
-  --warning: #b45309;
-  --warning-bg: #fef8ec;
-  --ring: #4f46e5;
+  --accent: #2dd4bf;
+  --accent-soft: #0d2724;
 
-  /* Ambience. The three aurora washes are placed at the page's corners and
-   * blurred into each other; they are what stops a dashboard full of white
-   * panels from reading as a spreadsheet. Alphas are deliberately low —
-   * anything stronger and the cards stop being the brightest thing on
-   * screen, which is where the eye has to go first. */
-  --aurora-1: rgb(129 140 248 / 0.42);
-  --aurora-2: rgb(45 212 191 / 0.32);
-  --aurora-3: rgb(192 132 252 / 0.34);
-  --grid-line: rgb(14 18 35 / 0.045);
-
-  /* Panels. Slightly translucent over the aurora rather than flat white, so
-   * a card sitting on a wash picks up a hint of it and the page reads as
-   * layered glass instead of paper cut-outs. The blur is what keeps text on
-   * top crisp while the colour still comes through. */
-  --surface: rgb(255 255 255 / 0.72);
-  --surface-strong: rgb(255 255 255 / 0.95);
-  --surface-border: rgb(255 255 255 / 0.7);
-  --shell: rgb(255 255 255 / 0.76);
-
-  /* The brand gradient, for the few places that carry identity rather than
-   * information: the logo, the active nav item, the primary button. */
-  --gradient-brand: linear-gradient(135deg, #6366f1 0%, #7c5cf5 45%, #8b5cf6 100%);
-  --gradient-brand-hover: linear-gradient(135deg, #4f46e5 0%, #6d4ae8 45%, #7c3aed 100%);
+  --success: #34d399;
+  --success-bg: #0a2620;
+  --danger: #fb7185;
+  --danger-bg: #2a1017;
+  --warning: #fbbf24;
+  --warning-bg: #291f10;
+  --ring: #77a1ff;
 
   /* Elevation. Kept as tokens because a card, a modal and a popover should
-   * differ by depth in a consistent way, and dark mode needs *less* shadow
-   * and more border rather than the same shadow on a dark ground. Tinted
-   * toward the page's blue rather than neutral black: a grey shadow on a
-   * tinted background reads as dirt. */
-  --shadow-card: 0 1px 2px rgb(17 24 56 / 0.04), 0 4px 16px -6px rgb(17 24 56 / 0.10);
-  --shadow-raised: 0 2px 6px rgb(17 24 56 / 0.05), 0 14px 34px -12px rgb(17 24 56 / 0.16);
-  --shadow-overlay: 0 24px 60px -12px rgb(17 24 56 / 0.28), 0 8px 20px -8px rgb(17 24 56 / 0.14);
-  --shadow-brand: 0 4px 14px -4px rgb(79 70 229 / 0.45);
+   * differ by depth in a consistent way. On a dark ground a shadow reads as
+   * nothing at all, so depth comes from the border instead and these stay
+   * minimal — only the overlay, which genuinely floats over the page,
+   * keeps a real one.
+   *
+   * Deliberately shallow. A dashboard is a stack of panels of equal
+   * importance; if each one floats, none of them do. */
+  --shadow-card: none;
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-overlay: 0 24px 56px -12px rgb(0 0 0 / 0.7);
+
+  /* The one deliberately decorative shadow in the app, and it is spent on a
+   * single widget: the budget-usage ring on the dashboard. Coloured at call
+   * sites (currentColor), not fixed to brand blue — the ring means "on
+   * track" or "over budget," and glow is part of how it says that, the same
+   * way --danger is. Everything else on this screen stays flat on purpose,
+   * so this one glow still reads as a signal instead of decoration. */
+  --shadow-glow: 0 0 28px -6px currentcolor;
 
   /* Charts.
    *
-   * The income/expense pair is validated (categorical, adjacent): CVD ΔE 7.2
+   * The income/expense pair is validated (categorical, adjacent): CVD ΔE 8.6
    * sits in the 6-8 floor band, which is legal only alongside secondary
    * encoding — so every chart using it also separates the two by mark form
    * (columns vs line), a legend and a table view, never by hue alone.
    *
    * `-soft` is the second step of a one-hue ORDINAL ramp: realizado is the
    * dark end, previsto the light one. Validated with the ordinal checks
-   * (monotone L, adjacent dL >= 0.06, light end 2.31:1 on --chart-surface).
+   * (monotone L, adjacent dL >= 0.06, light end 2.67:1 on --chart-surface).
    *
-   * `--chart-surface` is opaque on purpose. Everything else in the app is
-   * glass over the aurora, but a plot needs a known ground: it is what the
-   * 2px gaps between stacked segments are painted in, and it is the surface
-   * every contrast figure above was measured against. */
+   * `--chart-surface` matches --card rather than being its own colour: it
+   * is what the 2px gaps between stacked segments are painted in, and it is
+   * the surface every contrast figure above was measured against. Kept as
+   * its own token (not var(--card)) so the two can never drift apart from
+   * whatever the contrast figures were actually checked against.
+   *
+   * `--chart-future` is a tint of --primary, recomputed whenever primary
+   * changes — it is the shaded band for scheduled-not-yet-realized amounts
+   * on the cashflow chart, purely decorative (see FutureBand), so it is
+   * exempt from the contrast figures above. */
   --chart-income: #008300;
-  --chart-expense: #e34948;
-  --chart-expense-soft: #ee8f8e;
-  --chart-surface: #fdfdff;
-  --chart-future: rgb(99 102 241 / 0.07);
-  --chart-grid: #e1e0d9;
-  --chart-axis: #898781;
+  --chart-expense: #e66767;
+  --chart-expense-soft: #994343;
+  --chart-surface: #12161f;
+  --chart-future: rgb(79 124 255 / 0.08);
+  --chart-grid: #232936;
+  --chart-axis: #6b7686;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #070a14;
-    --background-deep: #0b1020;
-    --foreground: #e6eaf4;
-    --card: #131828;
-    --card-foreground: #e6eaf4;
-    --muted: #1b2133;
-    --muted-foreground: #97a2b8;
-    --border: #242c41;
-    --primary: #6366f1;
-    --primary-hover: #818cf8;
+    --background: #f6f7f9;
+    --foreground: #101828;
+    --card: #ffffff;
+    --card-foreground: #101828;
+    --muted: #f1f3f7;
+    --muted-foreground: #667085;
+    --border: #e4e7ec;
+    --border-strong: #d3d8e0;
+
+    --primary: #3b5fe0;
+    --primary-hover: #3151bf;
     --primary-foreground: #ffffff;
-    --accent: #2dd4bf;
-    --accent-soft: #0b2b28;
-    --success: #34d399;
-    --success-bg: #08281e;
-    --danger: #fb7185;
-    --danger-bg: #2b1017;
-    --warning: #fbbf24;
-    --warning-bg: #2a2010;
-    --ring: #818cf8;
+    --primary-soft: #ecf0ff;
 
-    /* Dark is where the aurora earns its keep: on a near-black ground the
-     * washes are the only thing giving the page depth, so they run warmer
-     * and stronger than in the light theme. */
-    --aurora-1: rgb(99 102 241 / 0.30);
-    --aurora-2: rgb(45 212 191 / 0.14);
-    --aurora-3: rgb(168 85 247 / 0.22);
-    --grid-line: rgb(255 255 255 / 0.035);
+    --accent: #0f766e;
+    --accent-soft: #f0fdfa;
 
-    --surface: rgb(19 24 40 / 0.72);
-    --surface-strong: rgb(19 24 40 / 0.92);
-    --surface-border: rgb(255 255 255 / 0.06);
-    --shell: rgb(11 15 28 / 0.82);
+    --success: #047857;
+    --success-bg: #ecfdf5;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --warning: #b45309;
+    --warning-bg: #fffbeb;
+    --ring: #3b5fe0;
 
-    --gradient-brand: linear-gradient(135deg, #6366f1 0%, #7c5cf5 45%, #a855f7 100%);
-    --gradient-brand-hover: linear-gradient(135deg, #818cf8 0%, #9b7ef8 45%, #c084fc 100%);
+    /* Kept shallow for the same reason the dark ground keeps its shadows
+     * minimal: a dashboard is a stack of panels of equal importance. */
+    --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04);
+    --shadow-raised: 0 1px 3px rgb(16 24 40 / 0.08), 0 4px 12px -4px rgb(16 24 40 / 0.06);
+    --shadow-overlay: 0 20px 48px -12px rgb(16 24 40 / 0.24), 0 4px 12px -6px rgb(16 24 40 / 0.1);
+    --shadow-glow: 0 0 20px -8px currentcolor;
 
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
-    --shadow-raised: 0 2px 6px rgb(0 0 0 / 0.4), 0 14px 34px -12px rgb(0 0 0 / 0.55);
-    --shadow-overlay: 0 28px 64px -12px rgb(0 0 0 / 0.7), 0 8px 20px -8px rgb(0 0 0 / 0.5);
-    --shadow-brand: 0 4px 18px -4px rgb(99 102 241 / 0.55);
-
-    /* The same two jobs re-stepped for the dark ground: the pair clears CVD
-     * dE 8.6 here, and the ordinal light end sits at 2.67:1. */
     --chart-income: #008300;
-    --chart-expense: #e66767;
-    --chart-expense-soft: #994343;
-    --chart-surface: #141a2b;
-    --chart-future: rgb(129 140 248 / 0.10);
-    --chart-grid: #2c2c2a;
-    --chart-axis: #898781;
+    --chart-expense: #e34948;
+    --chart-expense-soft: #ee8f8e;
+    --chart-surface: #ffffff;
+    --chart-future: rgb(59 95 224 / 0.05);
+    --chart-grid: #eceef2;
+    --chart-axis: #98a2b3;
   }
 }
 
@@ -167,9 +164,11 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-success: var(--success);
@@ -184,31 +183,37 @@
   --shadow-card: var(--shadow-card);
   --shadow-raised: var(--shadow-raised);
   --shadow-overlay: var(--shadow-overlay);
-  --shadow-brand: var(--shadow-brand);
+  --shadow-glow: var(--shadow-glow);
 
-  /* Softer corners across the whole app, set on the scale rather than
-   * per component: every existing `rounded-lg` / `rounded-xl` picks this up
-   * at once, so nothing drifts out of step. */
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.25rem;
+  /* Corner radius set on the scale rather than per component: every
+   * existing `rounded-lg` / `rounded-xl` picks this up at once, so nothing
+   * drifts out of step. Rounder than the previous pass — enough to read as
+   * current, still square enough to read as an instrument rather than
+   * pill-soft everywhere. */
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
 }
 
 :root {
-  --font-sans-stack: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-sans-stack:
+    var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 * {
   border-color: var(--border);
 }
 
-/* The base colour lives on <html> so it fills the canvas, which leaves the
- * body's own pseudo-elements free to carry the backdrop underneath the
- * content (they sit at z-index -1; body creates no stacking context, so the
- * app paints above them). */
 html {
   background-color: var(--background);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  html {
+    color-scheme: light;
+  }
 }
 
 body {
@@ -216,39 +221,6 @@ body {
   font-family: var(--font-sans-stack);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-}
-
-/* The aurora: three colour washes plus a top-to-bottom fall of light.
- * Fixed rather than scrolling, so long pages keep the same ambience at the
- * bottom instead of running out of gradient. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(60rem 42rem at 8% -12%, var(--aurora-1), transparent 62%),
-    radial-gradient(46rem 34rem at 102% 4%, var(--aurora-3), transparent 58%),
-    radial-gradient(52rem 38rem at 72% 108%, var(--aurora-2), transparent 58%),
-    linear-gradient(178deg, var(--background) 0%, var(--background-deep) 100%);
-}
-
-/* A faint grid over the wash, faded out before it reaches the bottom of the
- * viewport. It is the difference between a gradient and a surface — you
- * read it as texture without ever looking at it. */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 68px 68px;
-  -webkit-mask-image: radial-gradient(ellipse 110% 75% at 50% 0%, #000 35%, transparent 100%);
-  mask-image: radial-gradient(ellipse 110% 75% at 50% 0%, #000 35%, transparent 100%);
 }
 
 ::selection {
@@ -275,7 +247,7 @@ textarea {
 @layer components {
   /* The one panel treatment in the app. Everything that used to spell out
    * `rounded-xl border border-border bg-card shadow-card` says `surface`
-   * instead, so the glass, the corner radius and the depth can be tuned in
+   * instead, so the fill, the corner radius and the depth can be tuned in
    * one place rather than in fourteen.
    *
    * Sits in the components layer, not utilities, so a caller can still
@@ -284,42 +256,40 @@ textarea {
   .surface {
     border-radius: var(--radius-xl);
     border: 1px solid var(--border);
-    background-color: var(--surface);
+    background-color: var(--card);
     box-shadow: var(--shadow-card);
-    -webkit-backdrop-filter: blur(16px) saturate(1.4);
-    backdrop-filter: blur(16px) saturate(1.4);
   }
 
-  /* For panels that carry dense text over a busy part of the backdrop —
-   * modals, popovers — where the extra transparency would cost legibility. */
+  /* Panels that genuinely float over the page — modals, popovers — where
+   * the deeper shadow is what separates them from what is behind. */
   .surface-strong {
-    background-color: var(--surface-strong);
+    background-color: var(--card);
+    box-shadow: var(--shadow-overlay);
   }
 
-  /* A panel holding a plot. Opaque, because a chart's colours were measured
-   * against a specific ground and because the gaps between stacked segments
-   * are painted in it — over glass they would show the aurora instead. */
+  /* A panel holding a plot. Its own token because a chart's colours were
+   * measured against a specific ground and the gaps between stacked
+   * segments are painted in it. */
   .surface-chart {
     background-color: var(--chart-surface);
   }
 
   /* Chrome that frames the app rather than holding content: the sidebar and
-   * the top bar. More transparent and more blurred than a card, so the
-   * page's colour carries through the frame. */
+   * the top bar. Sits half a step behind the cards so the content is what
+   * reads as foreground. */
   .surface-shell {
-    background-color: var(--shell);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    backdrop-filter: blur(20px) saturate(1.4);
+    background-color: var(--background);
   }
 
-  /* Identity, not information: the logo mark, the active nav item, the
-   * primary button. */
-  .bg-brand-gradient {
-    background-image: var(--gradient-brand);
+  /* Identity, not information: the logo mark and the primary button. A flat
+   * fill — the gradient this replaced pulled the eye away from the numbers,
+   * which are the only thing on these screens worth looking at first. */
+  .bg-brand {
+    background-color: var(--primary);
   }
 
-  .bg-brand-gradient-hover:hover {
-    background-image: var(--gradient-brand-hover);
+  .bg-brand:hover {
+    background-color: var(--primary-hover);
   }
 }
 

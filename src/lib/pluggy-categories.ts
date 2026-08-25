@@ -9,15 +9,33 @@
 // the connector, and the exact set changes over time. An unmatched category
 // simply stays null — a wrong guess is worse than no guess.
 const RULES: { match: string[]; category: string }[] = [
-  { match: ["supermarket", "supermercado", "groceries", "alimentacao", "food"], category: "Alimentação" },
+  {
+    match: ["supermarket", "supermercado", "groceries", "alimentacao", "food"],
+    category: "Alimentação",
+  },
   { match: ["restaurant", "restaurante", "delivery", "bar", "cafe"], category: "Alimentação" },
-  { match: ["transport", "transporte", "uber", "taxi", "fuel", "combustivel", "gas station"], category: "Transporte" },
+  {
+    match: ["transport", "transporte", "uber", "taxi", "fuel", "combustivel", "gas station"],
+    category: "Transporte",
+  },
   { match: ["health", "saude", "pharmacy", "farmacia", "medic"], category: "Saúde" },
   { match: ["education", "educacao", "school", "escola", "curso"], category: "Educação" },
   { match: ["streaming"], category: "Assinaturas" },
   { match: ["entertainment", "lazer", "cinema", "games", "travel", "viagem"], category: "Lazer" },
   { match: ["housing", "moradia", "rent", "aluguel"], category: "Moradia" },
-  { match: ["utilities", "electricity", "energia", "water", "agua", "internet", "telefone", "phone"], category: "Contas e Serviços" },
+  {
+    match: [
+      "utilities",
+      "electricity",
+      "energia",
+      "water",
+      "agua",
+      "internet",
+      "telefone",
+      "phone",
+    ],
+    category: "Contas e Serviços",
+  },
   { match: ["subscription", "assinatura"], category: "Assinaturas" },
   { match: ["shopping", "compras", "clothing", "vestuario", "electronics"], category: "Compras" },
   { match: ["salary", "salario", "payroll"], category: "Salário" },

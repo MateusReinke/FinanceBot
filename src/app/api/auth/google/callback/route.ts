@@ -80,7 +80,9 @@ export async function GET(request: Request) {
   // email — which is what links a Google sign-in to an account that already
   // exists from an email/senha signup, instead of colliding on the unique
   // email or silently creating a second account.
-  const byGoogleId = await prisma.googleAccount.findUnique({ where: { googleId: identity.googleId } });
+  const byGoogleId = await prisma.googleAccount.findUnique({
+    where: { googleId: identity.googleId },
+  });
   const existingUser =
     (byGoogleId && (await prisma.user.findUnique({ where: { id: byGoogleId.userId } }))) ||
     (session?.userId ? await prisma.user.findUnique({ where: { id: session.userId } }) : null) ||

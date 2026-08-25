@@ -51,7 +51,12 @@ export async function upsertAccount(_state: FormState, formData: FormData): Prom
   // is what actually enforces it.
   const data =
     rest.type === "credit_card"
-      ? { ...rest, creditLimit: creditLimit ?? null, closingDay: closingDay ?? null, dueDay: dueDay ?? null }
+      ? {
+          ...rest,
+          creditLimit: creditLimit ?? null,
+          closingDay: closingDay ?? null,
+          dueDay: dueDay ?? null,
+        }
       : { ...rest, creditLimit: null, closingDay: null, dueDay: null };
 
   if (typeof id === "string" && id.length > 0) {
@@ -81,7 +86,9 @@ export async function payCardInvoice(_state: FormState, formData: FormData): Pro
   const accountId = formData.get("accountId");
   if (typeof accountId !== "string") return { message: "Conta inválida." };
 
-  const account = await prisma.account.findFirst({ where: { id: accountId, userId, type: "credit_card" } });
+  const account = await prisma.account.findFirst({
+    where: { id: accountId, userId, type: "credit_card" },
+  });
   if (!account) return { message: "Cartão não encontrado." };
   if (account.pluggyItemId) {
     return { message: "Contas conectadas via Open Finance já sincronizam automaticamente." };
@@ -101,7 +108,9 @@ export async function payCardInvoice(_state: FormState, formData: FormData): Pro
     });
     if (!sourceAccount) return { errors: { sourceAccountId: ["Conta de origem inválida."] } };
     if (sourceAccount.pluggyItemId) {
-      return { errors: { sourceAccountId: ["Contas conectadas via Open Finance são somente leitura."] } };
+      return {
+        errors: { sourceAccountId: ["Contas conectadas via Open Finance são somente leitura."] },
+      };
     }
   }
 
@@ -185,7 +194,10 @@ const MONTH_FIELD = /^amount-(\d{4}-\d{2})$/;
 // card would inflate the exact debt it settles. They carry
 // invoiceForAccountId so payCardInvoice can recognise and settle them
 // instead of writing a duplicate.
-export async function saveCardInvoicePlan(_state: FormState, formData: FormData): Promise<FormState> {
+export async function saveCardInvoicePlan(
+  _state: FormState,
+  formData: FormData
+): Promise<FormState> {
   const { userId } = await verifySession();
   const accountId = formData.get("accountId");
   if (typeof accountId !== "string") return { message: "Cartão inválido." };
@@ -216,7 +228,9 @@ export async function saveCardInvoicePlan(_state: FormState, formData: FormData)
   });
   if (!sourceAccount) return { errors: { sourceAccountId: ["Conta de origem inválida."] } };
   if (sourceAccount.pluggyItemId) {
-    return { errors: { sourceAccountId: ["Contas conectadas via Open Finance são somente leitura."] } };
+    return {
+      errors: { sourceAccountId: ["Contas conectadas via Open Finance são somente leitura."] },
+    };
   }
 
   // What each month should end up being worth. A Map so a month arriving

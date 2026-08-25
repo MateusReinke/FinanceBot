@@ -85,16 +85,23 @@ async function answerQuestion(userId: string): Promise<InboundResult> {
   }
   const next = bills.upcoming[0];
   if (next) {
-    lines.push(`Próxima: ${next.description} — ${formatCurrency(next.amount)} em ${formatDate(next.date)}`);
+    lines.push(
+      `Próxima: ${next.description} — ${formatCurrency(next.amount)} em ${formatDate(next.date)}`
+    );
   }
 
   return { reply: lines.join("\n"), status: "answered" };
 }
 
-async function createFromText(userId: string, text: string, channel: string): Promise<InboundResult> {
+async function createFromText(
+  userId: string,
+  text: string,
+  channel: string
+): Promise<InboundResult> {
   if (!isOpenAiConfigured()) {
     return {
-      reply: "O interpretador de mensagens não está configurado neste servidor (falta OPENAI_API_KEY).",
+      reply:
+        "O interpretador de mensagens não está configurado neste servidor (falta OPENAI_API_KEY).",
       status: "failed",
     };
   }
@@ -105,7 +112,10 @@ async function createFromText(userId: string, text: string, channel: string): Pr
   ]);
 
   if (accounts.length === 0) {
-    return { reply: "Você ainda não tem nenhuma conta cadastrada no FinanceBot.", status: "failed" };
+    return {
+      reply: "Você ainda não tem nenhuma conta cadastrada no FinanceBot.",
+      status: "failed",
+    };
   }
 
   let extracted;
@@ -130,7 +140,8 @@ async function createFromText(userId: string, text: string, channel: string): Pr
   const category = extracted.categoryName
     ? categories.find(
         (c) =>
-          c.name.toLowerCase() === extracted.categoryName!.toLowerCase() && c.type === extracted.type
+          c.name.toLowerCase() === extracted.categoryName!.toLowerCase() &&
+          c.type === extracted.type
       )
     : undefined;
 

@@ -51,7 +51,9 @@ export function EditUserForm({
               <option value="admin">Administrador</option>
             </Select>
             <input type="hidden" name="role" value={role} />
-            <p className="text-xs text-muted-foreground">Você não pode alterar seu próprio papel.</p>
+            <p className="text-muted-foreground text-xs">
+              Você não pode alterar seu próprio papel.
+            </p>
           </>
         ) : (
           <Select id="role" name="role" defaultValue={role}>
@@ -62,7 +64,7 @@ export function EditUserForm({
         <FieldError messages={state?.errors?.role} />
       </div>
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

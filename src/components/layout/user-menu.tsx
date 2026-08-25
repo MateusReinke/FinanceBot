@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { LogOut, User, ShieldCheck } from "lucide-react";
+import { LogOut, User, ShieldCheck, Compass, Settings } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 
 export function UserMenu({ name, email, role }: { name: string; email: string; role: string }) {
@@ -30,31 +30,50 @@ export function UserMenu({ name, email, role }: { name: string; email: string; r
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground cursor-pointer"
+        className="bg-primary text-primary-foreground flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-sm font-semibold"
         aria-label="Menu do usuário"
       >
         {initials || <User className="h-4 w-4" />}
       </button>
       {open ? (
-        <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-card shadow-lg">
-          <div className="border-b border-border px-3 py-2.5">
-            <p className="truncate text-sm font-medium text-foreground">{name}</p>
-            <p className="truncate text-xs text-muted-foreground">{email}</p>
+        <div className="border-border bg-card shadow-overlay absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg border">
+          <div className="border-border border-b px-3 py-2.5">
+            <p className="text-foreground truncate text-sm font-medium">{name}</p>
+            <p className="text-muted-foreground truncate text-xs">{email}</p>
           </div>
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="text-foreground hover:bg-muted flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm"
+          >
+            <Settings className="h-4 w-4" />
+            Configurações
+          </Link>
+          {/* The way back into the first-run guide. Somebody who skipped it
+              on day one, or who wants to re-read what "previsto" means, has
+              no other route to it — the redirect only fires once. */}
+          <Link
+            href="/bem-vindo"
+            onClick={() => setOpen(false)}
+            className="text-foreground hover:bg-muted flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm"
+          >
+            <Compass className="h-4 w-4" />
+            Primeiros passos
+          </Link>
           {role === "admin" ? (
             <Link
               href="/admin"
               onClick={() => setOpen(false)}
-              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted"
+              className="text-foreground hover:bg-muted flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm"
             >
               <ShieldCheck className="h-4 w-4" />
               Painel admin
             </Link>
           ) : null}
-          <form action={logout}>
+          <form action={logout} className="border-border border-t">
             <button
               type="submit"
-              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-danger hover:bg-muted cursor-pointer"
+              className="text-danger hover:bg-muted flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-left text-sm"
             >
               <LogOut className="h-4 w-4" />
               Sair

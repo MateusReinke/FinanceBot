@@ -27,7 +27,7 @@ export function SyncButton({ pluggyItemId }: { pluggyItemId: string }) {
     <button
       onClick={handleSync}
       disabled={loading}
-      className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-60 cursor-pointer"
+      className="text-muted-foreground hover:bg-muted flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium disabled:opacity-60"
     >
       <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
       {loading ? "Sincronizando..." : "Sincronizar"}

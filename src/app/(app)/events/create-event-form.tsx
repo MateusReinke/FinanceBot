@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { createEvent } from "@/app/actions/events";
 import { Input, Label, FieldError, Textarea } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { Switch } from "@/components/ui/switch";
 
 export function CreateEventForm({ whatsappEnabled }: { whatsappEnabled: boolean }) {
   const [state, action] = useActionState(createEvent, undefined);
@@ -26,28 +27,26 @@ export function CreateEventForm({ whatsappEnabled }: { whatsappEnabled: boolean 
         <FieldError messages={state?.errors?.description} />
       </div>
       {whatsappEnabled ? (
-        <div className="space-y-2 rounded-lg border border-border bg-muted/40 p-3">
+        <div className="border-border bg-muted/40 flex items-start justify-between gap-3 rounded-lg border p-3">
           <input type="hidden" name="createWhatsappGroup" value={createGroup ? "true" : "false"} />
-          <label className="flex items-start gap-2 text-sm text-foreground">
-            <input
-              type="checkbox"
-              checked={createGroup}
-              onChange={(e) => setCreateGroup(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-[var(--primary)]"
-            />
-            <span>
-              Criar um grupo no WhatsApp para este evento
-              <span className="block text-xs text-muted-foreground">
-                Quem entrar no evento é adicionado ao grupo, e cada despesa nova é avisada lá.
-                Só entra quem tiver WhatsApp cadastrado e permitir ser adicionado a grupos.
-              </span>
+          <p className="text-sm">
+            <span className="text-foreground">Criar um grupo no WhatsApp para este evento</span>
+            <span className="text-muted-foreground mt-0.5 block text-xs">
+              Quem entrar no evento é adicionado ao grupo, e cada despesa nova é avisada lá. Só
+              entra quem tiver WhatsApp cadastrado e permitir ser adicionado a grupos.
             </span>
-          </label>
+          </p>
+          <Switch
+            checked={createGroup}
+            onChange={setCreateGroup}
+            label="Criar um grupo no WhatsApp para este evento"
+            className="mt-0.5"
+          />
         </div>
       ) : null}
 
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

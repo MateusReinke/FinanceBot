@@ -36,12 +36,12 @@ export default async function BudgetsPage({
       </div>
 
       {rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center">
-          <PiggyBank className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
+        <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed p-10 text-center">
+          <PiggyBank className="text-muted-foreground h-8 w-8" />
+          <p className="text-muted-foreground text-sm">
             Crie categorias de despesa para poder definir orçamentos.
           </p>
-          <Link href="/categories" className="text-sm font-medium text-primary hover:underline">
+          <Link href="/categories" className="text-primary text-sm font-medium hover:underline">
             Ir para Categorias →
           </Link>
         </div>
@@ -49,7 +49,11 @@ export default async function BudgetsPage({
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <StatCard label="Orçamento total" value={formatCurrency(totalBudget)} />
-            <StatCard label="Gasto no mês" value={formatCurrency(totalSpent)} valueClassName="text-danger" />
+            <StatCard
+              label="Gasto no mês"
+              value={formatCurrency(totalSpent)}
+              valueClassName="text-danger"
+            />
             <StatCard
               label="Restante"
               value={formatCurrency(remaining)}

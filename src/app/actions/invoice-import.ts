@@ -57,7 +57,10 @@ export type AnalyzeInvoiceResult =
 // Not FormState/useActionState-shaped, same reason as the AI transaction
 // assistant and the Events receipt scanner: the review step needs the
 // parsed fields back as data to seed an editable draft, not a success flag.
-export async function analyzeInvoice(accountId: string, formData: FormData): Promise<AnalyzeInvoiceResult> {
+export async function analyzeInvoice(
+  accountId: string,
+  formData: FormData
+): Promise<AnalyzeInvoiceResult> {
   const { userId } = await verifySession();
 
   if (!isOpenAiConfigured()) {
@@ -70,7 +73,9 @@ export async function analyzeInvoice(accountId: string, formData: FormData): Pro
     return { error: "Importação de fatura é só para contas do tipo cartão de crédito." };
   }
   if (account.pluggyItemId) {
-    return { error: "Contas conectadas via Open Finance já têm a fatura sincronizada automaticamente." };
+    return {
+      error: "Contas conectadas via Open Finance já têm a fatura sincronizada automaticamente.",
+    };
   }
 
   const file = formData.get("file");
@@ -81,7 +86,9 @@ export async function analyzeInvoice(accountId: string, formData: FormData): Pro
     return { error: "Formato não suportado. Envie um arquivo PDF." };
   }
   if (file.size > MAX_INVOICE_BYTES) {
-    return { error: `Arquivo muito grande (máx. ${Math.floor(MAX_INVOICE_BYTES / 1024 / 1024)}MB).` };
+    return {
+      error: `Arquivo muito grande (máx. ${Math.floor(MAX_INVOICE_BYTES / 1024 / 1024)}MB).`,
+    };
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -114,7 +121,9 @@ export async function analyzeInvoice(accountId: string, formData: FormData): Pro
     );
   } catch (error) {
     console.error("Falha ao interpretar fatura via OpenAI", error);
-    return { error: "Não consegui interpretar essa fatura agora. Tente novamente ou lance manualmente." };
+    return {
+      error: "Não consegui interpretar essa fatura agora. Tente novamente ou lance manualmente.",
+    };
   }
 
   if (extracted.items.length === 0) {
@@ -125,7 +134,8 @@ export async function analyzeInvoice(accountId: string, formData: FormData): Pro
   const referenceMonth = extracted.referenceMonth ?? now.getUTCMonth() + 1;
   const referenceYear = extracted.referenceYear ?? now.getUTCFullYear();
   const totalAmount =
-    extracted.totalAmount ?? Math.round(extracted.items.reduce((sum, i) => sum + i.amount, 0) * 100) / 100;
+    extracted.totalAmount ??
+    Math.round(extracted.items.reduce((sum, i) => sum + i.amount, 0) * 100) / 100;
 
   const anchorDay = Math.min(account.dueDay ?? 1, 28);
   const referenceDate = new Date(Date.UTC(referenceYear, referenceMonth - 1, anchorDay));
@@ -138,7 +148,8 @@ export async function analyzeInvoice(accountId: string, formData: FormData): Pro
 
   const items: InvoiceImportItem[] = extracted.items.map((item) => {
     const categoryId = item.categoryName
-      ? (categories.find((c) => c.name.toLowerCase() === item.categoryName!.toLowerCase())?.id ?? null)
+      ? (categories.find((c) => c.name.toLowerCase() === item.categoryName!.toLowerCase())?.id ??
+        null)
       : null;
 
     let matchedFinancingId: string | null = null;
@@ -177,7 +188,10 @@ export async function analyzeInvoice(accountId: string, formData: FormData): Pro
   return { referenceMonth, referenceYear, totalAmount, items };
 }
 
-export async function confirmInvoiceImport(_state: FormState, formData: FormData): Promise<FormState> {
+export async function confirmInvoiceImport(
+  _state: FormState,
+  formData: FormData
+): Promise<FormState> {
   const { userId } = await verifySession();
 
   const accountId = formData.get("accountId");
@@ -189,7 +203,9 @@ export async function confirmInvoiceImport(_state: FormState, formData: FormData
     return { message: "Importação de fatura é só para contas do tipo cartão de crédito." };
   }
   if (account.pluggyItemId) {
-    return { message: "Contas conectadas via Open Finance já têm a fatura sincronizada automaticamente." };
+    return {
+      message: "Contas conectadas via Open Finance já têm a fatura sincronizada automaticamente.",
+    };
   }
 
   let rawItems: unknown;
@@ -211,7 +227,9 @@ export async function confirmInvoiceImport(_state: FormState, formData: FormData
   }
   const { referenceMonth, referenceYear, totalAmount, items } = validated.data;
 
-  const categoryIds = [...new Set(items.map((i) => i.categoryId).filter((id): id is string => Boolean(id)))];
+  const categoryIds = [
+    ...new Set(items.map((i) => i.categoryId).filter((id): id is string => Boolean(id))),
+  ];
   const validCategoryIds = new Set(
     categoryIds.length
       ? (
@@ -230,7 +248,8 @@ export async function confirmInvoiceImport(_state: FormState, formData: FormData
   const transactionCreates = [];
 
   for (const item of items) {
-    const categoryId = item.categoryId && validCategoryIds.has(item.categoryId) ? item.categoryId : undefined;
+    const categoryId =
+      item.categoryId && validCategoryIds.has(item.categoryId) ? item.categoryId : undefined;
     const isInstallment =
       item.installmentCurrent != null &&
       item.installmentTotal != null &&

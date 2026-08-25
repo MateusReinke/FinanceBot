@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch cancels the run still in flight — the
+# older result is about to be irrelevant anyway.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, types, formato e build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The generated client is what typecheck and build are checked
+      # against, and it is gitignored — so it has to be produced here.
+      # No DATABASE_URL needed: generate reads the schema, not the database.
+      - run: npm run db:generate
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm run format:check
+
+      # No secrets: the app reads SESSION_SECRET on first use rather than at
+      # import, so a production build needs nothing from the environment.
+      - run: npm run build

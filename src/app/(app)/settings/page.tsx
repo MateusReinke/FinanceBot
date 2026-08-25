@@ -39,12 +39,16 @@ export default async function SettingsPage() {
   // Built from the request rather than an env var so the snippet shows the
   // URL this deployment is actually reachable at.
   const host = headerList.get("x-forwarded-host") ?? headerList.get("host") ?? "localhost:3000";
-  const proto = headerList.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const proto =
+    headerList.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const baseUrl = `${proto}://${host}`;
 
   return (
     <div className="max-w-2xl space-y-6">
-      <PageHeader title="Configurações" description={`Membro desde ${formatDate(user.createdAt)}`} />
+      <PageHeader
+        title="Configurações"
+        description={`Membro desde ${formatDate(user.createdAt)}`}
+      />
 
       <Card>
         <CardHeader>
@@ -84,11 +88,15 @@ export default async function SettingsPage() {
           <CardTitle>WhatsApp e automações</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mb-4 text-sm">
             Lance gastos mandando uma mensagem — “gastei 45 no mercado com o nubank”. Gere um token,
             ligue no seu fluxo do n8n e pronto.
           </p>
-          <WhatsAppPanel tokens={tokens} phoneNumber={profile?.phoneNumber ?? null} baseUrl={baseUrl} />
+          <WhatsAppPanel
+            tokens={tokens}
+            phoneNumber={profile?.phoneNumber ?? null}
+            baseUrl={baseUrl}
+          />
         </CardContent>
       </Card>
 

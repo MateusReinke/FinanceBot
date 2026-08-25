@@ -130,18 +130,16 @@ function InvoicePlannerForm({
     });
   }
 
-  const filled = months.filter(
-    (m) => !byMonth.get(m.key)?.paid && Number(amounts[m.key]) > 0
-  );
+  const filled = months.filter((m) => !byMonth.get(m.key)?.paid && Number(amounts[m.key]) > 0);
   const total = filled.reduce((sum, m) => sum + Number(amounts[m.key]), 0);
 
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="accountId" value={account.id} />
 
-      <p className="text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Preencha quanto você espera pagar em cada mês. Cada valor entra como uma fatura{" "}
-        <span className="font-medium text-foreground">prevista</span> em Próximos vencimentos e no
+        <span className="text-foreground font-medium">prevista</span> em Próximos vencimentos e no
         saldo previsto, e só mexe no saldo quando você confirmar o pagamento.
       </p>
 
@@ -183,28 +181,28 @@ function InvoicePlannerForm({
 
       <div className="space-y-1.5">
         <Label>Valor de cada fatura (R$)</Label>
-        <ul className="max-h-72 space-y-1 overflow-y-auto rounded-lg border border-border p-2">
+        <ul className="border-border max-h-72 space-y-1 overflow-y-auto rounded-lg border p-2">
           {months.map((month, index) => {
             const existing = byMonth.get(month.key);
             const locked = existing?.paid ?? false;
             return (
               <li key={month.key} className="flex items-center gap-2">
                 <div className="w-20 shrink-0">
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-foreground text-sm font-medium">
                     {formatMonthShort(month.month, month.year)} {month.year}
                   </p>
                   {/* A paid invoice keeps the date it was actually paid on; only
                       the months still open follow the vencimento being edited. */}
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     vence {dueLabel(locked ? existing!.date : month.dueDate)}
                   </p>
                 </div>
                 {locked ? (
-                  <div className="flex h-10 flex-1 items-center justify-between rounded-lg border border-border bg-muted/40 px-3">
-                    <span className="text-sm tabular-nums text-muted-foreground">
+                  <div className="border-border bg-muted/40 flex h-10 flex-1 items-center justify-between rounded-lg border px-3">
+                    <span className="text-muted-foreground text-sm tabular-nums">
                       {formatCurrency(existing!.amount)}
                     </span>
-                    <span className="flex items-center gap-1 text-xs text-success">
+                    <span className="text-success flex items-center gap-1 text-xs">
                       <Lock className="h-3 w-3" /> paga
                     </span>
                   </div>
@@ -227,7 +225,7 @@ function InvoicePlannerForm({
                   disabled={locked || index === months.length - 1}
                   title="Repetir este valor nos meses seguintes"
                   aria-label={`Repetir o valor de ${formatMonthShort(month.month, month.year)} nos meses seguintes`}
-                  className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                  className="text-muted-foreground hover:bg-muted shrink-0 cursor-pointer rounded-md p-1.5 disabled:pointer-events-none disabled:opacity-30"
                 >
                   <ArrowDown className="h-4 w-4" />
                 </button>
@@ -235,22 +233,22 @@ function InvoicePlannerForm({
             );
           })}
         </ul>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Deixe em branco os meses que você ainda não sabe. Apagar um valor remove aquela fatura
           programada; meses já pagos ficam bloqueados.
         </p>
         <FieldError messages={state?.errors?.months} />
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 p-3 text-sm">
+      <div className="border-border bg-muted/40 flex items-center justify-between rounded-lg border p-3 text-sm">
         <span className="text-muted-foreground">
           {filled.length} {filled.length === 1 ? "fatura prevista" : "faturas previstas"}
         </span>
-        <span className="font-semibold tabular-nums text-foreground">{formatCurrency(total)}</span>
+        <span className="text-foreground font-semibold tabular-nums">{formatCurrency(total)}</span>
       </div>
 
       {state?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {state.message}
         </p>
       ) : null}

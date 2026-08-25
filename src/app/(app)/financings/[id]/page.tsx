@@ -25,7 +25,9 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
   });
 
   const pct =
-    financing.totalAmount > 0 ? Math.min(100, (financing.paidTotal / financing.totalAmount) * 100) : 0;
+    financing.totalAmount > 0
+      ? Math.min(100, (financing.paidTotal / financing.totalAmount) * 100)
+      : 0;
 
   const totalSavings = financing.installments
     .filter((i) => i.balanceApplied)
@@ -39,7 +41,8 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
   const visibleInstallments = financing.isRecurring
     ? (() => {
         const firstPendingIdx = financing.installments.findIndex((i) => !i.balanceApplied);
-        const centerIdx = firstPendingIdx === -1 ? financing.installments.length - 1 : firstPendingIdx;
+        const centerIdx =
+          firstPendingIdx === -1 ? financing.installments.length - 1 : firstPendingIdx;
         const start = Math.max(0, centerIdx - 2);
         return financing.installments.slice(start, start + 6);
       })()
@@ -60,20 +63,22 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
         autoSettle={financing.autoSettle}
         nextDueDate={financing.nextDueDate}
       />
-      <p className="-mt-4 text-sm text-muted-foreground">
+      <p className="text-muted-foreground -mt-4 text-sm">
         {financing.account.name}
         {financing.category ? ` · ${financing.category.name}` : ""} ·{" "}
         {FREQUENCY_SHORT_LABEL[financing.frequency]} ·{" "}
-        {financing.isRecurring ? "desde" : "primeira cobrança em"} {formatDate(financing.firstDueDate)}
+        {financing.isRecurring ? "desde" : "primeira cobrança em"}{" "}
+        {formatDate(financing.firstDueDate)}
         {financing.autoSettle ? "" : " · você confirma cada pagamento"}
       </p>
 
       {financing.overdueCount > 0 ? (
-        <div className="rounded-xl border border-danger bg-danger-bg p-3 text-sm text-danger">
+        <div className="border-danger bg-danger-bg text-danger rounded-xl border p-3 text-sm">
           {financing.overdueCount === 1
             ? "1 cobrança venceu e ainda não foi confirmada."
             : `${financing.overdueCount} cobranças venceram e ainda não foram confirmadas.`}{" "}
-          Confirme abaixo para que {financing.overdueCount === 1 ? "ela entre" : "elas entrem"} no saldo.
+          Confirme abaixo para que {financing.overdueCount === 1 ? "ela entre" : "elas entrem"} no
+          saldo.
         </div>
       ) : null}
 
@@ -92,9 +97,15 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
       ) : (
         <>
           <div
-            className={cn("grid grid-cols-1 gap-3 sm:grid-cols-3", totalSavings > 0.01 && "lg:grid-cols-4")}
+            className={cn(
+              "grid grid-cols-1 gap-3 sm:grid-cols-3",
+              totalSavings > 0.01 && "lg:grid-cols-4"
+            )}
           >
-            <StatCard label="Total do financiamento" value={formatCurrency(financing.totalAmount)} />
+            <StatCard
+              label="Total do financiamento"
+              value={formatCurrency(financing.totalAmount)}
+            />
             <StatCard
               label="Já pago"
               value={formatCurrency(financing.paidTotal)}
@@ -121,10 +132,10 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
                   {financing.paidCount} de {financing.installmentCount} parcelas{" "}
                   {isIncome ? "recebidas" : "pagas"}
                 </span>
-                <span className="font-medium text-foreground">{pct.toFixed(0)}%</span>
+                <span className="text-foreground font-medium">{pct.toFixed(0)}%</span>
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+              <div className="bg-muted h-2.5 overflow-hidden rounded-full">
+                <div className="bg-primary h-full rounded-full" style={{ width: `${pct}%` }} />
               </div>
             </CardContent>
           </Card>
@@ -133,7 +144,9 @@ export default async function FinancingDetailPage({ params }: { params: Promise<
 
       <Card>
         <CardHeader>
-          <CardTitle>{financing.isRecurring ? "Cobranças recentes e próximas" : "Parcelas"}</CardTitle>
+          <CardTitle>
+            {financing.isRecurring ? "Cobranças recentes e próximas" : "Parcelas"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <InstallmentTable

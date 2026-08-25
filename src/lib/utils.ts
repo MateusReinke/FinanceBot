@@ -79,9 +79,7 @@ export function addMonthsUTC(date: Date, months: number) {
 // from the UTC date parts rather than adding milliseconds so it stays
 // correct regardless of the runtime's timezone.
 export function addDaysUTC(date: Date, days: number) {
-  return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days)
-  );
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
 }
 
 const monthShortFormatter = new Intl.DateTimeFormat("pt-BR", {

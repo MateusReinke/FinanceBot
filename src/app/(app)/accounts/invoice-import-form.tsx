@@ -19,7 +19,13 @@ type DraftItem = {
   matchedFinancingDescription: string | null;
 };
 
-export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string; onSuccess: () => void }) {
+export function InvoiceImportForm({
+  accountId,
+  onSuccess,
+}: {
+  accountId: string;
+  onSuccess: () => void;
+}) {
   const [step, setStep] = useState<"upload" | "review">("upload");
   const [file, setFile] = useState<File | null>(null);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
@@ -66,7 +72,9 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
           // import (no new schedule) so re-uploading next month's invoice
           // doesn't duplicate the remaining future installments. The user
           // can flip this back on if the match looks wrong.
-          isInstallment: Boolean(i.installmentCurrent && i.installmentTotal && !i.matchedFinancingId),
+          isInstallment: Boolean(
+            i.installmentCurrent && i.installmentTotal && !i.matchedFinancingId
+          ),
           installmentCurrent: i.installmentCurrent ? String(i.installmentCurrent) : "",
           installmentTotal: i.installmentTotal ? String(i.installmentTotal) : "",
           matchedFinancingDescription: i.matchedFinancingDescription,
@@ -106,8 +114,12 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
           amount: Number(item.amount) || 0,
           date: item.date,
           categoryId: item.categoryId ?? undefined,
-          installmentCurrent: item.isInstallment ? Number(item.installmentCurrent) || undefined : undefined,
-          installmentTotal: item.isInstallment ? Number(item.installmentTotal) || undefined : undefined,
+          installmentCurrent: item.isInstallment
+            ? Number(item.installmentCurrent) || undefined
+            : undefined,
+          installmentTotal: item.isInstallment
+            ? Number(item.installmentTotal) || undefined
+            : undefined,
         }))
       ),
     [items]
@@ -118,9 +130,10 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
   if (step === "upload") {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Envie o PDF da fatura — a IA identifica os lançamentos do mês, incluindo compras parceladas
-          (gerando as parcelas futuras automaticamente), pra você revisar antes de salvar.
+        <p className="text-muted-foreground text-sm">
+          Envie o PDF da fatura — a IA identifica os lançamentos do mês, incluindo compras
+          parceladas (gerando as parcelas futuras automaticamente), pra você revisar antes de
+          salvar.
         </p>
 
         <div className="space-y-1.5">
@@ -131,17 +144,22 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
             type="file"
             accept="application/pdf"
             onChange={handleFileChange}
-            className="block w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:opacity-80"
+            className="text-foreground file:bg-muted file:text-foreground block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:opacity-80"
           />
         </div>
 
         {analyzeError ? (
-          <p className="text-sm text-danger" role="alert">
+          <p className="text-danger text-sm" role="alert">
             {analyzeError}
           </p>
         ) : null}
 
-        <Button type="button" className="w-full" disabled={!file || isAnalyzing} onClick={handleAnalyze}>
+        <Button
+          type="button"
+          className="w-full"
+          disabled={!file || isAnalyzing}
+          onClick={handleAnalyze}
+        >
           {isAnalyzing ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Lendo fatura...
@@ -165,7 +183,7 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
       <button
         type="button"
         onClick={() => setStep("upload")}
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+        className="text-muted-foreground hover:text-foreground inline-flex cursor-pointer items-center gap-1 text-sm"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Trocar arquivo
       </button>
@@ -195,7 +213,7 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
           />
         </div>
       </div>
-      <p className="-mt-2 text-xs text-muted-foreground">
+      <p className="text-muted-foreground -mt-2 text-xs">
         Usado para posicionar as parcelas futuras das compras parceladas — confira se a IA acertou.
       </p>
 
@@ -210,7 +228,7 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
           onChange={(e) => setTotalAmount(e.target.value)}
           required
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Vira o saldo devedor desta conta ao confirmar — ajuste se não bater com o total real.
         </p>
         <FieldError messages={confirmState?.errors?.totalAmount} />
@@ -220,7 +238,7 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
         <Label>Lançamentos identificados ({items.length})</Label>
         <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
           {items.map((item, index) => (
-            <div key={index} className="space-y-2 rounded-lg border border-border p-2.5">
+            <div key={index} className="border-border space-y-2 rounded-lg border p-2.5">
               <div className="flex items-center gap-2">
                 <Input
                   aria-label={`Descrição do item ${index + 1}`}
@@ -242,19 +260,19 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
                 <button
                   type="button"
                   onClick={() => removeItem(index)}
-                  className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer"
+                  className="text-muted-foreground hover:bg-danger-bg hover:text-danger shrink-0 cursor-pointer rounded-md p-1.5"
                   aria-label={`Remover item ${index + 1}`}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <label className="flex items-center gap-1.5 text-muted-foreground">
+                <label className="text-muted-foreground flex items-center gap-1.5">
                   <input
                     type="checkbox"
                     checked={item.isInstallment}
                     onChange={(e) => updateItem(index, { isInstallment: e.target.checked })}
-                    className="h-3.5 w-3.5 rounded border-border accent-primary"
+                    className="border-border accent-primary h-3.5 w-3.5 rounded"
                   />
                   Compra parcelada
                 </label>
@@ -267,7 +285,7 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
                       value={item.installmentCurrent}
                       onChange={(e) => updateItem(index, { installmentCurrent: e.target.value })}
                       placeholder="atual"
-                      className="w-14 rounded-md border border-border bg-background px-1.5 py-1 text-xs"
+                      className="border-border bg-background w-14 rounded-md border px-1.5 py-1 text-xs"
                     />
                     <span className="text-muted-foreground">de</span>
                     <input
@@ -277,13 +295,14 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
                       value={item.installmentTotal}
                       onChange={(e) => updateItem(index, { installmentTotal: e.target.value })}
                       placeholder="total"
-                      className="w-14 rounded-md border border-border bg-background px-1.5 py-1 text-xs"
+                      className="border-border bg-background w-14 rounded-md border px-1.5 py-1 text-xs"
                     />
                     <span className="text-muted-foreground">gera as parcelas futuras</span>
                   </>
                 ) : item.matchedFinancingDescription ? (
                   <span className="text-muted-foreground">
-                    Já rastreada em &quot;{item.matchedFinancingDescription}&quot; — não vai duplicar
+                    Já rastreada em &quot;{item.matchedFinancingDescription}&quot; — não vai
+                    duplicar
                   </span>
                 ) : null}
               </div>
@@ -293,7 +312,7 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
         <button
           type="button"
           onClick={addItem}
-          className="inline-flex items-center gap-1 text-sm text-primary hover:underline cursor-pointer"
+          className="text-primary inline-flex cursor-pointer items-center gap-1 text-sm hover:underline"
         >
           <Plus className="h-3.5 w-3.5" /> Adicionar item
         </button>
@@ -301,7 +320,7 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
       </div>
 
       {newFinancingsCount > 0 ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {newFinancingsCount}{" "}
           {newFinancingsCount === 1
             ? "novo financiamento será criado"
@@ -311,7 +330,7 @@ export function InvoiceImportForm({ accountId, onSuccess }: { accountId: string;
       ) : null}
 
       {confirmState?.message ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {confirmState.message}
         </p>
       ) : null}
