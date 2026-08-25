@@ -94,6 +94,14 @@ export default async function DashboardPage({
   const incomeDelta = previous ? percentChange(data.income, previous.incomeRealized) : undefined;
   const expenseDelta = previous ? percentChange(data.expense, previous.expenseRealized) : undefined;
 
+  // The six months leading up to (and including) the one being viewed, for
+  // the stat cards' sparklines — the same window the chart below draws, just
+  // trimmed to "so far" and reduced to one number per month.
+  const trailing = data.cashflow.filter((point) => point.offset <= 0);
+  const incomeTrend = trailing.map((point) => point.incomeRealized);
+  const expenseTrend = trailing.map((point) => point.expenseRealized);
+  const netTrend = trailing.map((point) => point.incomeRealized - point.expenseRealized);
+
   // Aggregate across every category budgeted this month, for the ring on
   // the "Orçamentos" card — one figure for "am I on track," with the
   // per-category breakdown still underneath for where that isn't obvious.
@@ -173,6 +181,7 @@ export default async function DashboardPage({
                   : `Entradas em ${monthLabel.split(" de ")[0].toLowerCase()}`
               }
               value={formatCurrency(data.income)}
+              numericValue={data.income}
               hint={
                 data.scheduledIncome > 0
                   ? `+ ${formatCurrency(data.scheduledIncome)} a receber`
@@ -186,6 +195,8 @@ export default async function DashboardPage({
                   ? { percent: incomeDelta, tone: incomeDelta >= 0 ? "success" : "danger" }
                   : undefined
               }
+              trend={incomeTrend}
+              trendColor="var(--success)"
             />
             <StatCard
               label={
@@ -194,6 +205,7 @@ export default async function DashboardPage({
                   : `Saídas em ${monthLabel.split(" de ")[0].toLowerCase()}`
               }
               value={formatCurrency(data.expense)}
+              numericValue={data.expense}
               valueClassName="text-danger"
               icon={TrendingDown}
               iconClassName="bg-danger-bg text-danger"
@@ -207,6 +219,8 @@ export default async function DashboardPage({
                   ? { percent: expenseDelta, tone: expenseDelta <= 0 ? "success" : "danger" }
                   : undefined
               }
+              trend={expenseTrend}
+              trendColor="var(--danger)"
             />
             <StatCard
               label={
@@ -215,6 +229,7 @@ export default async function DashboardPage({
                   : `Sobrou em ${monthLabel.split(" de ")[0].toLowerCase()}`
               }
               value={formatCurrency(data.net)}
+              numericValue={data.net}
               valueClassName={data.net >= 0 ? "text-success" : "text-danger"}
               icon={Scale}
               iconClassName={
@@ -225,6 +240,8 @@ export default async function DashboardPage({
                   ? `${formatCurrency(data.forecastNet)} previsto`
                   : undefined
               }
+              trend={netTrend}
+              trendColor={data.net >= 0 ? "var(--success)" : "var(--danger)"}
             />
             {/* Promoted to a card of its own: money other people owe you is
                 the easiest kind to lose track of, precisely because nothing
@@ -234,6 +251,7 @@ export default async function DashboardPage({
               <StatCard
                 label="A receber"
                 value={formatCurrency(bills.toReceiveTotal)}
+                numericValue={bills.toReceiveTotal}
                 valueClassName={bills.toReceiveTotal > 0 ? "text-success" : undefined}
                 icon={HandCoins}
                 iconClassName={
@@ -321,7 +339,10 @@ export default async function DashboardPage({
                       const isExpense = t.type === "expense";
                       const status = transactionStatus(t);
                       return (
-                        <li key={t.id} className="flex items-center gap-3 py-2.5">
+                        <li
+                          key={t.id}
+                          className="hover:bg-muted/40 -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors duration-150"
+                        >
                           <span
                             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                             style={{
@@ -443,7 +464,10 @@ export default async function DashboardPage({
                         const pct = b.amount > 0 ? Math.min(100, (b.spent / b.amount) * 100) : 0;
                         const over = b.spent > b.amount;
                         return (
-                          <li key={b.id}>
+                          <li
+                            key={b.id}
+                            className="hover:bg-muted/40 -mx-2 rounded-lg px-2 py-1 transition-colors duration-150"
+                          >
                             <div className="mb-1 flex items-center justify-between text-sm">
                               <span className="text-foreground font-medium">{b.category.name}</span>
                               <span

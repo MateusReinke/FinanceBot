@@ -33,7 +33,7 @@ export function AppShell({
           to repeat what the page's own title already says the moment you
           land on it. Labels move to a hover tooltip instead of disappearing
           — see NavLinks' "rail" variant. */}
-      <aside className="surface-shell border-border hidden w-[76px] shrink-0 flex-col items-center border-r py-4 lg:flex">
+      <aside className="surface-shell border-border sticky top-0 hidden h-screen w-[76px] shrink-0 flex-col items-center border-r py-4 lg:flex">
         <Link
           href="/dashboard"
           className="bg-brand text-primary-foreground mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
