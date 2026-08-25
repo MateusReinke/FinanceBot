@@ -8,14 +8,75 @@ import { NAV_GROUPS } from "./nav-config";
 export function NavLinks({
   onNavigate,
   badges,
+  variant = "list",
 }: {
   onNavigate?: () => void;
   // Overdue counts, keyed by the href they belong to. Passed in rather than
   // fetched here because this is a client component, and the layout already
   // has the data.
   badges?: Record<string, number>;
+  // "list": icon + label, grouped under headings — the mobile drawer, where
+  // there's room to spell everything out. "rail": icon-only column for the
+  // desktop sidebar, with the label moved into a hover tooltip and the
+  // group heading collapsed to a plain divider since there's no room to set
+  // it in type at this width.
+  variant?: "list" | "rail";
 }) {
   const pathname = usePathname();
+
+  if (variant === "rail") {
+    return (
+      <nav className="flex flex-1 flex-col items-center gap-1">
+        {NAV_GROUPS.map((group, i) => (
+          <div
+            key={group.label ?? `group-${i}`}
+            className={cn(
+              "flex w-full flex-col items-center gap-1",
+              i > 0 && "border-border mt-1 border-t pt-2"
+            )}
+          >
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || pathname.startsWith(`${href}/`);
+              const badge = badges?.[href] ?? 0;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  aria-label={label}
+                  className={cn(
+                    "group relative flex h-11 w-11 items-center justify-center rounded-lg transition-colors duration-150",
+                    active
+                      ? "bg-primary-soft text-primary shadow-glow"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  {badge > 0 ? (
+                    <span
+                      aria-label={`${badge} em atraso`}
+                      className="bg-danger text-background absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums"
+                    >
+                      {badge}
+                    </span>
+                  ) : null}
+                  {/* Pure CSS tooltip — the rail traded the label away for
+                      width, so hover is the only place it still exists. */}
+                  <span
+                    role="tooltip"
+                    className="bg-card text-foreground border-border shadow-raised pointer-events-none absolute left-full z-50 ml-3 rounded-md border px-2.5 py-1.5 text-xs font-medium whitespace-nowrap opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                  >
+                    {label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+    );
+  }
 
   return (
     <nav className="flex flex-1 flex-col gap-5">

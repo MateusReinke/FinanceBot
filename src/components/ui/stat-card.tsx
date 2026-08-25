@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUp, ArrowDown, ChevronRight } from "lucide-react";
+import { ArrowUp, ArrowDown, ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function StatCard({
@@ -10,6 +10,8 @@ export function StatCard({
   hint,
   hintClassName,
   href,
+  icon: Icon,
+  iconClassName,
 }: {
   label: string;
   value: string;
@@ -24,9 +26,25 @@ export function StatCard({
   // Makes the whole card a link. Used where the number is a prompt to go do
   // something about it, rather than just a figure to read.
   href?: string;
+  // Small badge above the label. Optional and neutral by default — a caller
+  // ties its colour to what the figure means (iconClassName="bg-success-bg
+  // text-success" for money coming in), the same way valueClassName already
+  // works, rather than the card guessing a tone on its own.
+  icon?: LucideIcon;
+  iconClassName?: string;
 }) {
   const body = (
     <>
+      {Icon ? (
+        <span
+          className={cn(
+            "bg-muted text-muted-foreground mb-2.5 flex h-7 w-7 items-center justify-center rounded-lg",
+            iconClassName
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+      ) : null}
       <div className="flex items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">{label}</p>
         {href ? (

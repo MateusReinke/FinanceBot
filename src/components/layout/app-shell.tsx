@@ -28,18 +28,21 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen w-full">
-      <aside className="surface-shell border-border hidden w-64 shrink-0 flex-col border-r p-4 lg:flex">
+      {/* An icon rail rather than a labelled column: every destination fits
+          in one screen of icons, so the label was spending 190px of width
+          to repeat what the page's own title already says the moment you
+          land on it. Labels move to a hover tooltip instead of disappearing
+          — see NavLinks' "rail" variant. */}
+      <aside className="surface-shell border-border hidden w-[76px] shrink-0 flex-col items-center border-r py-4 lg:flex">
         <Link
           href="/dashboard"
-          className="text-foreground flex items-center gap-2.5 px-2 py-3 text-lg font-semibold tracking-tight"
+          className="bg-brand text-primary-foreground mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+          aria-label="FinanceBot — Painel"
         >
-          <span className="bg-brand text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg">
-            <Wallet2 className="h-[18px] w-[18px]" />
-          </span>
-          FinanceBot
+          <Wallet2 className="h-5 w-5" />
         </Link>
-        <div className="mt-4 flex flex-1 flex-col">
-          <NavLinks badges={badges} />
+        <div className="flex flex-1 flex-col items-center">
+          <NavLinks badges={badges} variant="rail" />
         </div>
       </aside>
 

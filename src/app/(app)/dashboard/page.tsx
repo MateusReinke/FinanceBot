@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Landmark, ArrowLeftRight, BarChart3 } from "lucide-react";
+import {
+  Landmark,
+  ArrowLeftRight,
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Scale,
+  HandCoins,
+} from "lucide-react";
 import { verifySession, getCurrentUser } from "@/lib/dal";
 import { getDashboardData } from "@/lib/queries/dashboard";
 import { getBillsSummary } from "@/lib/queries/bills";
@@ -10,6 +18,7 @@ import { CategoryIcon } from "@/components/ui/category-icon";
 import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ProgressRing } from "@/components/ui/progress-ring";
 import { transactionStatus } from "@/lib/transaction-status";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { CashflowChart } from "@/components/charts/cashflow-chart";
@@ -85,9 +94,18 @@ export default async function DashboardPage({
   const incomeDelta = previous ? percentChange(data.income, previous.incomeRealized) : undefined;
   const expenseDelta = previous ? percentChange(data.expense, previous.expenseRealized) : undefined;
 
+  // Aggregate across every category budgeted this month, for the ring on
+  // the "Orçamentos" card — one figure for "am I on track," with the
+  // per-category breakdown still underneath for where that isn't obvious.
+  const budgetTotal = data.budgetProgress.reduce((sum, b) => sum + b.amount, 0);
+  const budgetSpent = data.budgetProgress.reduce((sum, b) => sum + b.spent, 0);
+  const budgetPercent = budgetTotal > 0 ? (budgetSpent / budgetTotal) * 100 : 0;
+  const budgetOver = budgetSpent > budgetTotal;
+
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="FinanceBot"
         title="Painel"
         description={
           isCurrentMonth
@@ -161,6 +179,8 @@ export default async function DashboardPage({
                   : undefined
               }
               valueClassName="text-success"
+              icon={TrendingUp}
+              iconClassName="bg-success-bg text-success"
               delta={
                 incomeDelta !== undefined
                   ? { percent: incomeDelta, tone: incomeDelta >= 0 ? "success" : "danger" }
@@ -175,6 +195,8 @@ export default async function DashboardPage({
               }
               value={formatCurrency(data.expense)}
               valueClassName="text-danger"
+              icon={TrendingDown}
+              iconClassName="bg-danger-bg text-danger"
               hint={
                 data.scheduledExpense > 0
                   ? `+ ${formatCurrency(data.scheduledExpense)} a pagar`
@@ -194,6 +216,10 @@ export default async function DashboardPage({
               }
               value={formatCurrency(data.net)}
               valueClassName={data.net >= 0 ? "text-success" : "text-danger"}
+              icon={Scale}
+              iconClassName={
+                data.net >= 0 ? "bg-success-bg text-success" : "bg-danger-bg text-danger"
+              }
               hint={
                 data.forecastNet !== data.net
                   ? `${formatCurrency(data.forecastNet)} previsto`
@@ -209,6 +235,10 @@ export default async function DashboardPage({
                 label="A receber"
                 value={formatCurrency(bills.toReceiveTotal)}
                 valueClassName={bills.toReceiveTotal > 0 ? "text-success" : undefined}
+                icon={HandCoins}
+                iconClassName={
+                  bills.overdueReceiveTotal > 0 ? "bg-danger-bg text-danger" : undefined
+                }
                 href="/receivables"
                 hint={
                   bills.overdueReceiveTotal > 0
@@ -357,36 +387,88 @@ export default async function DashboardPage({
                     </Link>
                   </div>
                 ) : (
-                  <ul className="space-y-3">
-                    {data.budgetProgress.map((b) => {
-                      const pct = b.amount > 0 ? Math.min(100, (b.spent / b.amount) * 100) : 0;
-                      const over = b.spent > b.amount;
-                      return (
-                        <li key={b.id}>
-                          <div className="mb-1 flex items-center justify-between text-sm">
-                            <span className="text-foreground font-medium">{b.category.name}</span>
-                            <span
-                              className={cn(
-                                "text-xs",
-                                over ? "text-danger" : "text-muted-foreground"
-                              )}
-                            >
-                              {formatCurrency(b.spent)} / {formatCurrency(b.amount)}
-                            </span>
-                          </div>
-                          <div className="bg-muted h-2 overflow-hidden rounded-full">
-                            <div
-                              className={cn(
-                                "h-full rounded-full",
-                                over ? "bg-danger" : "bg-primary"
-                              )}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <div className="space-y-5">
+                    <div className="flex flex-wrap items-center gap-5">
+                      <ProgressRing
+                        percent={budgetPercent}
+                        tone={budgetOver ? "danger" : "success"}
+                        size={104}
+                        strokeWidth={9}
+                      >
+                        <span
+                          className={cn(
+                            "text-xl font-semibold tabular-nums",
+                            budgetOver ? "text-danger" : "text-success"
+                          )}
+                        >
+                          {Math.round(budgetPercent)}%
+                        </span>
+                      </ProgressRing>
+                      <div className="min-w-40 flex-1 space-y-1.5 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-muted-foreground">Orçado</span>
+                          <span className="text-foreground font-medium tabular-nums">
+                            {formatCurrency(budgetTotal)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-muted-foreground">Gasto</span>
+                          <span
+                            className={cn(
+                              "font-medium tabular-nums",
+                              budgetOver ? "text-danger" : "text-foreground"
+                            )}
+                          >
+                            {formatCurrency(budgetSpent)}
+                          </span>
+                        </div>
+                        <div className="border-border flex items-center justify-between gap-2 border-t pt-1.5">
+                          <span className="text-muted-foreground">
+                            {budgetOver ? "Estourado em" : "Restante"}
+                          </span>
+                          <span
+                            className={cn(
+                              "font-semibold tabular-nums",
+                              budgetOver ? "text-danger" : "text-success"
+                            )}
+                          >
+                            {formatCurrency(Math.abs(budgetTotal - budgetSpent))}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ul className="border-border space-y-3 border-t pt-4">
+                      {data.budgetProgress.map((b) => {
+                        const pct = b.amount > 0 ? Math.min(100, (b.spent / b.amount) * 100) : 0;
+                        const over = b.spent > b.amount;
+                        return (
+                          <li key={b.id}>
+                            <div className="mb-1 flex items-center justify-between text-sm">
+                              <span className="text-foreground font-medium">{b.category.name}</span>
+                              <span
+                                className={cn(
+                                  "text-xs",
+                                  over ? "text-danger" : "text-muted-foreground"
+                                )}
+                              >
+                                {formatCurrency(b.spent)} / {formatCurrency(b.amount)}
+                              </span>
+                            </div>
+                            <div className="bg-muted h-2 overflow-hidden rounded-full">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full",
+                                  over ? "bg-danger" : "bg-primary"
+                                )}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
                 )}
               </CardContent>
             </Card>
