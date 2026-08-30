@@ -146,8 +146,18 @@ export async function maintainRecurringSchedules(userId: string) {
   const ids = financings.map((f) => f.id);
 
   // Trim first, so the edges read below already reflect the window.
+  //
+  // `partials: { none: {} }` keeps one class of pending row out of the trim:
+  // an occurrence someone has already paid part of. Its partial settlements
+  // are real, applied rows, and dropping the remainder would strand them
+  // (partialOfId is SetNull) with nothing left saying what they were part of.
   const trimmed = await prisma.transaction.deleteMany({
-    where: { financingId: { in: ids }, date: { gt: horizon }, balanceApplied: false },
+    where: {
+      financingId: { in: ids },
+      date: { gt: horizon },
+      balanceApplied: false,
+      partials: { none: {} },
+    },
   });
 
   // One grouped read for every entry's furthest occurrence — no per-entry

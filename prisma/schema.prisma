@@ -211,6 +211,25 @@ model Transaction {
   invoiceForAccountId String?
   invoiceForAccount   Account? @relation("CardInvoicePayment", fields: [invoiceForAccountId], references: [id], onDelete: SetNull)
 
+  // Set on a *settled* row that is one partial settlement of another row
+  // that is still open — "João pagou R$ 500 dos R$ 1.500 que devia".
+  //
+  // A partial receipt is stored as two ordinary rows, not as a second
+  // amount column: the money that arrived becomes a real settled income
+  // (so it hits the balance, the statement and the month's realizado
+  // through the exact same path as any other confirmation), and the open
+  // row keeps only what is still owed. That is what makes "o que falta"
+  // free — every balance, forecast and a-receber total in the app already
+  // reads Transaction.amount and needs to know nothing about this field.
+  //
+  // SetNull, never Cascade: a partial settlement is money that actually
+  // moved and is already counted in Account.balance. Deleting the open
+  // remainder must not silently delete real income and leave the balance
+  // overstated.
+  partialOfId String?
+  partialOf   Transaction?  @relation("PartialSettlements", fields: [partialOfId], references: [id], onDelete: SetNull)
+  partials    Transaction[] @relation("PartialSettlements")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -230,6 +249,7 @@ model Transaction {
   @@index([categoryId])
   @@index([financingId])
   @@index([invoiceForAccountId])
+  @@index([partialOfId])
 }
 
 // One repeating money plan: a financiamento/parcelamento (N installments

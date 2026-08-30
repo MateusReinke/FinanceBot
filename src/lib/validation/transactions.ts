@@ -44,6 +44,18 @@ export const TransactionSchema = z.object({
   counterpartyPhone: optionalPhoneField.optional().transform((v) => v ?? undefined),
 });
 
+// "Recebi só uma parte" — the amount that actually came in, checked against
+// what is still open by the action itself (the schema has no way to know the
+// row's remaining value). Kept separate from TransactionSchema because a
+// partial settlement decides nothing else about the row: not the date, not
+// the category, not who owes it — all of that is inherited from the entry
+// being settled.
+export const PartialSettlementSchema = z.object({
+  amount: z.coerce
+    .number({ error: "Informe um valor válido." })
+    .positive({ error: "O valor recebido deve ser maior que zero." }),
+});
+
 export const TransactionFiltersSchema = z.object({
   accountId: z.string().optional(),
   categoryId: z.string().optional(),
