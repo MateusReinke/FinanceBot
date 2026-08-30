@@ -59,7 +59,17 @@ export default async function ReceivablesPage() {
               label="Total a receber"
               value={formatCurrency(data.total)}
               valueClassName="text-success"
-              hint={data.count === 1 ? "1 lançamento" : `${data.count} lançamentos`}
+              // The figure above is what is still missing, so when part of it
+              // has already come in the hint has to say so — otherwise the
+              // page appears to have quietly lowered what someone owes.
+              hint={[
+                data.count === 1 ? "1 lançamento" : `${data.count} lançamentos`,
+                data.receivedTotal > 0
+                  ? `${formatCurrency(data.receivedTotal)} já recebido em partes`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             />
             <StatCard
               label="Em atraso"
@@ -74,7 +84,10 @@ export default async function ReceivablesPage() {
             <StatCard
               label="Pessoas"
               value={String(data.peopleCount)}
-              hint={data.peopleCount === 1 ? "te devendo" : "te devendo"}
+              // "0 · te devendo" read as a contradiction next to a page full
+              // of open entries; with nobody named the honest line is that
+              // none of them has an owner yet.
+              hint={data.peopleCount === 0 ? "nenhum lançamento tem dono" : "te devendo"}
             />
           </div>
 

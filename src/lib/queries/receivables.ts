@@ -15,9 +15,18 @@ import { urgencyOf } from "@/lib/due-dates";
 // returned, under a null group, because "a receber" that you forgot to name
 // is exactly the thing you most need reminding about.
 
+export type PartialReceipt = {
+  id: string;
+  amount: number;
+  date: Date;
+};
+
 export type ReceivableRow = {
   id: string;
   description: string;
+  // What is still owed on this entry — already net of anything received in
+  // part, because a partial receipt physically takes its value out of this
+  // row (see settlePartialAmount). It is "o que falta", not the original.
   amount: number;
   date: Date;
   counterparty: string | null;
@@ -27,6 +36,12 @@ export type ReceivableRow = {
   categoryName: string | null;
   categoryColor: string | null;
   categoryIcon: string | null;
+  // Everything already received against this entry, and what it added up to
+  // before any of it came in (`amount + received`). Both are zero/equal for
+  // the ordinary entry nobody has paid a slice of.
+  received: number;
+  original: number;
+  partials: PartialReceipt[];
 };
 
 export type ReceivableGroup = {
@@ -34,7 +49,11 @@ export type ReceivableGroup = {
   counterparty: string | null;
   phone: string | null;
   rows: ReceivableRow[];
+  // Still owed by this person, what they have already handed over against
+  // these same entries, and the two added together.
   total: number;
+  receivedTotal: number;
+  originalTotal: number;
   overdueTotal: number;
   overdueCount: number;
   // The nearest due date in the group — what the list sorts on, so whoever
@@ -53,6 +72,14 @@ export async function getReceivables(userId: string) {
     include: {
       account: { select: { name: true } },
       category: { select: { name: true, color: true, icon: true } },
+      // The slices of this entry that have already been received. Cheap to
+      // include (indexed on partialOfId, and empty for almost every row)
+      // and it is what lets the list say "R$ 500 de R$ 1.500 já recebido"
+      // instead of quietly showing a smaller number than the user lent.
+      partials: {
+        select: { id: true, amount: true, date: true },
+        orderBy: { date: "asc" },
+      },
     },
     orderBy: { date: "asc" },
   });
@@ -69,6 +96,9 @@ export async function getReceivables(userId: string) {
     categoryName: t.category?.name ?? null,
     categoryColor: t.category?.color ?? null,
     categoryIcon: t.category?.icon ?? null,
+    received: sumAmounts(t.partials),
+    original: t.amount + sumAmounts(t.partials),
+    partials: t.partials,
   }));
 
   // Grouped case-insensitively so "joão" and "João" are one person, while
@@ -82,6 +112,8 @@ export async function getReceivables(userId: string) {
     if (existing) {
       existing.rows.push(row);
       existing.total += row.amount;
+      existing.receivedTotal += row.received;
+      existing.originalTotal += row.original;
       if (overdue) {
         existing.overdueTotal += row.amount;
         existing.overdueCount += 1;
@@ -98,6 +130,8 @@ export async function getReceivables(userId: string) {
         phone: row.counterpartyPhone,
         rows: [row],
         total: row.amount,
+        receivedTotal: row.received,
+        originalTotal: row.original,
         overdueTotal: overdue ? row.amount : 0,
         overdueCount: overdue ? 1 : 0,
         nextDate: row.date,
@@ -119,6 +153,11 @@ export async function getReceivables(userId: string) {
 
   const total = rows.reduce((sum, r) => sum + r.amount, 0);
   const overdueRows = rows.filter((r) => urgencyOf(r.date, today) === "overdue");
+  // Only what came in against entries that are *still open*. A receivable
+  // paid off in full leaves the list entirely, and counting its slices here
+  // would turn this into a running total of income the page never showed —
+  // the figure has to mean "progress on what is below", or it is noise.
+  const partiallyPaid = rows.filter((r) => r.received > 0);
 
   return {
     groups,
@@ -126,10 +165,16 @@ export async function getReceivables(userId: string) {
     count: rows.length,
     overdueTotal: overdueRows.reduce((sum, r) => sum + r.amount, 0),
     overdueCount: overdueRows.length,
+    receivedTotal: partiallyPaid.reduce((sum, r) => sum + r.received, 0),
+    partialCount: partiallyPaid.length,
     // How many distinct people owe something — the headline number on the
     // page ("3 pessoas te devem R$ 1.240").
     peopleCount: groups.filter((g) => g.counterparty !== null).length,
   };
+}
+
+function sumAmounts(rows: { amount: number }[]) {
+  return rows.reduce((sum, r) => sum + r.amount, 0);
 }
 
 export type ReceivablesData = Awaited<ReturnType<typeof getReceivables>>;
