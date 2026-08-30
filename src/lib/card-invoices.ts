@@ -106,6 +106,32 @@ export function invoiceLabel(cardName: string, dueDate: Date) {
   return `Fatura ${cardName} — ${reference}`;
 }
 
+// A card's usage against its limit, folding in both what a payment or an
+// imported invoice already made real (balance) and the nearest invoice the
+// planner has scheduled but not yet paid — the one that is genuinely
+// "spoken for" even though it hasn't posted to the balance yet.
+//
+// Only the nearest one counts, not every month the planner happens to have
+// filled in: a guess for six months out is a forecast, not a commitment, and
+// summing the whole plan would pin the bar at "sem limite" for perfectly
+// ordinary usage the moment someone fills out a year of it. This is the same
+// "fatura atual" a card's own bank app shows — real debt plus whatever the
+// next invoice is already going to be — just sourced from the plan when
+// there is nothing else to source it from.
+export function cardLimitUsage(
+  balance: number,
+  creditLimit: number | null,
+  plan: { amount: number; date: Date; paid: boolean }[]
+) {
+  const nearestPending = plan
+    .filter((invoice) => !invoice.paid)
+    .sort((a, b) => a.date.getTime() - b.date.getTime())[0];
+  const used = Math.max(0, -balance) + (nearestPending?.amount ?? 0);
+  const available = creditLimit != null ? Math.max(0, creditLimit - used) : null;
+  const percent = creditLimit ? Math.min(100, Math.round((used / creditLimit) * 100)) : 0;
+  return { used, available, percent, nearestPending: nearestPending ?? null };
+}
+
 // What the first unfilled invoice is likely to be worth, offered as the
 // planner's starting guess so the common case is one click.
 //

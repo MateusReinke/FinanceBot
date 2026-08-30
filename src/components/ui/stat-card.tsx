@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { ArrowUp, ArrowDown, ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnimatedNumber } from "./animated-number";
+import { Sparkline } from "./sparkline";
 
 export function StatCard({
   label,
   value,
+  numericValue,
   valueClassName,
   delta,
   hint,
@@ -12,9 +15,15 @@ export function StatCard({
   href,
   icon: Icon,
   iconClassName,
+  trend,
+  trendColor,
 }: {
   label: string;
   value: string;
+  // When given, the figure counts up on mount/update (as BRL currency)
+  // instead of just appearing — `value` is still required as the static
+  // fallback (and what every other caller of this card keeps passing).
+  numericValue?: number;
   valueClassName?: string;
   delta?: { percent: number; tone: "success" | "danger" };
   // Secondary line under the number — used for the previsto figure next to
@@ -32,20 +41,31 @@ export function StatCard({
   // works, rather than the card guessing a tone on its own.
   icon?: LucideIcon;
   iconClassName?: string;
+  // Last few months, oldest to newest — a shape to glance at, not a chart to
+  // read. Optional: most cards using this component have nothing to trend.
+  trend?: number[];
+  trendColor?: string;
 }) {
   const body = (
     <>
-      {Icon ? (
-        <span
-          className={cn(
-            "bg-muted text-muted-foreground mb-2.5 flex h-7 w-7 items-center justify-center rounded-lg",
-            iconClassName
-          )}
-        >
-          <Icon className="h-3.5 w-3.5" />
-        </span>
-      ) : null}
       <div className="flex items-center justify-between gap-2">
+        {Icon ? (
+          <span
+            className={cn(
+              "bg-muted text-muted-foreground flex h-7 w-7 items-center justify-center rounded-lg",
+              iconClassName
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </span>
+        ) : (
+          <span />
+        )}
+        {trend ? (
+          <Sparkline data={trend} color={trendColor ?? "var(--primary)"} className="shrink-0" />
+        ) : null}
+      </div>
+      <div className="mt-2.5 flex items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">{label}</p>
         {href ? (
           <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
@@ -58,7 +78,7 @@ export function StatCard({
             valueClassName
           )}
         >
-          {value}
+          {numericValue !== undefined ? <AnimatedNumber value={numericValue} /> : value}
         </p>
         {delta ? (
           <span
@@ -90,7 +110,7 @@ export function StatCard({
         href={href}
         className={cn(
           base,
-          "group hover:border-border-strong hover:bg-muted/40 block transition-colors duration-150"
+          "group hover:border-border-strong hover:bg-muted/40 hover:shadow-raised block transition-all duration-200 hover:-translate-y-0.5"
         )}
       >
         {body}

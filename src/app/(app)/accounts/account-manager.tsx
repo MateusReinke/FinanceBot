@@ -1,16 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Account } from "@prisma/client";
-import { Plus, Pencil, Trash2, Archive, ArchiveRestore, Landmark, CreditCard } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Archive,
+  ArchiveRestore,
+  Landmark,
+  CreditCard,
+  ArrowUpRight,
+  ChevronRight,
+} from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { AccountForm } from "./account-form";
 import { InvoiceImportButton } from "./invoice-import-button";
 import { PayInvoiceButton } from "./pay-invoice-button";
 import { InvoicePlannerButton } from "./invoice-planner-button";
 import { toggleArchiveAccount, deleteAccount } from "@/app/actions/accounts";
 import { getAccountTypeMeta } from "@/lib/account-types";
+import { cardLimitUsage } from "@/lib/card-invoices";
 import { startOfTodayUTC } from "@/lib/transaction-status";
 import type { CardInvoicePlans, PlannedInvoice } from "@/lib/queries/card-invoices";
 import { formatCurrency, formatMonthShort, cn } from "@/lib/utils";
@@ -33,94 +46,114 @@ function AccountCard({
   const isCard = account.type === "credit_card";
 
   return (
-    <div className="surface flex flex-col gap-3 p-4">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            style={{ backgroundColor: `${account.color}20`, color: account.color }}
-          >
-            <Icon className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="text-foreground text-sm font-semibold">{account.name}</p>
-            <p className="text-muted-foreground text-xs">{meta.label}</p>
+    <div className="surface hover:border-border-strong flex flex-col overflow-hidden transition-colors duration-200">
+      {/* A sliver of the account's own colour — the same one the balance
+          chips and category dots use — so a grid of a dozen tiles is still
+          sortable by eye before anyone reads a single label. */}
+      <div className="h-1 shrink-0" style={{ backgroundColor: account.color }} aria-hidden />
+
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: `${account.color}20`, color: account.color }}
+            >
+              <Icon className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-foreground text-sm font-semibold">{account.name}</p>
+              <p className="text-muted-foreground text-xs">{meta.label}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-0.5">
+            <Link
+              href={`/transactions?accountId=${account.id}`}
+              className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md p-1.5 transition-colors"
+              aria-label={`Ver lançamentos de ${account.name}`}
+              title="Ver lançamentos"
+            >
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+            {!isSynced ? (
+              <>
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
+                  aria-label="Editar conta"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <form action={toggleArchiveAccount}>
+                  <input type="hidden" name="id" value={account.id} />
+                  <button
+                    type="submit"
+                    className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
+                    aria-label={account.archived ? "Reativar conta" : "Arquivar conta"}
+                  >
+                    {account.archived ? (
+                      <ArchiveRestore className="h-3.5 w-3.5" />
+                    ) : (
+                      <Archive className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </form>
+                <form
+                  action={deleteAccount}
+                  onSubmit={(e) => {
+                    if (
+                      !confirm(
+                        `Excluir "${account.name}"? Todas as transações desta conta também serão excluídas.`
+                      )
+                    )
+                      e.preventDefault();
+                  }}
+                >
+                  <input type="hidden" name="id" value={account.id} />
+                  <button
+                    type="submit"
+                    className="text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer rounded-md p-1.5"
+                    aria-label="Excluir conta"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </form>
+              </>
+            ) : null}
           </div>
         </div>
-        {!isSynced ? (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setEditOpen(true)}
-              className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
-              aria-label="Editar conta"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-            <form action={toggleArchiveAccount}>
-              <input type="hidden" name="id" value={account.id} />
-              <button
-                type="submit"
-                className="text-muted-foreground hover:bg-muted cursor-pointer rounded-md p-1.5"
-                aria-label={account.archived ? "Reativar conta" : "Arquivar conta"}
-              >
-                {account.archived ? (
-                  <ArchiveRestore className="h-3.5 w-3.5" />
-                ) : (
-                  <Archive className="h-3.5 w-3.5" />
-                )}
-              </button>
-            </form>
-            <form
-              action={deleteAccount}
-              onSubmit={(e) => {
-                if (
-                  !confirm(
-                    `Excluir "${account.name}"? Todas as transações desta conta também serão excluídas.`
-                  )
-                )
-                  e.preventDefault();
-              }}
-            >
-              <input type="hidden" name="id" value={account.id} />
-              <button
-                type="submit"
-                className="text-muted-foreground hover:bg-danger-bg hover:text-danger cursor-pointer rounded-md p-1.5"
-                aria-label="Excluir conta"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </form>
-          </div>
-        ) : (
-          <span className="bg-success-bg text-success rounded-full px-2 py-0.5 text-xs font-medium">
+
+        {isSynced ? (
+          <span className="bg-success-bg text-success w-fit rounded-full px-2 py-0.5 text-xs font-medium">
             Open Finance
           </span>
-        )}
+        ) : null}
+
+        <p
+          className={cn(
+            "text-xl font-semibold",
+            account.balance > 0
+              ? "text-foreground"
+              : account.balance < 0
+                ? "text-danger"
+                : "text-muted-foreground"
+          )}
+        >
+          <AnimatedNumber value={account.balance} />
+        </p>
+
+        {isCard ? <CreditCardDetails account={account} plan={plan} /> : null}
+
+        {isCard ? <PlannedInvoices plan={plan} /> : null}
+
+        {isCard && !isSynced ? (
+          <div className="mt-auto space-y-1.5 pt-1">
+            <PayInvoiceButton account={account} sourceAccounts={sourceAccounts} />
+            <InvoicePlannerButton account={account} sourceAccounts={sourceAccounts} plan={plan} />
+            {aiEnabled ? <InvoiceImportButton accountId={account.id} /> : null}
+          </div>
+        ) : null}
       </div>
-      <p
-        className={cn(
-          "text-xl font-semibold",
-          account.balance > 0
-            ? "text-foreground"
-            : account.balance < 0
-              ? "text-danger"
-              : "text-muted-foreground"
-        )}
-      >
-        {formatCurrency(account.balance)}
-      </p>
-
-      {isCard ? <CreditCardDetails account={account} /> : null}
-
-      {isCard ? <PlannedInvoices plan={plan} /> : null}
-
-      {isCard && !isSynced ? (
-        <div className="space-y-1.5">
-          <PayInvoiceButton account={account} sourceAccounts={sourceAccounts} />
-          <InvoicePlannerButton account={account} sourceAccounts={sourceAccounts} plan={plan} />
-          {aiEnabled ? <InvoiceImportButton accountId={account.id} /> : null}
-        </div>
-      ) : null}
 
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar conta">
         <AccountForm account={account} onSuccess={() => setEditOpen(false)} />
@@ -164,38 +197,59 @@ function PlannedInvoices({ plan }: { plan: PlannedInvoice[] }) {
   );
 }
 
-function CreditCardDetails({ account }: { account: Account }) {
+function CreditCardDetails({ account, plan }: { account: Account; plan: PlannedInvoice[] }) {
   const { creditLimit, closingDay, dueDay, balance } = account;
   if (!creditLimit && !closingDay && !dueDay) return null;
 
-  const used = Math.max(0, -balance);
-  const pct = creditLimit ? Math.min(100, Math.round((used / creditLimit) * 100)) : 0;
-  const available = creditLimit ? Math.max(0, creditLimit - used) : null;
+  const { available, percent, nearestPending } = cardLimitUsage(balance, creditLimit, plan);
 
   return (
-    <div className="border-border space-y-2 border-t pt-3">
+    <div className="border-border space-y-2.5 border-t pt-3">
       {creditLimit ? (
-        <div className="space-y-1">
-          <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+        <div className="space-y-1.5">
+          <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
             <div
               className={cn(
-                "h-full rounded-full",
-                pct >= 90 ? "bg-danger" : pct >= 70 ? "bg-warning" : "bg-primary"
+                "h-full rounded-full transition-[width] duration-500",
+                percent >= 90 ? "bg-danger" : percent >= 70 ? "bg-warning" : "bg-primary"
               )}
-              style={{ width: `${pct}%` }}
+              style={{ width: `${percent}%` }}
             />
           </div>
-          <p className="text-muted-foreground text-xs">
-            {formatCurrency(available ?? 0)} disponível de {formatCurrency(creditLimit)}
-          </p>
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-muted-foreground text-xs">
+              {formatCurrency(available ?? 0)} disponível de {formatCurrency(creditLimit)}
+            </p>
+            <p className="text-muted-foreground text-xs tabular-nums">{percent}%</p>
+          </div>
+          {/* Makes the deduction legible instead of just applying it — a
+              limit that moved with no line explaining why would read as a
+              second bug on top of the one this fixes. */}
+          {nearestPending ? (
+            <p className="text-muted-foreground text-xs">
+              Já considera a fatura de{" "}
+              {formatMonthShort(
+                nearestPending.date.getUTCMonth() + 1,
+                nearestPending.date.getUTCFullYear()
+              )}{" "}
+              ({formatCurrency(nearestPending.amount)})
+            </p>
+          ) : null}
         </div>
       ) : null}
       {closingDay || dueDay ? (
-        <p className="text-muted-foreground text-xs">
-          {closingDay ? `Fecha dia ${closingDay}` : null}
-          {closingDay && dueDay ? " · " : null}
-          {dueDay ? `Vence dia ${dueDay}` : null}
-        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {closingDay ? (
+            <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+              Fecha dia {closingDay}
+            </span>
+          ) : null}
+          {dueDay ? (
+            <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+              Vence dia {dueDay}
+            </span>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
@@ -272,6 +326,7 @@ export function AccountManager({
             <div className="space-y-3">
               <h2 className="text-foreground flex items-center gap-1.5 text-sm font-semibold">
                 <CreditCard className="h-4 w-4" /> Cartões de crédito
+                <span className="text-muted-foreground font-normal">({activeCards.length})</span>
               </h2>
               <AccountGrid
                 accounts={activeCards}
@@ -287,6 +342,9 @@ export function AccountManager({
               {activeCards.length > 0 ? (
                 <h2 className="text-foreground flex items-center gap-1.5 text-sm font-semibold">
                   <Landmark className="h-4 w-4" /> Contas
+                  <span className="text-muted-foreground font-normal">
+                    ({activeAccounts.length})
+                  </span>
                 </h2>
               ) : null}
               <AccountGrid
@@ -302,7 +360,8 @@ export function AccountManager({
 
       {archived.length > 0 ? (
         <details className="group">
-          <summary className="text-muted-foreground cursor-pointer text-sm font-medium">
+          <summary className="text-muted-foreground hover:text-foreground flex w-fit cursor-pointer list-none items-center gap-1.5 text-sm font-medium transition-colors">
+            <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-open:rotate-90" />
             Contas arquivadas ({archived.length})
           </summary>
           <div className="mt-3">

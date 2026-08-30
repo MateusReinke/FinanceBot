@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TrendingDown, TrendingUp, Wallet2 } from "lucide-react";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { formatCurrency, cn } from "@/lib/utils";
 
 type AccountSummary = { id: string; name: string; balance: number; color: string };
@@ -20,6 +21,12 @@ export function BalanceHero({
   const delta = forecastBalance - totalBalance;
   const visible = accounts.slice(0, 4);
   const rest = accounts.length - visible.length;
+  // The composition bar only answers "where is that money" when there is
+  // more than one place it could be, and only counts what is actually
+  // sitting there — a card's negative balance is debt, not a slice of the
+  // total, and would make the bar overrun 100%.
+  const positive = accounts.filter((a) => a.balance > 0);
+  const positiveTotal = positive.reduce((sum, a) => sum + a.balance, 0);
 
   return (
     // Top of the hierarchy, earned by type size rather than decoration: the
@@ -38,7 +45,7 @@ export function BalanceHero({
               totalBalance < 0 ? "text-danger" : "text-foreground"
             )}
           >
-            {formatCurrency(totalBalance)}
+            <AnimatedNumber value={totalBalance} />
           </p>
         </div>
 
@@ -56,7 +63,7 @@ export function BalanceHero({
               ) : (
                 <TrendingUp className="text-success h-4 w-4" />
               )}
-              {formatCurrency(forecastBalance)}
+              <AnimatedNumber value={forecastBalance} />
             </p>
             <p className={cn("text-xs tabular-nums", delta < 0 ? "text-danger" : "text-success")}>
               {delta > 0 ? "+" : ""}
@@ -67,36 +74,61 @@ export function BalanceHero({
       </div>
 
       {visible.length > 0 ? (
-        <div className="border-border mt-5 flex flex-wrap gap-2 border-t pt-4">
-          {visible.map((a) => (
-            <Link
-              key={a.id}
-              href="/accounts"
-              className="border-border hover:border-primary flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition-colors"
+        <div className="border-border mt-5 space-y-3 border-t pt-4">
+          {/* A slice per account, proportional to what it actually holds —
+              "where is that money" answered as a shape before it's answered
+              as a list. */}
+          {positive.length > 1 ? (
+            <div
+              className="bg-muted flex h-1.5 w-full overflow-hidden rounded-full"
+              role="img"
+              aria-label={`Composição do saldo: ${positive.map((a) => `${a.name} ${formatCurrency(a.balance)}`).join(", ")}`}
             >
-              <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: a.color }}
-              />
-              <span className="text-muted-foreground max-w-32 truncate">{a.name}</span>
-              <span
-                className={cn(
-                  "font-medium tabular-nums",
-                  a.balance < 0 ? "text-danger" : "text-foreground"
-                )}
-              >
-                {formatCurrency(a.balance)}
-              </span>
-            </Link>
-          ))}
-          {rest > 0 ? (
-            <Link
-              href="/accounts"
-              className="border-border text-muted-foreground hover:border-primary hover:text-foreground flex items-center rounded-lg border border-dashed px-2.5 py-1.5 text-xs"
-            >
-              +{rest} {rest === 1 ? "conta" : "contas"}
-            </Link>
+              {positive.map((a) => (
+                <div
+                  key={a.id}
+                  style={{
+                    width: `${(a.balance / positiveTotal) * 100}%`,
+                    backgroundColor: a.color,
+                  }}
+                  className="h-full transition-[width] duration-500 first:rounded-l-full last:rounded-r-full"
+                  title={`${a.name} · ${formatCurrency(a.balance)}`}
+                />
+              ))}
+            </div>
           ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            {visible.map((a) => (
+              <Link
+                key={a.id}
+                href="/accounts"
+                className="border-border hover:border-primary hover:bg-muted/40 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition-colors"
+              >
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: a.color }}
+                />
+                <span className="text-muted-foreground max-w-32 truncate">{a.name}</span>
+                <span
+                  className={cn(
+                    "font-medium tabular-nums",
+                    a.balance < 0 ? "text-danger" : "text-foreground"
+                  )}
+                >
+                  {formatCurrency(a.balance)}
+                </span>
+              </Link>
+            ))}
+            {rest > 0 ? (
+              <Link
+                href="/accounts"
+                className="border-border text-muted-foreground hover:border-primary hover:text-foreground flex items-center rounded-lg border border-dashed px-2.5 py-1.5 text-xs transition-colors"
+              >
+                +{rest} {rest === 1 ? "conta" : "contas"}
+              </Link>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>
