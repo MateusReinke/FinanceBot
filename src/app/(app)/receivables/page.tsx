@@ -21,7 +21,14 @@ export default async function ReceivablesPage() {
   const [data, user] = await Promise.all([getReceivables(userId), getCurrentUser()]);
 
   return (
-    <div className="space-y-6">
+    // Capped and centred, unlike the rest of the app, which still runs the
+    // full width of the window. This page is a list of one-line rows whose
+    // two halves belong together — "Salário · 05 de set." on the left, and
+    // "recebe em 5 dias · R$ 4.766,00 · Recebi" on the right. Left to fill a
+    // 2560px monitor they end up ~1500px apart, with nothing in between, and
+    // reading a row means crossing an empty canyon to find its own amount.
+    // The cap is what keeps a row readable as one line.
+    <div className="mx-auto w-full max-w-6xl space-y-6">
       <PageHeader
         title="A receber"
         description="Tudo que ainda não caiu na conta, agrupado por quem deve. Cobre pelo WhatsApp em um clique e marque como recebido quando o dinheiro entrar."
