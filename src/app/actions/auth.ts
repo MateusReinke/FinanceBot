@@ -14,6 +14,7 @@ import {
 import type { FormState } from "@/lib/form-state";
 import { createUserWithDefaultCategories } from "@/lib/user-provisioning";
 import { isAdminEmail } from "@/lib/admin";
+import { notifyPasswordResetInBackground } from "@/lib/password-reset-webhook";
 
 // Token expiration: 1 hour
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
@@ -151,17 +152,19 @@ export async function requestPasswordReset(
     },
   });
 
-  // In production, send email with reset link
-  // For now, log it (in development, you can check the console)
+  // No e-mail provider is configured for this app — delivery is a dedicated
+  // n8n webhook (N8N_PASSWORD_RESET_WEBHOOK_URL) instead, kept separate from
+  // the WhatsApp group automation in src/lib/outbound.ts. Logged either way
+  // so the link is still reachable locally when that webhook isn't set.
   const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
   console.log(`[PASSWORD RESET] Link para ${email}: ${resetLink}`);
-
-  // TODO: Implement actual email sending via Resend, SendGrid, etc.
-  // await sendEmail({
-  //   to: email,
-  //   subject: "Redefinição de Senha - FinanceBot",
-  //   html: `...`,
-  // });
+  notifyPasswordResetInBackground({
+    name: user.name,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    resetLink,
+    expiresAt,
+  });
 
   return {
     success: true,
