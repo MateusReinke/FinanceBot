@@ -1,6 +1,9 @@
 import * as z from "zod";
 import { FREQUENCIES, MAX_INSTALLMENTS } from "@/lib/recurrence";
 
+// Maximum monetary value to prevent accidental huge entries (R$ 10 million)
+const MAX_AMOUNT = 10000000;
+
 // Checkboxes and hidden inputs both arrive as strings; z.coerce.boolean()
 // is useless here because Boolean("false") is true in plain JS, which would
 // silently flip every "false" the form sends.
@@ -41,7 +44,8 @@ export const FinancingSchema = z.object({
     .default("monthly"),
   installmentAmount: z.coerce
     .number({ error: "Informe o valor da parcela." })
-    .positive({ error: "O valor da parcela deve ser maior que zero." }),
+    .positive({ error: "O valor da parcela deve ser maior que zero." })
+    .max(MAX_AMOUNT, { error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.` }),
   isRecurring: booleanField(false),
   autoSettle: booleanField(true),
 });

@@ -1,6 +1,9 @@
 import * as z from "zod";
 import { optionalPhoneField } from "@/lib/phone";
 
+// Maximum monetary value to prevent accidental huge entries (R$ 10 million)
+const MAX_AMOUNT = 10000000;
+
 export const TransactionSchema = z.object({
   description: z
     .string()
@@ -9,7 +12,8 @@ export const TransactionSchema = z.object({
     .max(120, { error: "Descrição muito longa." }),
   amount: z.coerce
     .number({ error: "Informe um valor válido." })
-    .positive({ error: "O valor deve ser maior que zero." }),
+    .positive({ error: "O valor deve ser maior que zero." })
+    .max(MAX_AMOUNT, { error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.` }),
   date: z.coerce.date({ error: "Informe uma data válida." }),
   type: z.enum(["income", "expense"], { error: "Tipo inválido." }),
   accountId: z.string().min(1, { error: "Selecione uma conta." }),

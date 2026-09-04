@@ -2,6 +2,9 @@ import * as z from "zod";
 import { ACCOUNT_TYPE_VALUES } from "@/lib/account-types";
 import { INVOICE_PLAN_MONTHS } from "@/lib/card-invoices";
 
+// Maximum monetary value to prevent accidental huge entries (R$ 10 million)
+const MAX_AMOUNT = 10000000;
+
 const dayOfMonth = z.coerce
   .number()
   .int({ error: "Informe um dia válido." })
@@ -12,7 +15,8 @@ const dayOfMonth = z.coerce
 export const PayInvoiceSchema = z.object({
   amount: z.coerce
     .number({ error: "Informe um valor válido." })
-    .positive({ error: "O valor deve ser maior que zero." }),
+    .positive({ error: "O valor deve ser maior que zero." })
+    .max(MAX_AMOUNT, { error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.` }),
   sourceAccountId: z
     .string()
     .optional()
@@ -30,7 +34,8 @@ export const InvoicePlanMonthSchema = z.object({
   key: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, { error: "Mês inválido." }),
   amount: z.coerce
     .number({ error: "Informe valores válidos." })
-    .nonnegative({ error: "Os valores não podem ser negativos." }),
+    .nonnegative({ error: "Os valores não podem ser negativos." })
+    .max(MAX_AMOUNT, { error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.` }),
 });
 
 export const InvoicePlanSchema = z.object({
@@ -55,13 +60,15 @@ export const AccountSchema = z.object({
     .min(1, { error: "Informe um nome." })
     .max(40, { error: "Nome muito longo." }),
   type: z.enum(ACCOUNT_TYPE_VALUES, { error: "Tipo inválido." }),
-  balance: z.coerce.number({ error: "Informe um valor válido." }),
+  balance: z.coerce.number({ error: "Informe um valor válido." })
+    .max(MAX_AMOUNT, { error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.` }),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, { error: "Escolha uma cor." }),
   // Only persisted for type: "credit_card" — the action clears these to
   // null for every other type regardless of what the form sends.
   creditLimit: z.coerce
     .number({ error: "Informe um limite válido." })
     .nonnegative({ error: "O limite não pode ser negativo." })
+    .max(MAX_AMOUNT, { error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.` })
     .optional(),
   closingDay: dayOfMonth,
   dueDay: dayOfMonth,
