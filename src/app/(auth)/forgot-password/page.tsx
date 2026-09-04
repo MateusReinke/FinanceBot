@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
           <span className="w-full border-t" />
         </div>
       </div>
-      <div className="text-center text-sm text-muted-foreground">
+      <div className="text-muted-foreground text-center text-sm">
         <p>
           Já tem uma conta?{" "}
           <Link href="/login" className="text-primary font-medium hover:underline">

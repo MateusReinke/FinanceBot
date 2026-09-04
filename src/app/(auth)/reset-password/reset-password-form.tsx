@@ -53,7 +53,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         </p>
       ) : null}
       {state?.success ? (
-        <p className="text-green-600 text-sm" role="status">
+        <p className="text-sm text-green-600" role="status">
           {state.message}
         </p>
       ) : null}

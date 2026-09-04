@@ -45,7 +45,9 @@ export const FinancingSchema = z.object({
   installmentAmount: z.coerce
     .number({ error: "Informe o valor da parcela." })
     .positive({ error: "O valor da parcela deve ser maior que zero." })
-    .max(MAX_AMOUNT, { error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.` }),
+    .max(MAX_AMOUNT, {
+      error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.`,
+    }),
   isRecurring: booleanField(false),
   autoSettle: booleanField(true),
 });
