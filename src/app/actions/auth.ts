@@ -77,7 +77,7 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
   if (user && !user.passwordHash) {
     return {
       message:
-        "Esta conta entra com o Google. Use o botão "Entrar com Google" — ou defina uma senha em Configurações depois de entrar.",
+        "Esta conta entra com o Google. Use o botão \"Entrar com Google\" — ou defina uma senha em Configurações depois de entrar.",
     };
   }
   if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {

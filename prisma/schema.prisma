@@ -51,6 +51,7 @@ model User {
   inboundMessages  InboundMessage[]
   googleAccount    GoogleAccount?
   contacts         Contact[]
+  passwordResets   PasswordReset[]
 
   createdEvents       Event[]             @relation("EventCreator")
   eventParticipations EventParticipant[]
