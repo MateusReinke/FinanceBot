@@ -1,51 +1,48 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+```
+# Dependencies
+node_modules/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Build outputs
+dist/
+build/
+.next/
+out/
 
-# testing
-/coverage
+# Environment variables
+.env.local
+.env.*
 
-# next.js
-/.next/
-/out/
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# production
-/build
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
 
-# misc
+# Logs
+*.log
+
+# OS generated files
 .DS_Store
-*.pem
+Thumbs.db
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
 
-# env files (can opt-in for committing if needed)
-.env*
-!.env.example
-
-# database
-/prisma/dev.db
-/prisma/dev.db-journal
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# Local throwaway scripts used while testing against a scratch database.
-*-tmp.ts
-*-tmp.mts
-*-tmp.mjs
+# Temporary files
+*.tmp
+*.temp
+```
