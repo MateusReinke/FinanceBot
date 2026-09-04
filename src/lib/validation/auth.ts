@@ -22,3 +22,22 @@ export const LoginSchema = z.object({
   email: z.email({ error: "Informe um e-mail válido." }).trim().toLowerCase(),
   password: z.string().min(1, { error: "Informe sua senha." }),
 });
+
+export const ForgotPasswordSchema = z.object({
+  email: z.email({ error: "Informe um e-mail válido." }).trim().toLowerCase(),
+});
+
+export const ResetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, { error: "A senha deve ter pelo menos 8 caracteres." })
+      .regex(/[a-zA-Z]/, { error: "A senha deve conter pelo menos uma letra." })
+      .regex(/[0-9]/, { error: "A senha deve conter pelo menos um número." }),
+    confirmPassword: z.string(),
+    token: z.string({ error: "Token de redefinição inválido." }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem.",
+    path: ["confirmPassword"],
+  });

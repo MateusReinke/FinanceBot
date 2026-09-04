@@ -35,6 +35,11 @@ export function LoginForm({ next }: { next?: string }) {
         </p>
       ) : null}
       <SubmitButton className="w-full">Entrar</SubmitButton>
+      <div className="text-center text-sm">
+        <Link href="/forgot-password" className="text-primary font-medium hover:underline">
+          Esqueceu sua senha?
+        </Link>
+      </div>
       <p className="text-muted-foreground text-center text-sm">
         Não tem uma conta?{" "}
         <Link href="/register" className="text-primary font-medium hover:underline">

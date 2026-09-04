@@ -9,16 +9,11 @@ build/
 out/
 
 # Environment variables
+.env
 .env.local
 .env.*
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Python specific
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -28,21 +23,26 @@ env/
 venv/
 .venv/
 pip-log.txt
-pip-delete-this-directory.txt
+pip-selfcheck.json
 
 # Logs
 *.log
 
 # OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Temporary files
-*.tmp
-*.temp
+# Prisma
+prisma/migrations/
 ```

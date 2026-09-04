@@ -606,3 +606,18 @@ model Contact {
   @@unique([userId, googleResourceName])
   @@index([userId, name])
 }
+
+// Password reset tokens — one per user request, single-use, short-lived.
+// Deleted automatically when used or expired, so this table stays small.
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique // cryptographically random hex, never guessable
+  expiresAt DateTime // typically 1 hour from creation
+  
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
