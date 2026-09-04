@@ -11,6 +11,7 @@ Este documento apresenta uma análise completa da arquitetura, segurança, UX e 
 ### 1. **Segurança e Isolamento de Dados** ⭐⭐⭐⭐⭐
 
 #### O que está excelente:
+
 - **Isolamento por `userId` em todas as queries**: Todo acesso a dados é filtrado por `userId`, nunca apenas por ID
 - **Server Actions protegidas**: Todas começam com `verifySession()`
 - **Cookie httpOnly + JWT**: Sessão segura com `jose` para assinatura
@@ -20,6 +21,7 @@ Este documento apresenta uma análise completa da arquitetura, segurança, UX e 
 - **Eventos com verificação de acesso centralizada**: `verifyEventAccess` em `events-dal.ts` retorna 404 tanto para "não existe" quanto para "sem acesso", evitando vazamento de quais IDs são válidos
 
 #### Validação:
+
 ```typescript
 // src/lib/dal.ts - verifySession é cache() e chamado em toda página/action
 export const verifySession = cache(async () => {
@@ -39,6 +41,7 @@ export async function upsertTransaction(_state: FormState, formData: FormData) {
 ### 2. **Modelo de Dados Bem Pensado** ⭐⭐⭐⭐⭐
 
 #### Destaques:
+
 - **`balanceApplied` como estado universal**: Um único campo booleano determina se transação é "realizado" (true) ou "previsto" (false)
 - **"Atrasado" é estado derivado, não armazenado**: `balanceApplied: false && date < hoje` = atrasado
 - **Partial settlements como rows separadas**: Pagamento parcial vira duas rows (uma realizada do valor pago, outra aberta do restante)
@@ -46,6 +49,7 @@ export async function upsertTransaction(_state: FormState, formData: FormData) {
 - **Faturas de cartão futuras**: Usuário preenche valor esperado de cada mês, mesclado com parcelas reais
 
 #### Exemplo de lógica elegante:
+
 ```typescript
 // src/lib/transaction-status.ts - Estado derivado, não armazenado
 export function transactionStatus(
@@ -60,6 +64,7 @@ export function transactionStatus(
 ### 3. **UX Intuitiva e Consistente** ⭐⭐⭐⭐
 
 #### Acertos:
+
 - **Tokens de design por papel**: Cores nomeadas por função (`--danger`, `--success`) não por matiz, facilitando temas claro/escuro
 - **Verde/Vermelho só para dinheiro**: Não usados como decoração, sempre significam entrada/saída
 - **Uma classe `.surface` para painéis**: Visual consistente em todo app
@@ -71,6 +76,7 @@ export function transactionStatus(
 ### 4. **Arquitetura Limpa** ⭐⭐⭐⭐⭐
 
 #### Separação de responsabilidades:
+
 ```
 src/
 ├── app/
@@ -91,14 +97,15 @@ src/
 ```
 
 #### Funções puras de negócio (sem I/O):
-| Arquivo | Responsabilidade |
-|---------|-----------------|
+
+| Arquivo                 | Responsabilidade                |
+| ----------------------- | ------------------------------- |
 | `transaction-status.ts` | Status (pago/pendente/atrasado) |
-| `due-dates.ts` | Urgência de vencimentos |
-| `financing.ts` | Cronograma de parcelas |
-| `card-invoices.ts` | Faturas de cartão |
-| `events.ts` | Divisão de despesas |
-| `charge.ts` | Mensagens de cobrança |
+| `due-dates.ts`          | Urgência de vencimentos         |
+| `financing.ts`          | Cronograma de parcelas          |
+| `card-invoices.ts`      | Faturas de cartão               |
+| `events.ts`             | Divisão de despesas             |
+| `charge.ts`             | Mensagens de cobrança           |
 
 ---
 
@@ -109,6 +116,7 @@ src/
 #### Problemas Identificados:
 
 **a) Campo `paid` confuso no formulário**
+
 ```typescript
 // src/lib/validation/transactions.ts
 paid: z
@@ -116,22 +124,27 @@ paid: z
   .nullish()
   .transform((v) => v === null || v === undefined || v === "" || v === "true" || v === "on"),
 ```
+
 - **Problema**: Lógica complexa para determinar se está pago
 - **Solução**: Usar checkbox explícito com label claro "Já paguei/recebi" vs "Ainda vou pagar/receber"
 
 **b) Mensagens de erro pouco amigáveis**
+
 ```typescript
 // Exemplo genérico
 return { errors: { accountId: ["Conta inválida."] } };
 ```
+
 - **Melhoria**: Mensagens mais específicas e construtivas
   - ❌ "Conta inválida"
   - ✅ "Esta conta não existe ou foi arquivada. Selecione outra."
 
 **c) Falta de feedback visual durante ações assíncronas**
+
 - **Solução**: Adicionar estados de loading nos botões (já existe `submit-button.tsx` mas pode ser expandido)
 
 **d) Guias de primeiros passos poderia ser mais interativo**
+
 - **Oportunidade**: Tooltips contextuais na primeira visita a cada tela
 
 #### Sugestões de Implementação:
@@ -144,14 +157,14 @@ interface SubmitButtonProps {
   icon?: React.ReactNode;
 }
 
-export function SubmitButton({ 
-  loadingText = "Salvando...", 
+export function SubmitButton({
+  loadingText = "Salvando...",
   successText = "Salvo!",
-  icon 
+  icon,
 }: SubmitButtonProps) {
   const { pending } = useFormStatus();
   const [showSuccess, setShowSuccess] = useState(false);
-  
+
   // ... implementar feedback visual de sucesso temporário
 }
 ```
@@ -161,22 +174,26 @@ export function SubmitButton({
 #### Issues Encontradas:
 
 **a) Validação de telefone não é usada consistentemente**
+
 ```typescript
 // src/lib/validation/transactions.ts
 counterpartyPhone: optionalPhoneField.optional().transform((v) => v ?? undefined),
 ```
+
 - **Problema**: Campo opcional sem validação de formato quando preenchido
 - **Risco**: Números mal formatados quebram integração WhatsApp
 
 **b) Schema de financiamento não valida limite de parcelas**
+
 ```typescript
 // Não há validação máxima de installmentCount
 // Um usuário poderia criar 9999 parcelas acidentalmente
 ```
 
 **c) Valores monetários sem validação de máximo**
+
 ```typescript
-amount: z.coerce.number().positive()
+amount: z.coerce.number().positive();
 // Sem upper bound - R$ 999 bilhões é aceito
 ```
 
@@ -189,11 +206,12 @@ export const TransactionSchema = z.object({
     .number({ error: "Informe um valor válido." })
     .positive({ error: "O valor deve ser maior que zero." })
     .max(10_000_000, { error: "Valor muito alto. Contate o suporte se necessário." }),
-  
-  counterpartyPhone: z.string()
+
+  counterpartyPhone: z
+    .string()
     .trim()
     .optional()
-    .refine(val => !val || isValidE164(val), "Número de WhatsApp inválido")
+    .refine((val) => !val || isValidE164(val), "Número de WhatsApp inválido")
     .transform((v) => v ?? undefined),
 });
 ```
@@ -203,23 +221,27 @@ export const TransactionSchema = z.object({
 #### Pontos de Atenção:
 
 **a) `verifySession` chama 3 funções em sequência**
+
 ```typescript
 // src/lib/dal.ts
 await reconcileDueInstallments(session.userId);
 await maintainRecurringSchedules(session.userId);
 await dispatchOutboundEvents();
 ```
+
 - **Impacto**: Toda navegação de página executa estas 3 operações
 - **Mitigação atual**: `try/catch` para não bloquear login se falhar
 - **Melhoria**: Executar em paralelo com `Promise.allSettled()`
 
 **b) Queries sem limite de paginação explícito**
+
 ```typescript
 // Algumas queries podem retornar milhares de rows
 // Ideal: adicionar cursor-based pagination
 ```
 
 **c) `revalidatePath` múltiplo após cada mutation**
+
 ```typescript
 revalidatePath("/transactions");
 revalidatePath("/accounts");
@@ -227,6 +249,7 @@ revalidatePath("/dashboard");
 revalidatePath("/budgets");
 revalidatePath("/receivables");
 ```
+
 - **Risco**: Over-invalidation causa re-renders desnecessários
 - **Solução**: Tags de revalidate mais granulares (Next.js 15+)
 
@@ -235,15 +258,18 @@ revalidatePath("/receivables");
 #### Gaps Identificados:
 
 **a) Faltam atributos ARIA em componentes críticos**
+
 - Modais sem `role="dialog"` e `aria-modal="true"`
 - Botões de ação sem `aria-label` descritivo
 - Gráficos sem descrição textual para screen readers
 
 **b) Contraste de cores precisa validação**
+
 - Tokens em `globals.css` mencionam validação para daltonismo
 - **Verificar**: Componentes customizados fora do sistema de tokens
 
 **c) Focus management em modais**
+
 - Trap focus dentro de modais abertos
 - Retornar focus ao elemento que abriu ao fechar
 
@@ -257,22 +283,18 @@ export function Modal({ children, title, onClose }) {
     const focusable = modalRef.current.querySelectorAll(FOCUSABLE_SELECTORS);
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    
+
     // Auto-focus first element
     first?.focus();
-    
+
     return () => {
       // Restore focus
       triggerElement?.focus();
     };
   }, []);
-  
+
   return (
-    <div 
-      role="dialog" 
-      aria-modal="true" 
-      aria-labelledby="modal-title"
-    >
+    <div role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <h2 id="modal-title">{title}</h2>
       {/* ... */}
     </div>
@@ -283,6 +305,7 @@ export function Modal({ children, title, onClose }) {
 ### 5. **Tratamento de Erros - Mais Amigável** 🔧
 
 #### Situação Atual:
+
 ```typescript
 try {
   await algumaOperacao();
@@ -299,42 +322,47 @@ try {
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     switch (error.code) {
-      case 'P2002': return 'Já existe um registro com estes dados.';
-      case 'P2025': return 'Registro não encontrado.';
-      default: return 'Erro no banco de dados.';
+      case "P2002":
+        return "Já existe um registro com estes dados.";
+      case "P2025":
+        return "Registro não encontrado.";
+      default:
+        return "Erro no banco de dados.";
     }
   }
-  
+
   if (error instanceof ZodError) {
-    return error.errors.map(e => e.message).join(', ');
+    return error.errors.map((e) => e.message).join(", ");
   }
-  
-  return error instanceof Error ? error.message : 'Erro inesperado.';
+
+  return error instanceof Error ? error.message : "Erro inesperado.";
 }
 ```
 
 ### 6. **Open Finance - Melhorar Feedback** 🔧
 
 #### Problema:
+
 - Status de sync mostrado, mas sem detalhes do progresso
 - Erros de sync genéricos ("erro ao sincronizar")
 
 #### Solução:
+
 ```typescript
 // Mostrar progresso real
 interface SyncProgress {
-  stage: 'connecting' | 'fetching_accounts' | 'fetching_transactions' | 'done';
+  stage: "connecting" | "fetching_accounts" | "fetching_transactions" | "done";
   progress: number; // 0-100
   message: string;
 }
 
 // Feedback mais específico
-if (item.status === 'ERROR') {
+if (item.status === "ERROR") {
   switch (item.lastSyncError) {
-    case 'INVALID_CREDENTIALS': 
-      return 'Senha alterada. Atualize suas credenciais.';
-    case 'ACCOUNT_BLOCKED': 
-      return 'Conta bloqueada pelo banco.';
+    case "INVALID_CREDENTIALS":
+      return "Senha alterada. Atualize suas credenciais.";
+    case "ACCOUNT_BLOCKED":
+      return "Conta bloqueada pelo banco.";
     default:
       return item.lastSyncError;
   }
@@ -370,15 +398,15 @@ if (item.status === 'ERROR') {
 
 ## 📊 Avaliação Geral
 
-| Categoria | Nota | Comentários |
-|-----------|------|-------------|
-| **Segurança** | ⭐⭐⭐⭐⭐ | Excelente isolamento, autenticação robusta |
-| **Arquitetura** | ⭐⭐⭐⭐⭐ | Separação clara, convenções bem definidas |
-| **UX Geral** | ⭐⭐⭐⭐ | Intuitivo, mas pode melhorar feedback |
-| **Validações** | ⭐⭐⭐⭐ | Zod bem usado, falta alguns edge cases |
-| **Performance** | ⭐⭐⭐⭐ | Bom, mas tem otimizações possíveis |
-| **Acessibilidade** | ⭐⭐⭐ | Funcional, precisa de melhorias |
-| **Documentação** | ⭐⭐⭐⭐⭐ | Excepcional, explica "porquê" não só "como" |
+| Categoria          | Nota       | Comentários                                 |
+| ------------------ | ---------- | ------------------------------------------- |
+| **Segurança**      | ⭐⭐⭐⭐⭐ | Excelente isolamento, autenticação robusta  |
+| **Arquitetura**    | ⭐⭐⭐⭐⭐ | Separação clara, convenções bem definidas   |
+| **UX Geral**       | ⭐⭐⭐⭐   | Intuitivo, mas pode melhorar feedback       |
+| **Validações**     | ⭐⭐⭐⭐   | Zod bem usado, falta alguns edge cases      |
+| **Performance**    | ⭐⭐⭐⭐   | Bom, mas tem otimizações possíveis          |
+| **Acessibilidade** | ⭐⭐⭐     | Funcional, precisa de melhorias             |
+| **Documentação**   | ⭐⭐⭐⭐⭐ | Excepcional, explica "porquê" não só "como" |
 
 **Nota Geral: 4.3/5.0** 🏆
 

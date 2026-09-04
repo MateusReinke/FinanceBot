@@ -13,7 +13,9 @@ export const TransactionSchema = z.object({
   amount: z.coerce
     .number({ error: "Informe um valor válido." })
     .positive({ error: "O valor deve ser maior que zero." })
-    .max(MAX_AMOUNT, { error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.` }),
+    .max(MAX_AMOUNT, {
+      error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.`,
+    }),
   date: z.coerce.date({ error: "Informe uma data válida." }),
   type: z.enum(["income", "expense"], { error: "Tipo inválido." }),
   accountId: z.string().min(1, { error: "Selecione uma conta." }),
