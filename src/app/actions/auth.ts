@@ -14,6 +14,7 @@ import {
 import type { FormState } from "@/lib/form-state";
 import { createUserWithDefaultCategories } from "@/lib/user-provisioning";
 import { isAdminEmail } from "@/lib/admin";
+import { notifyPasswordResetInBackground } from "@/lib/password-reset-webhook";
 
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
 
@@ -154,14 +155,22 @@ export async function requestPasswordReset(
 
   const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
 
-  // No email provider is wired into this app (see docs/seguranca.md) — the
-  // rest of FinanceBot reaches a user over WhatsApp, never email, and that
-  // pipeline expects a phone number, not this flow's plaintext link. Until
-  // one of those is connected, this link only reaches whoever can read the
-  // server's own logs, and only outside production.
+  // Delivery is a dedicated n8n webhook (N8N_PASSWORD_RESET_WEBHOOK_URL, see
+  // src/lib/password-reset-webhook.ts), kept separate from the WhatsApp
+  // group automation in src/lib/outbound.ts — no e-mail provider is wired
+  // into this app. The console.log stays as a local-only fallback so the
+  // link is still reachable when that webhook isn't configured, but never
+  // in production: it's a credential, not a debug trace.
   if (process.env.NODE_ENV !== "production") {
     console.log(`[PASSWORD RESET] Link para ${email}: ${resetLink}`);
   }
+  notifyPasswordResetInBackground({
+    name: user.name,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    resetLink,
+    expiresAt,
+  });
 
   return genericState;
 }

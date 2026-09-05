@@ -4,7 +4,7 @@
 
 Esta é uma nova varredura completa do FinanceBot, feita do zero e validada em código real (não só lida) — cada achado abaixo foi confirmado lendo o arquivo, e a maioria foi reproduzida rodando o app de verdade (build de produção, banco Postgres local, formulários reais no navegador) antes de ser corrigida. A análise anterior deste documento ficou desatualizada: parte do que ela apontava já tinha sido corrigido por commits posteriores, e um commit mais recente (`Implement password reset functionality...`, de outra IA) introduziu regressões sérias que não tinham sido percebidas. Este documento substitui o anterior.
 
-**O achado mais importante: o app estava com o build quebrado.** Um erro de sintaxe em `src/app/actions/auth.ts` impedia `tsc`/`next build` de compilar, e o schema do Prisma tinha um relacionamento inválido que impedia até `prisma generate` de rodar. Ambos foram corrigidos nesta revisão — ver seção 1.
+**O achado mais importante: o app estava com o build quebrado.** Um erro de sintaxe em `src/app/actions/auth.ts` impedia `tsc`/`next build` de compilar, e o schema do Prisma tinha um relacionamento inválido que impedia até `prisma generate` de rodar. Uma sessão paralela chegou a esse mesmo diagnóstico enquanto esta análise estava em andamento (mesmo commit-problema, investigado de forma independente) e já tinha corrigido o build e adicionado a entrega do link de reset por webhook antes deste trabalho ser enviado; o texto abaixo reflete o resultado já reconciliado das duas sessões, mais o que esta sessão corrigiu por cima disso.
 
 ---
 
@@ -12,7 +12,7 @@ Esta é uma nova varredura completa do FinanceBot, feita do zero e validada em c
 
 ### 1.1 Build quebrado — string com aspas não escapadas
 
-`src/app/actions/auth.ts:80` tinha uma mensagem de erro com aspas duplas dentro de uma string de aspas duplas sem escapar (`"Use o botão "Entrar com Google" — ..."`), o que é um erro de sintaxe JavaScript. **O TypeScript não compilava, `next build` falhava e o app não subia.** Corrigido trocando a string para aspas simples por fora.
+`src/app/actions/auth.ts` tinha uma mensagem de erro com aspas duplas dentro de uma string de aspas duplas sem escapar (`"Use o botão "Entrar com Google" — ..."`), o que é um erro de sintaxe JavaScript. **O TypeScript não compilava, `next build` falhava e o app não subia.** Corrigido trocando a string para aspas simples por fora.
 
 ### 1.2 Schema do Prisma inválido — `prisma generate` falhava
 
@@ -20,11 +20,11 @@ O mesmo commit adicionou o model `PasswordReset` com uma relação (`user User @
 
 ### 1.3 Migration nunca criada para a tabela nova
 
-O model `PasswordReset` foi adicionado ao `schema.prisma`, mas nenhuma migration foi gerada — a tabela nunca existiria em um banco real, então a primeira tentativa de usar "esqueci minha senha" quebraria em produção com um erro de SQL. Criada `prisma/migrations/20260905000000_password_reset_tokens/`, aplicada e validada contra um Postgres real nesta revisão (`prisma migrate deploy` + `prisma migrate status` → sem drift).
+O model `PasswordReset` foi adicionado ao `schema.prisma`, mas nenhuma migration foi gerada — a tabela nunca existiria em um banco real, então a primeira tentativa de usar "esqueci minha senha" quebraria em produção com um erro de SQL. Criada e aplicada contra um Postgres real (`prisma migrate deploy` + `prisma migrate status` → sem drift).
 
 ### 1.4 `.gitignore` bloqueando `prisma/migrations/` — o bug mais perigoso a longo prazo
 
-O mesmo commit **reescreveu o `.gitignore` inteiro** (trocando por um template genérico, com um ` ``` ` de markdown colado por engano na primeira e na última linha) e, no meio da troca, adicionou a regra `prisma/migrations/`. Isso faz o Git ignorar silenciosamente **qualquer migration nova** — a pasta que acabei de criar para o `PasswordReset` não aparecia nem como "untracked" até essa regra ser removida. Sem esta correção, toda mudança de schema futura (deste ou de qualquer outro commit) seria aplicada localmente, funcionaria no `npm run db:migrate` de quem a criou, e **desapareceria silenciosamente do repositório** — o próximo deploy quebraria com um schema desatualizado, sem nenhum erro óbvio apontando pra causa. Corrigido removendo os ` ``` ` soltos e a regra `prisma/migrations/`.
+O mesmo commit **reescreveu o `.gitignore` inteiro** (trocando por um template genérico, com um ` ``` ` de markdown colado por engano na primeira e na última linha) e, no meio da troca, adicionou a regra `prisma/migrations/`. Isso faz o Git ignorar silenciosamente **qualquer migration nova** — a pasta criada para o `PasswordReset` não aparecia nem como "untracked" até essa regra ser removida. Sem esta correção, toda mudança de schema futura seria aplicada localmente, funcionaria no `npm run db:migrate` de quem a criou, e **desapareceria silenciosamente do repositório** — o próximo deploy quebraria com um schema desatualizado, sem nenhum erro óbvio apontando pra causa. Corrigido removendo os ` ``` ` soltos e a regra `prisma/migrations/` (o mesmo `.gitignore` também passou a ignorar `next-env.d.ts` e `*.tsbuildinfo`, arquivos gerados a cada `next dev`/`build` que só viravam ruído de "untracked").
 
 ### 1.5 Telefone local não virava um WhatsApp válido
 
@@ -40,17 +40,21 @@ O mesmo commit **reescreveu o `.gitignore` inteiro** (trocando por um template g
 
 `maintainRecurringSchedules` calculava cada nova ocorrência somando um intervalo à ocorrência anterior (`addIntervalUTC(candidate, frequency, 1)`), em vez de calcular a partir da data-âncora original. Um aluguel com vencimento dia 31 e frequência mensal: janeiro → fevereiro vira dia 28 (não existe 31 em fevereiro, isso é esperado); mas o próximo passo, fevereiro → março, ao somar "mais um mês" **a partir do dia 28** (não do dia 31 original), gera 28 de março — e a partir daí a assinatura fica presa no dia 28 para sempre, nunca mais voltando pro dia 31 nos meses que têm. Corrigido calculando cada ocorrência a partir da data-âncora fixa (`firstDueDate`) mais o número de passos, do mesmo jeito que `buildInstallmentSchedule` (parcelamentos) já fazia corretamente.
 
-### 1.8 Valores sem limite máximo em três formulários
+### 1.8 Valores sem limite máximo em quatro formulários
 
-`MAX_AMOUNT` (R$ 10 milhões) já existe e é aplicado em quase todo campo monetário do app, mas faltava em três lugares: a API pública `/api/v1/transactions` (um token vazado ou um fluxo de n8n com bug podia gravar um valor absurdo direto no saldo), `PayInstallmentSchema.paidAmount` e `UpdateFinancingSchema.installmentAmount` (confirmar o pagamento de uma parcela ou editar "esta e as próximas" não tinham teto), e a importação de fatura por IA (`ConfirmInvoiceImportSchema`/`InvoiceItemSchema`). Corrigido aplicando o mesmo `.max(MAX_AMOUNT)` nos quatro.
+`MAX_AMOUNT` (R$ 10 milhões) já existe e é aplicado em quase todo campo monetário do app, mas faltava em quatro lugares: a API pública `/api/v1/transactions` (um token vazado ou um fluxo de n8n com bug podia gravar um valor absurdo direto no saldo), `PayInstallmentSchema.paidAmount` e `UpdateFinancingSchema.installmentAmount` (confirmar o pagamento de uma parcela ou editar "esta e as próximas" não tinham teto), e a importação de fatura por IA (`ConfirmInvoiceImportSchema`/`InvoiceItemSchema`). Corrigido aplicando o mesmo `.max(MAX_AMOUNT)` nos quatro.
 
 ### 1.9 Token de redefinição de senha guardado em texto puro
 
-O fluxo de "esqueci minha senha" guardava o token de reset **sem hash** no banco (diferente do `ApiToken`, que já segue a regra "só o hash SHA-256 fica no banco, um dump não gera token válido"). Corrigido para seguir a mesma regra: o campo agora se chama `tokenHash` e guarda `sha256(token)`, nunca o token em si. A troca de senha em si também foi movida para uma transação (`$transaction`) — antes, se a atualização da senha falhasse depois do token já ter sido apagado, o link de reset virava um beco sem saída sem nenhuma mensagem clara disso.
+O fluxo de "esqueci minha senha" guardava o token de reset **sem hash** no banco (diferente do `ApiToken`, que já segue a regra "só o hash SHA-256 fica no banco, um dump não gera token válido"). Corrigido para seguir a mesma regra: o campo agora se chama `tokenHash` e guarda `sha256(token)`, nunca o token em si — uma migration própria (`.../password_reset_token_hash`) renomeia a coluna por cima da migration que já criava a tabela. A troca de senha em si também foi movida para uma transação (`$transaction`): antes, se a atualização da senha falhasse depois do token já ter sido apagado, o link de reset virava um beco sem saída sem nenhuma mensagem clara disso.
 
 **Confirmado rodando de verdade**: pedi um reset, troquei a senha pelo link, a senha antiga parou de funcionar, a nova funcionou, e usar o mesmo link de novo foi corretamente rejeitado ("Token de redefinição inválido ou expirado").
 
-### 1.10 Cor fora do sistema de tokens
+### 1.10 Entrega do link de redefinição — webhook dedicado
+
+Não existe nenhum provedor de e-mail configurado neste app — sem isso, o link de reset só era escrito no console do servidor, o que não chega a lugar nenhum em produção. A correção adicionada (reconciliada nesta revisão): um webhook próprio, `N8N_PASSWORD_RESET_WEBHOOK_URL` (+ `N8N_PASSWORD_RESET_WEBHOOK_SECRET` opcional para assinar o corpo em HMAC-SHA256), **deliberadamente separado** do `N8N_WEBHOOK_URL` que alimenta o fluxo dos grupos de WhatsApp de evento — um link de redefinição de senha nunca deve poder ser roteado pelo mesmo fluxo que posta em um grupo compartilhado. O fluxo de n8n que você conectar nessa URL é responsável por entregar o link de forma privada (ex.: DM de WhatsApp para o número da pessoa). Sem essa URL configurada, o link continua só no log do servidor — e, depois da correção desta revisão, só fora de produção.
+
+### 1.11 Cor fora do sistema de tokens
 
 Os dois formulários novos (esqueci a senha / redefinir senha) usavam `text-green-600` (uma cor fixa do Tailwind) em vez de `text-success` (o token de design do app, que muda entre tema claro e escuro). Corrigido para usar o token, conforme a regra documentada em `docs/arquitetura.md` ("nomeados por papel, nunca por matiz").
 
@@ -58,7 +62,7 @@ Os dois formulários novos (esqueci a senha / redefinir senha) usavam `text-gree
 
 ## 2. O webhook do grupo de WhatsApp — já existe, não precisa de uma variável nova
 
-O pedido de "uma variável para o webhook do fluxo que gera o grupo com os participantes, e que avisa quando um novo participante entra" **já está implementado**, e não é um recorte pequeno: é `N8N_WEBHOOK_URL` (+ opcionalmente `N8N_WEBHOOK_SECRET` para assinar o corpo), documentado em `.env.example` e em `docs/whatsapp-eventos.md`. O fluxo, ponta a ponta:
+O pedido de "uma variável para o webhook do fluxo que gera o grupo com os participantes, e que avisa quando um novo participante entra" **já está implementado**, e não é um recorte pequeno: é `N8N_WEBHOOK_URL` (+ opcionalmente `N8N_WEBHOOK_SECRET` para assinar o corpo), documentado em `.env.example` e em `docs/whatsapp-eventos.md`. Note que isso é uma variável **diferente** da nova `N8N_PASSWORD_RESET_WEBHOOK_URL` da seção 1.10 — propositalmente, para o link de senha de uma pessoa nunca poder vazar no fluxo de grupo de outra. O fluxo do grupo de evento, ponta a ponta:
 
 1. Ao criar um evento marcando "Criar um grupo no WhatsApp", o app publica `event.created` com o telefone de cada participante (`src/app/actions/events.ts` → `publish()` → `buildEventPayload`).
 2. **Cada vez que alguém novo entra no evento pelo link de convite**, o app publica `event.participant_joined` com o telefone de quem entrou (`joinEventByCode`, só na entrada genuinamente nova — reabrir o link não avisa de novo).
@@ -66,7 +70,7 @@ O pedido de "uma variável para o webhook do fluxo que gera o grupo com os parti
 4. O fluxo de n8n (que você monta) recebe esses eventos, cria/mantém o grupo real no WhatsApp e adiciona o número — é o n8n que fala com o WhatsApp, nunca o app diretamente, porque a API oficial da Meta não cria grupos.
 5. O n8n avisa de volta via `POST /api/v1/events/{id}/whatsapp-group`, e o status aparece na tela do evento.
 
-Ou seja: **basta preencher `N8N_WEBHOOK_URL` com a URL do seu fluxo do n8n** (em Coolify, como variável de ambiente do serviço) que o recurso descrito já funciona — não há nada faltando no app para isso. Se a intenção era ter uma segunda URL separada só para esse fluxo (distinta de outras automações), isso é uma decisão de produto que vale confirmar antes de eu criar uma segunda variável redundante; hoje um único webhook já recebe todos os tipos de evento e o payload sempre traz o campo `type` para o fluxo decidir o que fazer com cada um.
+Ou seja: **basta preencher `N8N_WEBHOOK_URL` com a URL do seu fluxo do n8n** (em Coolify, como variável de ambiente do serviço) que o recurso descrito já funciona — não há nada faltando no app para isso.
 
 ---
 
@@ -94,12 +98,12 @@ A arquitetura segue sólida e a maior parte da análise anterior sobre isso cont
 
 ## 5. Gaps que ficam registrados (não corrigidos nesta revisão)
 
-- **"Esqueci minha senha" não envia e-mail de verdade.** Não existe nenhum provedor de e-mail configurado no app (nem aqui, nem em nenhuma outra funcionalidade) — o link de reset só é escrito no console do servidor, e só fora de produção, depois da correção desta revisão. Antes disso funcionava, mas expunha o link (uma credencial) nos logs também em produção. Como o app inteiro já assume WhatsApp como canal de contato (todo usuário tem telefone obrigatório), duas saídas fazem sentido: (a) integrar um provedor de e-mail (Resend, SendGrid); (b) entregar o link pelo mesmo pipeline de automação que já existe (`N8N_WEBHOOK_URL`), como um novo tipo de evento de saída. Não escolhi nenhuma das duas por conta própria porque é uma decisão de produto, não só uma correção de bug — me diga qual prefere e eu implemento.
 - Redefinir a senha não invalida outras sessões já abertas em outros aparelhos.
+- O webhook de reset de senha (seção 1.10) é fire-and-forget: se o n8n estiver fora do ar no momento do pedido, a pessoa não recebe o link e não há retentativa (diferente da fila com backoff que `N8N_WEBHOOK_URL` usa). Para o volume de um reset de senha isso tende a ser aceitável, mas vale saber que não tem a mesma garantia de entrega.
 - `revalidatePath` continua chamado várias vezes por mutação em vez de tags mais granulares (Next 15+) — não é um bug, só uma otimização possível.
 
 ---
 
 ## 💡 Conclusão
 
-O maior risco não estava na lógica de negócio "de sempre" (que segue madura e bem isolada) — estava num commit recente e mal revisado que deixou o projeto **sem buildar** e com um `.gitignore` que descartaria silenciosamente qualquer migration futura. Ambos corrigidos e verificados rodando o app de ponta a ponta (build de produção limpo, Postgres real, cadastro/login/redefinição de senha e o painel novo testados num navegador de verdade). O pedido do webhook de grupo de WhatsApp já está coberto por `N8N_WEBHOOK_URL`; o painel agora tem uma leitura em português simples do que os números do mês significam.
+O maior risco não estava na lógica de negócio "de sempre" (que segue madura e bem isolada) — estava num commit recente e mal revisado que deixou o projeto **sem buildar** e com um `.gitignore` que descartaria silenciosamente qualquer migration futura. Corrigido e verificado rodando o app de ponta a ponta (build de produção limpo, Postgres real, cadastro/login/redefinição de senha e o painel novo testados num navegador de verdade), com a entrega do link de reset agora passando por um webhook dedicado em vez de só aparecer no log do servidor. O pedido do webhook de grupo de WhatsApp já está coberto por `N8N_WEBHOOK_URL`; o painel agora tem uma leitura em português simples do que os números do mês significam.
