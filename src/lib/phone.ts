@@ -50,26 +50,26 @@ export function toE164FromLocal(value: string, countryCode = DEFAULT_COUNTRY_COD
   return null;
 }
 
-// 10-15 digits covers every country code; Brazilian mobiles are 13 with
-// the +55 and the 9. Deliberately not stricter than that — rejecting a
-// valid foreign number at signup would be worse than accepting a typo the
-// user can fix in Configurações.
+// Routed through toE164FromLocal rather than a bare "prepend +": every
+// caller of this field (signup, the WhatsApp settings panel, a
+// transaction's counterparty) shows the same DDD-only placeholder this
+// error message promises, and a bare prepend on an 11-digit local number
+// produces "+11999999999" — country code +1, not Brazil. That was this
+// field's actual behavior until this rule caught it: a signup exactly as
+// the form asked for it silently stored an unreachable number, and every
+// inbound WhatsApp message from that number failed samePhone() against it.
+const PHONE_ERROR = "Informe o WhatsApp com DDD, ex: (11) 99999-9999.";
+
 export const phoneField = z
   .string()
   .trim()
-  .transform((v) => normalizePhone(v))
-  .refine((v) => /^\d{10,15}$/.test(v), {
-    error: "Informe o WhatsApp com DDD, ex: (11) 99999-9999.",
-  })
-  .transform((v) => `+${v}`);
+  .refine((v) => toE164FromLocal(v) !== null, { error: PHONE_ERROR })
+  .transform((v) => toE164FromLocal(v)!);
 
-// Same rules, but an empty value is allowed and becomes null — used where
+// Same rule, but an empty value is allowed and becomes null — used where
 // clearing the number is a legitimate action.
 export const optionalPhoneField = z
   .string()
   .trim()
-  .transform((v) => normalizePhone(v))
-  .refine((v) => v === "" || /^\d{10,15}$/.test(v), {
-    error: "Informe o WhatsApp com DDD, ex: (11) 99999-9999.",
-  })
-  .transform((v) => (v ? `+${v}` : null));
+  .refine((v) => v === "" || toE164FromLocal(v) !== null, { error: PHONE_ERROR })
+  .transform((v) => (v === "" ? null : toE164FromLocal(v)));

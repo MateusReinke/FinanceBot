@@ -45,7 +45,9 @@ export const FinancingSchema = z.object({
   installmentAmount: z.coerce
     .number({ error: "Informe o valor da parcela." })
     .positive({ error: "O valor da parcela deve ser maior que zero." })
-    .max(MAX_AMOUNT, { error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.` }),
+    .max(MAX_AMOUNT, {
+      error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.`,
+    }),
   isRecurring: booleanField(false),
   autoSettle: booleanField(true),
 });
@@ -65,7 +67,10 @@ export const UpdateFinancingSchema = z.object({
     .transform((v) => (v ? v : undefined)),
   installmentAmount: z.coerce
     .number({ error: "Informe o valor." })
-    .positive({ error: "O valor deve ser maior que zero." }),
+    .positive({ error: "O valor deve ser maior que zero." })
+    .max(MAX_AMOUNT, {
+      error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.`,
+    }),
   frequency: z
     .enum(FREQUENCIES, { error: "Selecione com que frequência se repete." })
     .default("monthly"),
@@ -84,7 +89,10 @@ export const PayInstallmentSchema = z.object({
   transactionId: z.string().min(1, { error: "Parcela inválida." }),
   paidAmount: z.coerce
     .number({ error: "Informe um valor válido." })
-    .positive({ error: "O valor deve ser maior que zero." }),
+    .positive({ error: "O valor deve ser maior que zero." })
+    .max(MAX_AMOUNT, {
+      error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.`,
+    }),
   // Lets the user record that the bill was actually paid on a different day
   // than it was due (paguei o aluguel com 3 dias de atraso).
   paidDate: z.coerce.date({ error: "Informe uma data válida." }).optional(),

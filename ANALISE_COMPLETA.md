@@ -1,410 +1,109 @@
 # Análise do Projeto FinanceBot
 
-## 📋 Resumo Executivo
+## 📋 Resumo executivo
 
-Este documento apresenta uma análise completa da arquitetura, segurança, UX e lógica de negócio do **FinanceBot** - um sistema de controle financeiro pessoal desenvolvido com Next.js 16, TypeScript, Tailwind CSS v4 e Prisma + PostgreSQL.
+Esta é uma nova varredura completa do FinanceBot, feita do zero e validada em código real (não só lida) — cada achado abaixo foi confirmado lendo o arquivo, e a maioria foi reproduzida rodando o app de verdade (build de produção, banco Postgres local, formulários reais no navegador) antes de ser corrigida. A análise anterior deste documento ficou desatualizada: parte do que ela apontava já tinha sido corrigido por commits posteriores, e um commit mais recente (`Implement password reset functionality...`, de outra IA) introduziu regressões sérias que não tinham sido percebidas. Este documento substitui o anterior.
 
----
-
-## ✅ Pontos Fortes Identificados
-
-### 1. **Segurança e Isolamento de Dados** ⭐⭐⭐⭐⭐
-
-#### O que está excelente:
-- **Isolamento por `userId` em todas as queries**: Todo acesso a dados é filtrado por `userId`, nunca apenas por ID
-- **Server Actions protegidas**: Todas começam com `verifySession()`
-- **Cookie httpOnly + JWT**: Sessão segura com `jose` para assinatura
-- **Admin role re-validado no banco**: Nunca confiado no JWT, prevenindo escalonamento de privilégios
-- **API tokens com hash SHA-256**: Tokens são hasheados como senhas, dump do DB não revela tokens válidos
-- **Rate limiting na API**: Previne abuso do endpoint WhatsApp/n8n
-- **Eventos com verificação de acesso centralizada**: `verifyEventAccess` em `events-dal.ts` retorna 404 tanto para "não existe" quanto para "sem acesso", evitando vazamento de quais IDs são válidos
-
-#### Validação:
-```typescript
-// src/lib/dal.ts - verifySession é cache() e chamado em toda página/action
-export const verifySession = cache(async () => {
-  const session = await getSession();
-  if (!session?.userId) redirect("/login");
-  // ... reconciliações automáticas
-  return { userId: session.userId };
-});
-
-// src/app/actions/transactions.ts - Toda action começa com verifySession
-export async function upsertTransaction(_state: FormState, formData: FormData) {
-  const { userId } = await verifySession(); // ✅ Gate de segurança
-  // ... validação e execução
-}
-```
-
-### 2. **Modelo de Dados Bem Pensado** ⭐⭐⭐⭐⭐
-
-#### Destaques:
-- **`balanceApplied` como estado universal**: Um único campo booleano determina se transação é "realizado" (true) ou "previsto" (false)
-- **"Atrasado" é estado derivado, não armazenado**: `balanceApplied: false && date < hoje` = atrasado
-- **Partial settlements como rows separadas**: Pagamento parcial vira duas rows (uma realizada do valor pago, outra aberta do restante)
-- **Financiamentos com cronograma automático**: Parcelas são materializadas em janela móvel de 24 meses
-- **Faturas de cartão futuras**: Usuário preenche valor esperado de cada mês, mesclado com parcelas reais
-
-#### Exemplo de lógica elegante:
-```typescript
-// src/lib/transaction-status.ts - Estado derivado, não armazenado
-export function transactionStatus(
-  transaction: { balanceApplied: boolean; date: Date | string },
-  today = startOfTodayUTC()
-): TransactionStatus {
-  if (transaction.balanceApplied) return "paid";
-  return new Date(transaction.date) < today ? "overdue" : "pending";
-}
-```
-
-### 3. **UX Intuitiva e Consistente** ⭐⭐⭐⭐
-
-#### Acertos:
-- **Tokens de design por papel**: Cores nomeadas por função (`--danger`, `--success`) não por matiz, facilitando temas claro/escuro
-- **Verde/Vermelho só para dinheiro**: Não usados como decoração, sempre significam entrada/saída
-- **Uma classe `.surface` para painéis**: Visual consistente em todo app
-- **Feedback visual de vencimento**: "Vence hoje", "Venceu há 5 dias" com faixa colorida lateral
-- **Marcar como pago/recebido em 1 clique**: Botão visível na lista, painel e tela A receber
-- **Desfazer em 1 clique**: `unconfirmTransaction` reverte confirmação acidental
-- **Cobrar no WhatsApp**: Mensagem já escrita com valores, descrições e datas
-
-### 4. **Arquitetura Limpa** ⭐⭐⭐⭐⭐
-
-#### Separação de responsabilidades:
-```
-src/
-├── app/
-│   ├── (auth)/          # Login/cadastro
-│   ├── (app)/           # Área autenticada
-│   ├── actions/         # Server Actions (uma por domínio)
-│   └── api/v1/          # API pública (WhatsApp/n8n)
-├── components/
-│   ├── ui/              # Primitivos (Button, Input, Modal)
-│   ├── layout/          # Shell, sidebar, menu
-│   └── charts/          # Gráficos Recharts
-├── lib/
-│   ├── dal.ts           # verifySession - portão de acesso
-│   ├── session.ts       # Cookie JWT com jose
-│   ├── queries/         # Leituras otimizadas
-│   ├── validation/      # Schemas Zod
-│   └── *.ts             # Regras de negócio puras
-```
-
-#### Funções puras de negócio (sem I/O):
-| Arquivo | Responsabilidade |
-|---------|-----------------|
-| `transaction-status.ts` | Status (pago/pendente/atrasado) |
-| `due-dates.ts` | Urgência de vencimentos |
-| `financing.ts` | Cronograma de parcelas |
-| `card-invoices.ts` | Faturas de cartão |
-| `events.ts` | Divisão de despesas |
-| `charge.ts` | Mensagens de cobrança |
+**O achado mais importante: o app estava com o build quebrado.** Um erro de sintaxe em `src/app/actions/auth.ts` impedia `tsc`/`next build` de compilar, e o schema do Prisma tinha um relacionamento inválido que impedia até `prisma generate` de rodar. Uma sessão paralela chegou a esse mesmo diagnóstico enquanto esta análise estava em andamento (mesmo commit-problema, investigado de forma independente) e já tinha corrigido o build e adicionado a entrega do link de reset por webhook antes deste trabalho ser enviado; o texto abaixo reflete o resultado já reconciliado das duas sessões, mais o que esta sessão corrigiu por cima disso.
 
 ---
 
-## ⚠️ Oportunidades de Melhoria
+## 1. Bugs críticos corrigidos nesta revisão
 
-### 1. **UX/UI - Tornar Mais Intuitivo** 🔧
+### 1.1 Build quebrado — string com aspas não escapadas
 
-#### Problemas Identificados:
+`src/app/actions/auth.ts` tinha uma mensagem de erro com aspas duplas dentro de uma string de aspas duplas sem escapar (`"Use o botão "Entrar com Google" — ..."`), o que é um erro de sintaxe JavaScript. **O TypeScript não compilava, `next build` falhava e o app não subia.** Corrigido trocando a string para aspas simples por fora.
 
-**a) Campo `paid` confuso no formulário**
-```typescript
-// src/lib/validation/transactions.ts
-paid: z
-  .string()
-  .nullish()
-  .transform((v) => v === null || v === undefined || v === "" || v === "true" || v === "on"),
-```
-- **Problema**: Lógica complexa para determinar se está pago
-- **Solução**: Usar checkbox explícito com label claro "Já paguei/recebi" vs "Ainda vou pagar/receber"
+### 1.2 Schema do Prisma inválido — `prisma generate` falhava
 
-**b) Mensagens de erro pouco amigáveis**
-```typescript
-// Exemplo genérico
-return { errors: { accountId: ["Conta inválida."] } };
-```
-- **Melhoria**: Mensagens mais específicas e construtivas
-  - ❌ "Conta inválida"
-  - ✅ "Esta conta não existe ou foi arquivada. Selecione outra."
+O mesmo commit adicionou o model `PasswordReset` com uma relação (`user User @relation(...)`) sem o campo inverso em `User`, o que o Prisma rejeita (`prisma validate`/`prisma generate` falhavam com `P1012`). Sem um client gerado, **nenhuma parte do app rodava**, não só o reset de senha. Corrigido adicionando `passwordResets PasswordReset[]` em `User`.
 
-**c) Falta de feedback visual durante ações assíncronas**
-- **Solução**: Adicionar estados de loading nos botões (já existe `submit-button.tsx` mas pode ser expandido)
+### 1.3 Migration nunca criada para a tabela nova
 
-**d) Guias de primeiros passos poderia ser mais interativo**
-- **Oportunidade**: Tooltips contextuais na primeira visita a cada tela
+O model `PasswordReset` foi adicionado ao `schema.prisma`, mas nenhuma migration foi gerada — a tabela nunca existiria em um banco real, então a primeira tentativa de usar "esqueci minha senha" quebraria em produção com um erro de SQL. Criada e aplicada contra um Postgres real (`prisma migrate deploy` + `prisma migrate status` → sem drift).
 
-#### Sugestões de Implementação:
+### 1.4 `.gitignore` bloqueando `prisma/migrations/` — o bug mais perigoso a longo prazo
 
-```tsx
-// src/components/ui/submit-button.tsx - Melhorar feedback
-interface SubmitButtonProps {
-  loadingText?: string;
-  successText?: string;
-  icon?: React.ReactNode;
-}
+O mesmo commit **reescreveu o `.gitignore` inteiro** (trocando por um template genérico, com um ` ``` ` de markdown colado por engano na primeira e na última linha) e, no meio da troca, adicionou a regra `prisma/migrations/`. Isso faz o Git ignorar silenciosamente **qualquer migration nova** — a pasta criada para o `PasswordReset` não aparecia nem como "untracked" até essa regra ser removida. Sem esta correção, toda mudança de schema futura seria aplicada localmente, funcionaria no `npm run db:migrate` de quem a criou, e **desapareceria silenciosamente do repositório** — o próximo deploy quebraria com um schema desatualizado, sem nenhum erro óbvio apontando pra causa. Corrigido removendo os ` ``` ` soltos e a regra `prisma/migrations/` (o mesmo `.gitignore` também passou a ignorar `next-env.d.ts` e `*.tsbuildinfo`, arquivos gerados a cada `next dev`/`build` que só viravam ruído de "untracked").
 
-export function SubmitButton({ 
-  loadingText = "Salvando...", 
-  successText = "Salvo!",
-  icon 
-}: SubmitButtonProps) {
-  const { pending } = useFormStatus();
-  const [showSuccess, setShowSuccess] = useState(false);
-  
-  // ... implementar feedback visual de sucesso temporário
-}
-```
+### 1.5 Telefone local não virava um WhatsApp válido
 
-### 2. **Validações - Refinar Edge Cases** 🔧
+`phoneField`/`optionalPhoneField` (`src/lib/phone.ts`) validavam o formato mas só prefixavam um `+` na frente dos dígitos, sem completar o DDI. O próprio formulário de cadastro pede exatamente `(11) 99999-9999` (11 dígitos, sem DDI) — e era exatamente esse formato que virava `+11999999999` (DDI +1, não +55). Isso quebrava a comparação de telefone (`samePhone`) usada para autenticar mensagens de WhatsApp recebidas: **qualquer pessoa que preenchesse o telefone exatamente como o formulário pede nunca conseguiria usar o lançamento por WhatsApp**, porque o número guardado não batia com o número real do WhatsApp dela. Havia inclusive uma função já pronta para isso (`toE164FromLocal`, usada só na importação de contatos do Google) — o campo do formulário de cadastro simplesmente não a chamava. Corrigido unificando os dois campos para usar `toE164FromLocal`.
 
-#### Issues Encontradas:
+**Confirmado rodando de verdade**: cadastrei um usuário de teste digitando `(11) 99999-9999` — antes da correção isso teria virado `+11999999999`; depois da correção, o banco mostra `+5511999999999`, o formato correto.
 
-**a) Validação de telefone não é usada consistentemente**
-```typescript
-// src/lib/validation/transactions.ts
-counterpartyPhone: optionalPhoneField.optional().transform((v) => v ?? undefined),
-```
-- **Problema**: Campo opcional sem validação de formato quando preenchido
-- **Risco**: Números mal formatados quebram integração WhatsApp
+### 1.6 Arredondamento de centavos faltando na aplicação de parcelas
 
-**b) Schema de financiamento não valida limite de parcelas**
-```typescript
-// Não há validação máxima de installmentCount
-// Um usuário poderia criar 9999 parcelas acidentalmente
-```
+`reconcileDueInstallments` (`src/lib/financing.ts`) soma o efeito de todas as parcelas vencidas de uma conta em ponto flutuante e aplica a soma direto no saldo, sem passar pelo mesmo arredondamento de centavos que o resto do app usa (ex.: `toCents` em `transactions.ts`). Três parcelas de R$10,10 + R$20,20 + R$5,05 somam `35.349999999999994` em JS — e essa sujeira ficava **permanentemente gravada** no saldo da conta, porque essa função roda a cada requisição (via `verifySession`) e nunca reprocessa o passado. Corrigido arredondando a soma antes de aplicar.
 
-**c) Valores monetários sem validação de máximo**
-```typescript
-amount: z.coerce.number().positive()
-// Sem upper bound - R$ 999 bilhões é aceito
-```
+### 1.7 Vencimento de gastos fixos "andando" para trás a cada virada de mês curto
 
-#### Correções Sugeridas:
+`maintainRecurringSchedules` calculava cada nova ocorrência somando um intervalo à ocorrência anterior (`addIntervalUTC(candidate, frequency, 1)`), em vez de calcular a partir da data-âncora original. Um aluguel com vencimento dia 31 e frequência mensal: janeiro → fevereiro vira dia 28 (não existe 31 em fevereiro, isso é esperado); mas o próximo passo, fevereiro → março, ao somar "mais um mês" **a partir do dia 28** (não do dia 31 original), gera 28 de março — e a partir daí a assinatura fica presa no dia 28 para sempre, nunca mais voltando pro dia 31 nos meses que têm. Corrigido calculando cada ocorrência a partir da data-âncora fixa (`firstDueDate`) mais o número de passos, do mesmo jeito que `buildInstallmentSchedule` (parcelamentos) já fazia corretamente.
 
-```typescript
-// src/lib/validation/transactions.ts - Melhorar
-export const TransactionSchema = z.object({
-  amount: z.coerce
-    .number({ error: "Informe um valor válido." })
-    .positive({ error: "O valor deve ser maior que zero." })
-    .max(10_000_000, { error: "Valor muito alto. Contate o suporte se necessário." }),
-  
-  counterpartyPhone: z.string()
-    .trim()
-    .optional()
-    .refine(val => !val || isValidE164(val), "Número de WhatsApp inválido")
-    .transform((v) => v ?? undefined),
-});
-```
+### 1.8 Valores sem limite máximo em quatro formulários
 
-### 3. **Performance - Otimizações Possíveis** 🔧
+`MAX_AMOUNT` (R$ 10 milhões) já existe e é aplicado em quase todo campo monetário do app, mas faltava em quatro lugares: a API pública `/api/v1/transactions` (um token vazado ou um fluxo de n8n com bug podia gravar um valor absurdo direto no saldo), `PayInstallmentSchema.paidAmount` e `UpdateFinancingSchema.installmentAmount` (confirmar o pagamento de uma parcela ou editar "esta e as próximas" não tinham teto), e a importação de fatura por IA (`ConfirmInvoiceImportSchema`/`InvoiceItemSchema`). Corrigido aplicando o mesmo `.max(MAX_AMOUNT)` nos quatro.
 
-#### Pontos de Atenção:
+### 1.9 Token de redefinição de senha guardado em texto puro
 
-**a) `verifySession` chama 3 funções em sequência**
-```typescript
-// src/lib/dal.ts
-await reconcileDueInstallments(session.userId);
-await maintainRecurringSchedules(session.userId);
-await dispatchOutboundEvents();
-```
-- **Impacto**: Toda navegação de página executa estas 3 operações
-- **Mitigação atual**: `try/catch` para não bloquear login se falhar
-- **Melhoria**: Executar em paralelo com `Promise.allSettled()`
+O fluxo de "esqueci minha senha" guardava o token de reset **sem hash** no banco (diferente do `ApiToken`, que já segue a regra "só o hash SHA-256 fica no banco, um dump não gera token válido"). Corrigido para seguir a mesma regra: o campo agora se chama `tokenHash` e guarda `sha256(token)`, nunca o token em si — uma migration própria (`.../password_reset_token_hash`) renomeia a coluna por cima da migration que já criava a tabela. A troca de senha em si também foi movida para uma transação (`$transaction`): antes, se a atualização da senha falhasse depois do token já ter sido apagado, o link de reset virava um beco sem saída sem nenhuma mensagem clara disso.
 
-**b) Queries sem limite de paginação explícito**
-```typescript
-// Algumas queries podem retornar milhares de rows
-// Ideal: adicionar cursor-based pagination
-```
+**Confirmado rodando de verdade**: pedi um reset, troquei a senha pelo link, a senha antiga parou de funcionar, a nova funcionou, e usar o mesmo link de novo foi corretamente rejeitado ("Token de redefinição inválido ou expirado").
 
-**c) `revalidatePath` múltiplo após cada mutation**
-```typescript
-revalidatePath("/transactions");
-revalidatePath("/accounts");
-revalidatePath("/dashboard");
-revalidatePath("/budgets");
-revalidatePath("/receivables");
-```
-- **Risco**: Over-invalidation causa re-renders desnecessários
-- **Solução**: Tags de revalidate mais granulares (Next.js 15+)
+### 1.10 Entrega do link de redefinição — webhook dedicado
 
-### 4. **Acessibilidade - Melhorias Necessárias** ♿
+Não existe nenhum provedor de e-mail configurado neste app — sem isso, o link de reset só era escrito no console do servidor, o que não chega a lugar nenhum em produção. A correção adicionada (reconciliada nesta revisão): um webhook próprio, `N8N_PASSWORD_RESET_WEBHOOK_URL` (+ `N8N_PASSWORD_RESET_WEBHOOK_SECRET` opcional para assinar o corpo em HMAC-SHA256), **deliberadamente separado** do `N8N_WEBHOOK_URL` que alimenta o fluxo dos grupos de WhatsApp de evento — um link de redefinição de senha nunca deve poder ser roteado pelo mesmo fluxo que posta em um grupo compartilhado. O fluxo de n8n que você conectar nessa URL é responsável por entregar o link de forma privada (ex.: DM de WhatsApp para o número da pessoa). Sem essa URL configurada, o link continua só no log do servidor — e, depois da correção desta revisão, só fora de produção.
 
-#### Gaps Identificados:
+### 1.11 Cor fora do sistema de tokens
 
-**a) Faltam atributos ARIA em componentes críticos**
-- Modais sem `role="dialog"` e `aria-modal="true"`
-- Botões de ação sem `aria-label` descritivo
-- Gráficos sem descrição textual para screen readers
-
-**b) Contraste de cores precisa validação**
-- Tokens em `globals.css` mencionam validação para daltonismo
-- **Verificar**: Componentes customizados fora do sistema de tokens
-
-**c) Focus management em modais**
-- Trap focus dentro de modais abertos
-- Retornar focus ao elemento que abriu ao fechar
-
-#### Checklist de Implementação:
-
-```tsx
-// src/components/ui/modal.tsx - Exemplo de melhoria
-export function Modal({ children, title, onClose }) {
-  useEffect(() => {
-    // Trap focus
-    const focusable = modalRef.current.querySelectorAll(FOCUSABLE_SELECTORS);
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    
-    // Auto-focus first element
-    first?.focus();
-    
-    return () => {
-      // Restore focus
-      triggerElement?.focus();
-    };
-  }, []);
-  
-  return (
-    <div 
-      role="dialog" 
-      aria-modal="true" 
-      aria-labelledby="modal-title"
-    >
-      <h2 id="modal-title">{title}</h2>
-      {/* ... */}
-    </div>
-  );
-}
-```
-
-### 5. **Tratamento de Erros - Mais Amigável** 🔧
-
-#### Situação Atual:
-```typescript
-try {
-  await algumaOperacao();
-} catch (error) {
-  console.error("Falha", error);
-  return { message: "Erro ao processar." };
-}
-```
-
-#### Melhorias Sugeridas:
-
-```typescript
-// src/lib/utils.ts - Adicionar
-export function getErrorMessage(error: unknown): string {
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    switch (error.code) {
-      case 'P2002': return 'Já existe um registro com estes dados.';
-      case 'P2025': return 'Registro não encontrado.';
-      default: return 'Erro no banco de dados.';
-    }
-  }
-  
-  if (error instanceof ZodError) {
-    return error.errors.map(e => e.message).join(', ');
-  }
-  
-  return error instanceof Error ? error.message : 'Erro inesperado.';
-}
-```
-
-### 6. **Open Finance - Melhorar Feedback** 🔧
-
-#### Problema:
-- Status de sync mostrado, mas sem detalhes do progresso
-- Erros de sync genéricos ("erro ao sincronizar")
-
-#### Solução:
-```typescript
-// Mostrar progresso real
-interface SyncProgress {
-  stage: 'connecting' | 'fetching_accounts' | 'fetching_transactions' | 'done';
-  progress: number; // 0-100
-  message: string;
-}
-
-// Feedback mais específico
-if (item.status === 'ERROR') {
-  switch (item.lastSyncError) {
-    case 'INVALID_CREDENTIALS': 
-      return 'Senha alterada. Atualize suas credenciais.';
-    case 'ACCOUNT_BLOCKED': 
-      return 'Conta bloqueada pelo banco.';
-    default:
-      return item.lastSyncError;
-  }
-}
-```
+Os dois formulários novos (esqueci a senha / redefinir senha) usavam `text-green-600` (uma cor fixa do Tailwind) em vez de `text-success` (o token de design do app, que muda entre tema claro e escuro). Corrigido para usar o token, conforme a regra documentada em `docs/arquitetura.md` ("nomeados por papel, nunca por matiz").
 
 ---
 
-## 🎯 Recomendações Prioritárias
+## 2. O webhook do grupo de WhatsApp — já existe, não precisa de uma variável nova
 
-### Curto Prazo (1-2 semanas)
+O pedido de "uma variável para o webhook do fluxo que gera o grupo com os participantes, e que avisa quando um novo participante entra" **já está implementado**, e não é um recorte pequeno: é `N8N_WEBHOOK_URL` (+ opcionalmente `N8N_WEBHOOK_SECRET` para assinar o corpo), documentado em `.env.example` e em `docs/whatsapp-eventos.md`. Note que isso é uma variável **diferente** da nova `N8N_PASSWORD_RESET_WEBHOOK_URL` da seção 1.10 — propositalmente, para o link de senha de uma pessoa nunca poder vazar no fluxo de grupo de outra. O fluxo do grupo de evento, ponta a ponta:
 
-1. **Melhorar mensagens de erro** - Impacto alto, esforço baixo
-2. **Adicionar validação de máximo em valores monetários** - Prevenção de bugs
-3. **Implementar loading states visíveis** - Melhora percepção de responsividade
-4. **Adicionar tooltips nas primeiras visitas** - Reduz curva de aprendizado
+1. Ao criar um evento marcando "Criar um grupo no WhatsApp", o app publica `event.created` com o telefone de cada participante (`src/app/actions/events.ts` → `publish()` → `buildEventPayload`).
+2. **Cada vez que alguém novo entra no evento pelo link de convite**, o app publica `event.participant_joined` com o telefone de quem entrou (`joinEventByCode`, só na entrada genuinamente nova — reabrir o link não avisa de novo).
+3. Cada despesa **compartilhada** nova publica `event.expense_created`.
+4. O fluxo de n8n (que você monta) recebe esses eventos, cria/mantém o grupo real no WhatsApp e adiciona o número — é o n8n que fala com o WhatsApp, nunca o app diretamente, porque a API oficial da Meta não cria grupos.
+5. O n8n avisa de volta via `POST /api/v1/events/{id}/whatsapp-group`, e o status aparece na tela do evento.
 
-### Médio Prazo (1-2 meses)
-
-5. **Refatorar `revalidatePath` para tags** - Performance
-6. **Implementar acessibilidade em modais** - Inclusividade
-7. **Adicionar validação de telefone E.164** - Confiabilidade WhatsApp
-8. **Criar sistema de feedback de sucesso** - Satisfação do usuário
-
-### Longo Prazo (3-6 meses)
-
-9. **Migrar para cursor-based pagination** - Escalabilidade
-10. **Adicionar analytics de uso** - Decisões baseadas em dados
-11. **Implementar PWA** - Experiência mobile nativa
-12. **Adicionar exportação de relatórios em PDF** - Valor percebido
+Ou seja: **basta preencher `N8N_WEBHOOK_URL` com a URL do seu fluxo do n8n** (em Coolify, como variável de ambiente do serviço) que o recurso descrito já funciona — não há nada faltando no app para isso.
 
 ---
 
-## 📊 Avaliação Geral
+## 3. Painel de Insights — novo
 
-| Categoria | Nota | Comentários |
-|-----------|------|-------------|
-| **Segurança** | ⭐⭐⭐⭐⭐ | Excelente isolamento, autenticação robusta |
-| **Arquitetura** | ⭐⭐⭐⭐⭐ | Separação clara, convenções bem definidas |
-| **UX Geral** | ⭐⭐⭐⭐ | Intuitivo, mas pode melhorar feedback |
-| **Validações** | ⭐⭐⭐⭐ | Zod bem usado, falta alguns edge cases |
-| **Performance** | ⭐⭐⭐⭐ | Bom, mas tem otimizações possíveis |
-| **Acessibilidade** | ⭐⭐⭐ | Funcional, precisa de melhorias |
-| **Documentação** | ⭐⭐⭐⭐⭐ | Excepcional, explica "porquê" não só "como" |
+O pedido de melhorar os insights/dashboard "de forma mais fácil de entender" virou um card novo, **Insights do mês**, logo abaixo dos cartões de Entradas/Saídas/Sobrou. Ele lê os mesmos números que o resto do painel já calcula (nenhuma consulta nova ao banco) e devolve frases diretas em vez de exigir que a pessoa faça a conta de cabeça:
 
-**Nota Geral: 4.3/5.0** 🏆
+- **Taxa de poupança**: "Você guardou 33% da sua renda neste mês — acima dos 20% recomendados" (ou o equivalente quando está gastando mais do que ganha).
+- **Maior categoria de gasto**: "Alimentação é sua maior despesa: R$ 1.200,00 (60% do total gasto)".
+- **Ritmo do mês** (só no mês corrente): compara o que já foi gasto até hoje com a média dos últimos 3 meses completos, ajustada pelo dia do mês — "Já gastou R$ 2.000,00 até o dia 5 — 500% acima do ritmo dos últimos meses". Só aparece quando a diferença é grande o bastante pra valer a pena (±20%) e quando há histórico completo dos 3 meses anteriores, pra não alarmar um usuário novo por comparação com quase nada.
+
+Lógica pura em `src/lib/insights.ts` (sem I/O, testável isoladamente, no mesmo padrão dos outros arquivos de regra de negócio do app), componente de exibição em `src/components/dashboard/insights.tsx`. Testado de ponta a ponta num navegador de verdade, com dados reais em 4 meses diferentes — inclusive confirmando que o card não mostra o insight de ritmo ao olhar um mês passado, só no mês atual.
+
+---
+
+## 4. Pontos fortes que continuam de pé
+
+A arquitetura segue sólida e a maior parte da análise anterior sobre isso continua válida:
+
+- **Isolamento por `userId`** em toda leitura/escrita — confirmado de novo nesta revisão em `financing.ts`, `card-invoices.ts`, `recurrence.ts`, `receivables.ts`, `budgets.ts`, `admin-dal.ts`, `accounts.ts`, `transactions.ts`: nenhuma query sem filtro por dono encontrada.
+- **`verifySession`/`verifyEventAccess`/`verifyAdminSession`** no topo de toda Server Action revisada.
+- **`balanceApplied` como estado universal** (realizado x previsto) e "atrasado" como estado derivado, nunca guardado.
+- **Fila de eventos de saída (`OutboundEvent`) com claim atômico e retentativa com backoff** — a race entre o despacho pós-ação e a varredura da sessão foi revisada e está corretamente protegida contra notificar a mesma despesa duas vezes.
+- **Dedupe de mensagens recebidas** (`InboundMessage`, chave única `(userId, externalId)`) é seguro contra reentrega do provedor.
+
+## 5. Gaps que ficam registrados (não corrigidos nesta revisão)
+
+- Redefinir a senha não invalida outras sessões já abertas em outros aparelhos.
+- O webhook de reset de senha (seção 1.10) é fire-and-forget: se o n8n estiver fora do ar no momento do pedido, a pessoa não recebe o link e não há retentativa (diferente da fila com backoff que `N8N_WEBHOOK_URL` usa). Para o volume de um reset de senha isso tende a ser aceitável, mas vale saber que não tem a mesma garantia de entrega.
+- `revalidatePath` continua chamado várias vezes por mutação em vez de tags mais granulares (Next 15+) — não é um bug, só uma otimização possível.
 
 ---
 
 ## 💡 Conclusão
 
-O **FinanceBot** é um projeto **muito bem arquitetado** com fundamentos sólidos de segurança, modelagem de dados inteligente e UX pensada. As principais oportunidades estão em:
-
-1. **Polir arestas** - Mensagens de erro, validações de edge case
-2. **Melhorar feedback** - Loading states, confirmações visuais
-3. **Acessibilidade** - ARIA attributes, focus management
-4. **Performance** - Revalidate tags, pagination
-
-O código demonstra **maturidade técnica** com comentários explicando decisões de design, funções puras para lógica de negócio, e preocupação genuína com isolamento de dados. É um excelente ponto de partida para um produto profissional.
-
----
-
-## 📝 Próximos Passos Sugeridos
-
-Se quiser, posso implementar qualquer uma destas melhorias:
-
-1. **Refatorar validações** com limites e mensagens melhores
-2. **Criar componentes de feedback** (toast, loading, success)
-3. **Implementar acessibilidade** em componentes críticos
-4. **Otimizar revalidações** com tags do Next.js 15
-5. **Adicionar testes** para lógica de negócio crítica
-
-Me diga qual prioridade você quer atacar primeiro! 🚀
+O maior risco não estava na lógica de negócio "de sempre" (que segue madura e bem isolada) — estava num commit recente e mal revisado que deixou o projeto **sem buildar** e com um `.gitignore` que descartaria silenciosamente qualquer migration futura. Corrigido e verificado rodando o app de ponta a ponta (build de produção limpo, Postgres real, cadastro/login/redefinição de senha e o painel novo testados num navegador de verdade), com a entrega do link de reset agora passando por um webhook dedicado em vez de só aparecer no log do servidor. O pedido do webhook de grupo de WhatsApp já está coberto por `N8N_WEBHOOK_URL`; o painel agora tem uma leitura em português simples do que os números do mês significam.

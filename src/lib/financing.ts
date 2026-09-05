@@ -9,6 +9,17 @@ import {
 } from "@/lib/recurrence";
 import { signedAmount } from "@/lib/utils";
 
+// Money is stored as a Float; every arithmetic result written back to the
+// database is snapped to centavos here, the same rule transactions.ts
+// applies to every settlement it computes. Summing several due
+// installments in plain JS floats before this (R$10.10 + R$20.20 + R$5.05
+// = 35.349999999999994) would otherwise bake that residue permanently
+// into Account.balance — this function runs on every request via
+// verifySession(), so the drift would never get a chance to correct itself.
+function toCents(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
 export type ScheduledInstallment = {
   installmentNumber: number;
   date: Date;
@@ -102,7 +113,10 @@ export async function reconcileDueInstallments(userId: string) {
 
   await prisma.$transaction([
     ...Array.from(deltaByAccount.entries()).map(([accountId, delta]) =>
-      prisma.account.update({ where: { id: accountId }, data: { balance: { increment: delta } } })
+      prisma.account.update({
+        where: { id: accountId },
+        data: { balance: { increment: toCents(delta) } },
+      })
     ),
     prisma.transaction.updateMany({
       where: { id: { in: due.map((t) => t.id) } },
@@ -177,16 +191,24 @@ export async function maintainRecurringSchedules(userId: string) {
 
     const frequency = toFrequency(f.frequency);
     let number = edge?.installmentNumber ?? 0;
-    // With nothing materialized yet (a brand-new entry, or one whose every
-    // occurrence was just trimmed) the first due date is itself the next
-    // occurrence; otherwise pick up one interval past the furthest one.
-    let candidate = furthest ? addIntervalUTC(furthest, frequency, 1) : f.firstDueDate;
 
     const rows = [];
+    // Every occurrence is computed from the fixed anchor (firstDueDate) at
+    // its own step count — exactly like buildInstallmentSchedule — never by
+    // adding one more interval to the previous occurrence. Chaining would
+    // let a clamped date compound: Jan 31 + 1 month lands on Feb 28 (there
+    // is no Feb 31), and stepping from *that* date one month at a time
+    // never finds its way back to day 31 — every later occurrence would
+    // drift to day 28 forever. Recomputing from the anchor each time can't
+    // drift, because addMonthsUTC always clamps against the real firstDueDate,
+    // not against whatever the previous clamp produced.
+    //
     // `<= horizon`, never `<`: appending one occurrence past the horizon
     // would be deleted by the trim at the top of the next run, and
     // re-appended by this loop, forever.
-    while (candidate <= horizon && rows.length < MAX_APPEND_PER_RUN) {
+    while (rows.length < MAX_APPEND_PER_RUN) {
+      const candidate = addIntervalUTC(f.firstDueDate, frequency, number);
+      if (candidate > horizon) break;
       number += 1;
       rows.push({
         userId,
@@ -200,7 +222,6 @@ export async function maintainRecurringSchedules(userId: string) {
         balanceApplied: false,
         financingId: f.id,
       });
-      candidate = addIntervalUTC(candidate, frequency, 1);
     }
 
     if (rows.length > 0) {

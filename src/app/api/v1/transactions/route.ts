@@ -5,12 +5,23 @@ import { authenticateApiRequest, rateLimit } from "@/lib/api-auth";
 import { signedAmount } from "@/lib/utils";
 import { transactionStatus } from "@/lib/transaction-status";
 
+// Same ceiling every browser-facing amount field enforces (see
+// lib/validation/transactions.ts) — a token-authenticated public endpoint
+// is exactly the surface where a misbehaving automation or a leaked token
+// should not be able to write an unbounded amount straight into a balance.
+const MAX_AMOUNT = 10000000;
+
 // Structured create, for an automation that already knows what it wants to
 // post (or for anyone scripting against their own data). The WhatsApp agent
 // uses /api/v1/messages instead and lets the app do the interpreting.
 const CreateSchema = z.object({
   description: z.string().trim().min(1).max(120),
-  amount: z.number().positive({ error: "O valor deve ser maior que zero." }),
+  amount: z
+    .number()
+    .positive({ error: "O valor deve ser maior que zero." })
+    .max(MAX_AMOUNT, {
+      error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.`,
+    }),
   type: z.enum(["income", "expense"]),
   // Names, not ids: an automation shouldn't have to know internal ids, and
   // names are what a person can read in an n8n node. Unknown name = 400,

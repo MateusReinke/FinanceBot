@@ -1,6 +1,6 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
@@ -14,12 +14,14 @@ import {
 import type { FormState } from "@/lib/form-state";
 import { createUserWithDefaultCategories } from "@/lib/user-provisioning";
 import { isAdminEmail } from "@/lib/admin";
+import { notifyPasswordResetInBackground } from "@/lib/password-reset-webhook";
 
-// Token expiration: 1 hour
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
 
-async function generateResetToken(): Promise<string> {
-  return randomBytes(32).toString("hex");
+// Same rule ApiToken follows (src/lib/api-auth.ts): only the hash is ever
+// stored, so a database dump never yields a working reset link.
+function hashResetToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 export async function signup(_state: FormState, formData: FormData): Promise<FormState> {
@@ -128,36 +130,49 @@ export async function requestPasswordReset(
 
   const user = await prisma.user.findUnique({ where: { email } });
 
-  // Same message either way — a different one for "not registered" would let
-  // an attacker enumerate which e-mails have accounts here.
+  const genericState: FormState = {
+    success: true,
+    message: "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.",
+  };
+
+  // Same response whether the account exists, has no password (a
+  // Google-only login), or genuinely got a token below — telling them
+  // apart here is exactly how email enumeration works.
   if (!user || !user.passwordHash) {
-    return {
-      success: true,
-      message: "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.",
-    };
+    return genericState;
   }
 
-  const resetToken = await generateResetToken();
+  const resetToken = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
   await prisma.passwordReset.create({
     data: {
       userId: user.id,
-      token: resetToken,
+      tokenHash: hashResetToken(resetToken),
       expiresAt,
     },
   });
 
-  // TODO: send this by e-mail (Resend, SendGrid, ...) instead of logging it —
-  // there is no delivery channel wired up yet, so this link never reaches
-  // the user outside of local development.
   const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
-  console.log(`[PASSWORD RESET] Link para ${email}: ${resetLink}`);
 
-  return {
-    success: true,
-    message: "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.",
-  };
+  // Delivery is a dedicated n8n webhook (N8N_PASSWORD_RESET_WEBHOOK_URL, see
+  // src/lib/password-reset-webhook.ts), kept separate from the WhatsApp
+  // group automation in src/lib/outbound.ts — no e-mail provider is wired
+  // into this app. The console.log stays as a local-only fallback so the
+  // link is still reachable when that webhook isn't configured, but never
+  // in production: it's a credential, not a debug trace.
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[PASSWORD RESET] Link para ${email}: ${resetLink}`);
+  }
+  notifyPasswordResetInBackground({
+    name: user.name,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    resetLink,
+    expiresAt,
+  });
+
+  return genericState;
 }
 
 export async function resetPassword(_state: FormState, formData: FormData): Promise<FormState> {
@@ -172,28 +187,24 @@ export async function resetPassword(_state: FormState, formData: FormData): Prom
   }
 
   const { password, token } = validatedFields.data;
+  const tokenHash = hashResetToken(token);
 
-  const resetRecord = await prisma.passwordReset.findUnique({
-    where: { token },
-    include: { user: true },
-  });
-
+  const resetRecord = await prisma.passwordReset.findUnique({ where: { tokenHash } });
   if (!resetRecord) {
     return { message: "Token de redefinição inválido ou expirado." };
   }
-
   if (new Date() > resetRecord.expiresAt) {
-    await prisma.passwordReset.delete({ where: { token } });
+    await prisma.passwordReset.delete({ where: { tokenHash } });
     return { message: "Token de redefinição expirado. Solicite um novo link." };
   }
 
+  // One transaction: the token must never survive a password that failed
+  // to update, and the password must never change without burning it.
   const passwordHash = await hashPassword(password);
-  await prisma.user.update({
-    where: { id: resetRecord.userId },
-    data: { passwordHash },
-  });
-
-  await prisma.passwordReset.delete({ where: { token } });
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: resetRecord.userId }, data: { passwordHash } }),
+    prisma.passwordReset.delete({ where: { tokenHash } }),
+  ]);
 
   return {
     success: true,
