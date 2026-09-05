@@ -76,7 +76,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             </span>
             FinanceBot
           </div>
-          {children}
+          {/* The same `surface` treatment every panel in the app uses, so the
+              form reads as a card the product placed on the page rather than
+              a bare form sitting on bare background. */}
+          <div className="surface p-6 sm:p-8">{children}</div>
         </div>
       </div>
     </div>

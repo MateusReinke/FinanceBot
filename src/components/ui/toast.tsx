@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from "react";
 
 type ToastType = "success" | "error" | "info" | "warning";
 
@@ -34,7 +34,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (toast: Omit<Toast, "id">) => {
       const id = Math.random().toString(36).substr(2, 9);
       const newToast: Toast = { id, duration: 5000, ...toast };
-      
+
       setToasts((prev) => [...prev, newToast]);
 
       // Auto-remove after duration
@@ -45,26 +45,50 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [removeToast]
   );
 
-  const success = useCallback((message: string) => {
-    addToast({ type: "success", message });
-  }, [addToast]);
+  const success = useCallback(
+    (message: string) => {
+      addToast({ type: "success", message });
+    },
+    [addToast]
+  );
 
-  const error = useCallback((message: string) => {
-    addToast({ type: "error", message });
-  }, [addToast]);
+  const error = useCallback(
+    (message: string) => {
+      addToast({ type: "error", message });
+    },
+    [addToast]
+  );
 
-  const info = useCallback((message: string) => {
-    addToast({ type: "info", message });
-  }, [addToast]);
+  const info = useCallback(
+    (message: string) => {
+      addToast({ type: "info", message });
+    },
+    [addToast]
+  );
 
-  const warning = useCallback((message: string) => {
-    addToast({ type: "warning", message });
-  }, [addToast]);
+  const warning = useCallback(
+    (message: string) => {
+      addToast({ type: "warning", message });
+    },
+    [addToast]
+  );
+
+  // The actions (addToast, success, ...) are already stable across renders
+  // via useCallback; memoizing the object they're packaged into means a
+  // consumer that only reads one of those actions doesn't see a new
+  // reference on every render that isn't about them. `toasts` still changes
+  // the reference on its own — a consumer needs the individual stable
+  // action, not this whole object, if it wants to avoid re-running an
+  // effect every time a toast is shown (see ResetPasswordForm).
+  const value = useMemo(
+    () => ({ toasts, addToast, removeToast, success, error, info, warning }),
+    [toasts, addToast, removeToast, success, error, info, warning]
+  );
 
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast, success, error, info, warning }}>
+    <ToastContext.Provider value={value}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex max-w-md flex-col gap-2">
+      <div className="fixed right-4 bottom-4 z-50 flex max-w-md flex-col gap-2">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
         ))}
@@ -92,13 +116,13 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     <div
       role="alert"
       aria-live="polite"
-      className={`${bgColors[toast.type]} text-white rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 min-w-[300px] animate-slide-in-right`}
+      className={`${bgColors[toast.type]} animate-slide-in-right flex min-w-[300px] items-center gap-3 rounded-lg px-4 py-3 text-white shadow-lg`}
     >
       <span className="text-lg font-bold">{icons[toast.type]}</span>
       <p className="flex-1 text-sm font-medium">{toast.message}</p>
       <button
         onClick={onClose}
-        className="ml-2 hover:opacity-75 transition-opacity"
+        className="ml-2 transition-opacity hover:opacity-75"
         aria-label="Fechar notificação"
       >
         ✕

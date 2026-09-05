@@ -10,16 +10,21 @@ import { useToast } from "@/components/ui/toast";
 export function ResetPasswordForm({ token }: { token: string }) {
   const [state, action] = useActionState(resetPassword, undefined);
   const router = useRouter();
-  const toast = useToast();
+  // Only the (stable, useCallback-memoized) function itself, never the
+  // whole toast object — that object's identity changes every time a toast
+  // is shown or expires, which turned this effect into an infinite loop:
+  // it fires, shows a toast, the identity changes, it fires again.
+  const { success: notifySuccess } = useToast();
 
   useEffect(() => {
     if (state?.success) {
-      toast.success(state.message || "Senha redefinida com sucesso!");
-      setTimeout(() => {
+      notifySuccess(state.message || "Senha redefinida com sucesso!");
+      const timeout = setTimeout(() => {
         router.push("/login");
       }, 2000);
+      return () => clearTimeout(timeout);
     }
-  }, [state?.success, state?.message, router, toast]);
+  }, [state?.success, state?.message, router, notifySuccess]);
 
   return (
     <form action={action} className="space-y-4">
@@ -48,12 +53,12 @@ export function ResetPasswordForm({ token }: { token: string }) {
         <FieldError messages={state?.errors?.confirmPassword} />
       </div>
       {state?.message && !state?.success ? (
-        <p className="text-danger text-sm" role="alert">
+        <p className="bg-danger-bg text-danger rounded-lg px-3 py-2 text-sm" role="alert">
           {state.message}
         </p>
       ) : null}
       {state?.success ? (
-        <p className="text-green-600 text-sm" role="status">
+        <p className="bg-success-bg text-success rounded-lg px-3 py-2 text-sm" role="status">
           {state.message}
         </p>
       ) : null}

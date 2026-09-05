@@ -57,6 +57,7 @@ model User {
   eventExpensePayments EventExpensePayment[] @relation("EventExpensePayer")
   eventExpenseSplits  EventExpenseSplit[]
   uploadedReceipts    EventReceipt[]
+  passwordResets      PasswordReset[]
 }
 
 // One bank connection made through the Open Finance aggregator (Pluggy).

@@ -24,7 +24,14 @@ export function ForgotPasswordForm() {
         <FieldError messages={state?.errors?.email} />
       </div>
       {state?.message ? (
-        <p className={`text-sm ${state.success ? 'text-green-600' : 'text-danger'}`} role="alert">
+        <p
+          className={
+            state.success
+              ? "bg-success-bg text-success rounded-lg px-3 py-2 text-sm"
+              : "bg-danger-bg text-danger rounded-lg px-3 py-2 text-sm"
+          }
+          role={state.success ? "status" : "alert"}
+        >
           {state.message}
         </p>
       ) : null}

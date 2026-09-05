@@ -5,7 +5,12 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, deleteSession } from "@/lib/session";
-import { LoginSchema, SignupSchema, ForgotPasswordSchema, ResetPasswordSchema } from "@/lib/validation/auth";
+import {
+  LoginSchema,
+  SignupSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
+} from "@/lib/validation/auth";
 import type { FormState } from "@/lib/form-state";
 import { createUserWithDefaultCategories } from "@/lib/user-provisioning";
 import { isAdminEmail } from "@/lib/admin";
@@ -77,7 +82,7 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
   if (user && !user.passwordHash) {
     return {
       message:
-        "Esta conta entra com o Google. Use o botão "Entrar com Google" — ou defina uma senha em Configurações depois de entrar.",
+        'Esta conta entra com o Google. Use o botão "Entrar com Google" — ou defina uma senha em Configurações depois de entrar.',
     };
   }
   if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
@@ -107,7 +112,10 @@ export async function logout() {
   redirect("/login");
 }
 
-export async function requestPasswordReset(_state: FormState, formData: FormData): Promise<FormState> {
+export async function requestPasswordReset(
+  _state: FormState,
+  formData: FormData
+): Promise<FormState> {
   const validatedFields = ForgotPasswordSchema.safeParse({
     email: formData.get("email"),
   });
@@ -119,22 +127,19 @@ export async function requestPasswordReset(_state: FormState, formData: FormData
   const { email } = validatedFields.data;
 
   const user = await prisma.user.findUnique({ where: { email } });
-  
-  // Always return success message to prevent email enumeration attacks
-  // Even if user doesn't exist, we return the same message
+
+  // Same message either way — a different one for "not registered" would let
+  // an attacker enumerate which e-mails have accounts here.
   if (!user || !user.passwordHash) {
-    return { 
-      success: true, 
-      message: "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha." 
+    return {
+      success: true,
+      message: "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.",
     };
   }
 
-  // Generate reset token
   const resetToken = await generateResetToken();
   const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
-  // Store token in database (we'll add a PasswordReset table or use existing)
-  // For now, store in a temporary table or add to user metadata
   await prisma.passwordReset.create({
     data: {
       userId: user.id,
@@ -143,21 +148,15 @@ export async function requestPasswordReset(_state: FormState, formData: FormData
     },
   });
 
-  // In production, send email with reset link
-  // For now, log it (in development, you can check the console)
+  // TODO: send this by e-mail (Resend, SendGrid, ...) instead of logging it —
+  // there is no delivery channel wired up yet, so this link never reaches
+  // the user outside of local development.
   const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
   console.log(`[PASSWORD RESET] Link para ${email}: ${resetLink}`);
-  
-  // TODO: Implement actual email sending via Resend, SendGrid, etc.
-  // await sendEmail({
-  //   to: email,
-  //   subject: "Redefinição de Senha - FinanceBot",
-  //   html: `...`,
-  // });
 
-  return { 
-    success: true, 
-    message: "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha." 
+  return {
+    success: true,
+    message: "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.",
   };
 }
 
@@ -174,7 +173,6 @@ export async function resetPassword(_state: FormState, formData: FormData): Prom
 
   const { password, token } = validatedFields.data;
 
-  // Find valid reset token
   const resetRecord = await prisma.passwordReset.findUnique({
     where: { token },
     include: { user: true },
@@ -184,27 +182,21 @@ export async function resetPassword(_state: FormState, formData: FormData): Prom
     return { message: "Token de redefinição inválido ou expirado." };
   }
 
-  // Check if token is expired
   if (new Date() > resetRecord.expiresAt) {
-    // Clean up expired token
     await prisma.passwordReset.delete({ where: { token } });
     return { message: "Token de redefinição expirado. Solicite um novo link." };
   }
 
-  // Hash new password and update user
   const passwordHash = await hashPassword(password);
   await prisma.user.update({
     where: { id: resetRecord.userId },
     data: { passwordHash },
   });
 
-  // Delete used token
   await prisma.passwordReset.delete({ where: { token } });
 
-  // Optionally: create session and redirect to dashboard
-  // For security, we'll just redirect to login
-  return { 
-    success: true, 
-    message: "Senha redefinida com sucesso! Faça login com sua nova senha." 
+  return {
+    success: true,
+    message: "Senha redefinida com sucesso! Faça login com sua nova senha.",
   };
 }
