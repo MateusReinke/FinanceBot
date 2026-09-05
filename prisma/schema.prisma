@@ -51,6 +51,7 @@ model User {
   inboundMessages  InboundMessage[]
   googleAccount    GoogleAccount?
   contacts         Contact[]
+  passwordResets   PasswordReset[]
 
   createdEvents       Event[]             @relation("EventCreator")
   eventParticipations EventParticipant[]
@@ -607,14 +608,15 @@ model Contact {
   @@index([userId, name])
 }
 
-// Password reset tokens — one per user request, single-use, short-lived.
-// Deleted automatically when used or expired, so this table stays small.
+// Password reset tokens — one per request, single-use, short-lived (1h).
+// Only the SHA-256 hash is stored, the same rule ApiToken follows: a
+// database dump must not yield a working reset link. Deleted the moment
+// it is used or found expired, so this table stays small.
 model PasswordReset {
   id        String   @id @default(cuid())
   userId    String
-  token     String   @unique // cryptographically random hex, never guessable
-  expiresAt DateTime // typically 1 hour from creation
-  
+  tokenHash String   @unique
+  expiresAt DateTime
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

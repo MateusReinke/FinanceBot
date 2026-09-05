@@ -34,7 +34,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (toast: Omit<Toast, "id">) => {
       const id = Math.random().toString(36).substr(2, 9);
       const newToast: Toast = { id, duration: 5000, ...toast };
-      
+
       setToasts((prev) => [...prev, newToast]);
 
       // Auto-remove after duration
@@ -45,26 +45,38 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [removeToast]
   );
 
-  const success = useCallback((message: string) => {
-    addToast({ type: "success", message });
-  }, [addToast]);
+  const success = useCallback(
+    (message: string) => {
+      addToast({ type: "success", message });
+    },
+    [addToast]
+  );
 
-  const error = useCallback((message: string) => {
-    addToast({ type: "error", message });
-  }, [addToast]);
+  const error = useCallback(
+    (message: string) => {
+      addToast({ type: "error", message });
+    },
+    [addToast]
+  );
 
-  const info = useCallback((message: string) => {
-    addToast({ type: "info", message });
-  }, [addToast]);
+  const info = useCallback(
+    (message: string) => {
+      addToast({ type: "info", message });
+    },
+    [addToast]
+  );
 
-  const warning = useCallback((message: string) => {
-    addToast({ type: "warning", message });
-  }, [addToast]);
+  const warning = useCallback(
+    (message: string) => {
+      addToast({ type: "warning", message });
+    },
+    [addToast]
+  );
 
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast, success, error, info, warning }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex max-w-md flex-col gap-2">
+      <div className="fixed right-4 bottom-4 z-50 flex max-w-md flex-col gap-2">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
         ))}
@@ -92,13 +104,13 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     <div
       role="alert"
       aria-live="polite"
-      className={`${bgColors[toast.type]} text-white rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 min-w-[300px] animate-slide-in-right`}
+      className={`${bgColors[toast.type]} animate-slide-in-right flex min-w-[300px] items-center gap-3 rounded-lg px-4 py-3 text-white shadow-lg`}
     >
       <span className="text-lg font-bold">{icons[toast.type]}</span>
       <p className="flex-1 text-sm font-medium">{toast.message}</p>
       <button
         onClick={onClose}
-        className="ml-2 hover:opacity-75 transition-opacity"
+        className="ml-2 transition-opacity hover:opacity-75"
         aria-label="Fechar notificação"
       >
         ✕

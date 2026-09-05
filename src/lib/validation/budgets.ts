@@ -8,7 +8,9 @@ export const BudgetSchema = z.object({
   amount: z.coerce
     .number({ error: "Informe um valor válido." })
     .positive({ error: "O valor deve ser maior que zero." })
-    .max(MAX_AMOUNT, { error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.` }),
+    .max(MAX_AMOUNT, {
+      error: `Valor máximo permitido é R$ ${MAX_AMOUNT.toLocaleString("pt-BR")}.`,
+    }),
   month: z.coerce.number().int().min(1).max(12),
   year: z.coerce.number().int().min(2000).max(2100),
 });

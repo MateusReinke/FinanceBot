@@ -1,20 +1,26 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, deleteSession } from "@/lib/session";
-import { LoginSchema, SignupSchema, ForgotPasswordSchema, ResetPasswordSchema } from "@/lib/validation/auth";
+import {
+  LoginSchema,
+  SignupSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
+} from "@/lib/validation/auth";
 import type { FormState } from "@/lib/form-state";
 import { createUserWithDefaultCategories } from "@/lib/user-provisioning";
 import { isAdminEmail } from "@/lib/admin";
 
-// Token expiration: 1 hour
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
 
-async function generateResetToken(): Promise<string> {
-  return randomBytes(32).toString("hex");
+// Same rule ApiToken follows (src/lib/api-auth.ts): only the hash is ever
+// stored, so a database dump never yields a working reset link.
+function hashResetToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 export async function signup(_state: FormState, formData: FormData): Promise<FormState> {
@@ -77,7 +83,7 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
   if (user && !user.passwordHash) {
     return {
       message:
-        "Esta conta entra com o Google. Use o botão "Entrar com Google" — ou defina uma senha em Configurações depois de entrar.",
+        'Esta conta entra com o Google. Use o botão "Entrar com Google" — ou defina uma senha em Configurações depois de entrar.',
     };
   }
   if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
@@ -107,7 +113,10 @@ export async function logout() {
   redirect("/login");
 }
 
-export async function requestPasswordReset(_state: FormState, formData: FormData): Promise<FormState> {
+export async function requestPasswordReset(
+  _state: FormState,
+  formData: FormData
+): Promise<FormState> {
   const validatedFields = ForgotPasswordSchema.safeParse({
     email: formData.get("email"),
   });
@@ -119,46 +128,42 @@ export async function requestPasswordReset(_state: FormState, formData: FormData
   const { email } = validatedFields.data;
 
   const user = await prisma.user.findUnique({ where: { email } });
-  
-  // Always return success message to prevent email enumeration attacks
-  // Even if user doesn't exist, we return the same message
+
+  const genericState: FormState = {
+    success: true,
+    message: "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.",
+  };
+
+  // Same response whether the account exists, has no password (a
+  // Google-only login), or genuinely got a token below — telling them
+  // apart here is exactly how email enumeration works.
   if (!user || !user.passwordHash) {
-    return { 
-      success: true, 
-      message: "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha." 
-    };
+    return genericState;
   }
 
-  // Generate reset token
-  const resetToken = await generateResetToken();
+  const resetToken = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
-  // Store token in database (we'll add a PasswordReset table or use existing)
-  // For now, store in a temporary table or add to user metadata
   await prisma.passwordReset.create({
     data: {
       userId: user.id,
-      token: resetToken,
+      tokenHash: hashResetToken(resetToken),
       expiresAt,
     },
   });
 
-  // In production, send email with reset link
-  // For now, log it (in development, you can check the console)
   const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
-  console.log(`[PASSWORD RESET] Link para ${email}: ${resetLink}`);
-  
-  // TODO: Implement actual email sending via Resend, SendGrid, etc.
-  // await sendEmail({
-  //   to: email,
-  //   subject: "Redefinição de Senha - FinanceBot",
-  //   html: `...`,
-  // });
 
-  return { 
-    success: true, 
-    message: "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha." 
-  };
+  // No email provider is wired into this app (see docs/seguranca.md) — the
+  // rest of FinanceBot reaches a user over WhatsApp, never email, and that
+  // pipeline expects a phone number, not this flow's plaintext link. Until
+  // one of those is connected, this link only reaches whoever can read the
+  // server's own logs, and only outside production.
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[PASSWORD RESET] Link para ${email}: ${resetLink}`);
+  }
+
+  return genericState;
 }
 
 export async function resetPassword(_state: FormState, formData: FormData): Promise<FormState> {
@@ -173,38 +178,27 @@ export async function resetPassword(_state: FormState, formData: FormData): Prom
   }
 
   const { password, token } = validatedFields.data;
+  const tokenHash = hashResetToken(token);
 
-  // Find valid reset token
-  const resetRecord = await prisma.passwordReset.findUnique({
-    where: { token },
-    include: { user: true },
-  });
-
+  const resetRecord = await prisma.passwordReset.findUnique({ where: { tokenHash } });
   if (!resetRecord) {
     return { message: "Token de redefinição inválido ou expirado." };
   }
-
-  // Check if token is expired
   if (new Date() > resetRecord.expiresAt) {
-    // Clean up expired token
-    await prisma.passwordReset.delete({ where: { token } });
+    await prisma.passwordReset.delete({ where: { tokenHash } });
     return { message: "Token de redefinição expirado. Solicite um novo link." };
   }
 
-  // Hash new password and update user
+  // One transaction: the token must never survive a password that failed
+  // to update, and the password must never change without burning it.
   const passwordHash = await hashPassword(password);
-  await prisma.user.update({
-    where: { id: resetRecord.userId },
-    data: { passwordHash },
-  });
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: resetRecord.userId }, data: { passwordHash } }),
+    prisma.passwordReset.delete({ where: { tokenHash } }),
+  ]);
 
-  // Delete used token
-  await prisma.passwordReset.delete({ where: { token } });
-
-  // Optionally: create session and redirect to dashboard
-  // For security, we'll just redirect to login
-  return { 
-    success: true, 
-    message: "Senha redefinida com sucesso! Faça login com sua nova senha." 
+  return {
+    success: true,
+    message: "Senha redefinida com sucesso! Faça login com sua nova senha.",
   };
 }
