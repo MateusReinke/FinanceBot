@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from "react";
 
 type ToastType = "success" | "error" | "info" | "warning";
 
@@ -73,8 +73,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [addToast]
   );
 
+  // The actions (addToast, success, ...) are already stable across renders
+  // via useCallback; memoizing the object they're packaged into means a
+  // consumer that only reads one of those actions doesn't see a new
+  // reference on every render that isn't about them. `toasts` still changes
+  // the reference on its own — a consumer needs the individual stable
+  // action, not this whole object, if it wants to avoid re-running an
+  // effect every time a toast is shown (see ResetPasswordForm).
+  const value = useMemo(
+    () => ({ toasts, addToast, removeToast, success, error, info, warning }),
+    [toasts, addToast, removeToast, success, error, info, warning]
+  );
+
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast, success, error, info, warning }}>
+    <ToastContext.Provider value={value}>
       {children}
       <div className="fixed right-4 bottom-4 z-50 flex max-w-md flex-col gap-2">
         {toasts.map((toast) => (

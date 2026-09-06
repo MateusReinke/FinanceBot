@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { transactionStatus } from "@/lib/transaction-status";
+import { computeInsights } from "@/lib/insights";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { CashflowChart } from "@/components/charts/cashflow-chart";
 import { CategoryBarChart } from "@/components/charts/category-bar-chart";
@@ -29,6 +30,7 @@ import { UpcomingBills, UpcomingBillsEmpty } from "@/components/dashboard/upcomi
 import { BalanceHero } from "@/components/dashboard/balance-hero";
 import { DueAlerts } from "@/components/dashboard/due-alerts";
 import { GettingStarted } from "@/components/dashboard/getting-started";
+import { Insights } from "@/components/dashboard/insights";
 
 export const metadata: Metadata = { title: "Painel — FinanceBot" };
 
@@ -109,6 +111,18 @@ export default async function DashboardPage({
   const budgetSpent = data.budgetProgress.reduce((sum, b) => sum + b.spent, 0);
   const budgetPercent = budgetTotal > 0 ? (budgetSpent / budgetTotal) * 100 : 0;
   const budgetOver = budgetSpent > budgetTotal;
+
+  // Plain-language read of the numbers above — same data, no second query.
+  const insights = computeInsights({
+    income: data.income,
+    expense: data.expense,
+    net: data.net,
+    expenseBreakdown: data.expenseBreakdown,
+    cashflow: data.cashflow,
+    month,
+    year,
+    isCurrentMonth,
+  });
 
   return (
     <div className="space-y-6">
@@ -269,6 +283,8 @@ export default async function DashboardPage({
               />
             ) : null}
           </div>
+
+          <Insights insights={insights} />
 
           {isCurrentMonth ? (
             hasBills ? (
