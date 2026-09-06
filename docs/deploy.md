@@ -21,7 +21,7 @@ banco configurado.
 | `POSTGRES_PASSWORD`                         | sim         | senha do Postgres (gerada uma vez, usada internamente)                                                                  |
 | `SESSION_SECRET`                            | sim         | `openssl rand -base64 32`                                                                                               |
 | `POSTGRES_USER` / `POSTGRES_DB`             | não         | default `financebot` para os dois                                                                                       |
-| `APP_PORT`                                  | não         | porta pública de acesso — default `3000`, mude aqui pelo painel se quiser outra                                         |
+| `APP_PORT`                                  | não         | porta pública de acesso — default `3456`, mude aqui pelo painel se quiser outra                                         |
 | `ADMIN_EMAIL`                               | não         | e-mail que vira admin ao se cadastrar/logar                                                                             |
 | `COOKIE_SECURE`                             | não         | deixe em branco (exige HTTPS, o correto). `false` só se ainda não configurou domínio/TLS — veja aviso abaixo            |
 | `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | não         | credenciais de produção do Pluggy, se for usar Open Finance                                                             |
@@ -61,11 +61,11 @@ Variables" começa vazia e cada uma abaixo precisa ser adicionada na mão:
    | `OPENAI_API_KEY`                            | não         | chave da OpenAI — liga o Assistente de IA (topbar) e a leitura de nota fiscal (Eventos)                      |
    | `OPENAI_MODEL`                              | não         | sobrescreve o modelo usado pelas duas features de IA (padrão: `gpt-4o`)                                      |
 
-3. Confira o campo **"Ports Exposes"**: precisa ser `3000` (é o que o
+3. Confira o campo **"Ports Exposes"**: precisa ser `3456` (é o que o
    Dockerfile expõe e o que `server.js` escuta por padrão via `PORT`/
    `HOSTNAME`) — a menos que você também adicione uma variável `PORT` com
    outro valor, aí os dois precisam bater. A porta pública de acesso em si
-   fica em **"Port Mappings"** (`<porta que você quiser>:3000`).
+   fica em **"Port Mappings"** (`<porta que você quiser>:3456`).
 
 ## "Consigo logar, mas todo clique volta pro /login"
 
@@ -110,7 +110,7 @@ se o deploy foi bem-sucedido antes de rotear tráfego para o novo container.
 ```bash
 docker compose up -d          # só o Postgres, para desenvolvimento
 docker build -t financebot .
-docker run -p 3000:3000 \
+docker run -p 3456:3456 \
   -e DATABASE_URL="postgresql://financebot:financebot_dev_pw@host.docker.internal:5432/financebot?schema=public" \
   -e SESSION_SECRET="$(openssl rand -base64 32)" \
   financebot

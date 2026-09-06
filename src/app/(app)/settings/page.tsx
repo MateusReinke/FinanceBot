@@ -38,7 +38,7 @@ export default async function SettingsPage() {
   ]);
   // Built from the request rather than an env var so the snippet shows the
   // URL this deployment is actually reachable at.
-  const host = headerList.get("x-forwarded-host") ?? headerList.get("host") ?? "localhost:3000";
+  const host = headerList.get("x-forwarded-host") ?? headerList.get("host") ?? "localhost:3456";
   const proto =
     headerList.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const baseUrl = `${proto}://${host}`;

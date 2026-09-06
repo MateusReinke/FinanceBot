@@ -31,7 +31,7 @@ visível e desligado. O app roda inteiro só com `DATABASE_URL` e
    crie um projeto e uma credencial do tipo **OAuth client ID → Web application**.
 2. Em **Authorized redirect URIs**, registre
    `https://SEU-DOMINIO/api/auth/google/callback` (em dev,
-   `http://localhost:3000/api/auth/google/callback`). A URI tem que bater byte
+   `http://localhost:3456/api/auth/google/callback`). A URI tem que bater byte
    a byte com a que o app envia.
 3. Cole o client ID e o secret em `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
 4. Reinicie o servidor — o botão **Entrar com Google** aparece em `/login` e
