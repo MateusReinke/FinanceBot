@@ -37,10 +37,10 @@ services:
       OPENAI_MODEL: "${OPENAI_MODEL:-}"
       # Fixo — é o que o Dockerfile expõe. O lado esquerdo do mapeamento de
       # porta abaixo (APP_PORT) é o que fica configurável pelo painel.
-      PORT: "3000"
+      PORT: "3456"
       HOSTNAME: "0.0.0.0"
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-3456}:3456"
     depends_on:
       postgres:
         condition: service_healthy

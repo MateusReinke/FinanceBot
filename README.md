@@ -23,7 +23,7 @@ npm run db:migrate   # aplica as migrations e gera o Prisma Client
 npm run dev
 ```
 
-Abra <http://localhost:3000> e crie uma conta. Categorias padrão são criadas
+Abra <http://localhost:3456> e crie uma conta. Categorias padrão são criadas
 automaticamente, e a primeira entrada cai no guia de primeiros passos.
 
 Se o e-mail do cadastro for igual ao `ADMIN_EMAIL` do `.env`, essa conta

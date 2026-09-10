@@ -52,7 +52,7 @@ export function googleRedirectUri(requestHeaders: Headers) {
 
   const proto = requestHeaders.get("x-forwarded-proto") ?? "http";
   const host =
-    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3456";
   return `${proto}://${host}/api/auth/google/callback`;
 }
 

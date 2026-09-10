@@ -65,14 +65,14 @@ RUN chmod +x ./docker-entrypoint.sh
 
 USER node
 
-ENV PORT=3000
+ENV PORT=3456
 ENV HOSTNAME=0.0.0.0
-EXPOSE 3000
+EXPOSE 3456
 
 # Coolify (and plain `docker run`) both read this. The actual listening
 # port is controlled by the PORT env var above, which Coolify's panel can
 # override per the deploy — Next's standalone server.js honors it natively.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3456)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

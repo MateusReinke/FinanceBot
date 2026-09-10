@@ -153,7 +153,7 @@ export async function requestPasswordReset(
     },
   });
 
-  const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
+  const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3456"}/reset-password?token=${resetToken}`;
 
   // Delivery is a dedicated n8n webhook (N8N_PASSWORD_RESET_WEBHOOK_URL, see
   // src/lib/password-reset-webhook.ts), kept separate from the WhatsApp
